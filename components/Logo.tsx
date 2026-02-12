@@ -1,0 +1,28 @@
+
+import React from 'react';
+import logoImage from '../imagens/PINTOR PRO.png';
+
+interface LogoProps {
+  className?: string;
+  color?: string;
+  showText?: boolean;
+}
+
+export const Logo: React.FC<LogoProps> = ({ className = "h-12", color = "currentColor" }) => {
+  const normalizedColor = color.replace(/\s+/g, '').toLowerCase();
+  const useWhiteLogo =
+    normalizedColor === '#fff' ||
+    normalizedColor === '#ffffff' ||
+    normalizedColor === 'white' ||
+    normalizedColor === 'rgb(255,255,255)';
+
+  return (
+    <div className={`flex items-center ${className}`}>
+      <img
+        src={logoImage}
+        alt="PINTOR PRO"
+        className={`h-full w-auto object-contain ${useWhiteLogo ? 'brightness-0 invert' : ''}`}
+      />
+    </div>
+  );
+};

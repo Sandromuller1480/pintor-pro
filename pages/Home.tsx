@@ -1,0 +1,324 @@
+
+import React, { useEffect, useState } from 'react';
+import { Page, Painter } from '../types';
+import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
+import { PainterCard } from '../components/PainterCard';
+import { Logo } from '../components/Logo';
+import { paintersService } from '../lib/paintersService';
+import mascostesImage from '../imagens/mascostes.png';
+import {
+  CheckCircle,
+  ArrowRight,
+  ShieldCheck,
+  Award,
+  TrendingUp,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Paintbrush,
+  Map as MapIcon,
+  Navigation,
+  Search
+} from 'lucide-react';
+
+interface HomeProps {
+  setPage: (p: Page) => void;
+}
+
+export const Home: React.FC<HomeProps> = ({ setPage }) => {
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [imgError, setImgError] = useState(false);
+  const [painters, setPainters] = useState<Painter[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPainters() {
+      const data = await paintersService.getAll();
+      setPainters(data.slice(0, 3)); // Mostrar apenas os 3 primeiros na Home
+      setLoading(false);
+    }
+    loadPainters();
+  }, []);
+
+  return (
+    <div className="overflow-x-hidden">
+      {/* HERO SECTION - PUBLICITÁRIA */}
+      <section className="relative bg-white pt-12 pb-24 lg:pt-20 lg:pb-40 overflow-hidden">
+        <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] bg-blue-50 rounded-full blur-[100px] -z-10"></div>
+        <div className="absolute bottom-[5%] left-[40%] w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[120px] -z-10"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+            <div className="space-y-8 animate-in">
+              <div className="inline-flex items-center bg-gradient-to-r from-blue-400 to-blue-600 text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-200">
+                <Paintbrush className="w-3 h-3 mr-2" /> Plataforma Líder no Brasil
+              </div>
+
+              <div className="relative">
+                <h1 className="text-6xl lg:text-[6.5rem] font-black text-[#1e293b] leading-[0.85] tracking-tighter mb-6">
+                  Sua obra <br /> merece o <br />
+                  <span className="relative inline-block mt-4">
+                    <span className="relative z-10 text-white px-6">Padrão PRO.</span>
+                    <span className="absolute inset-0 bg-blue-600 -rotate-1 scale-105 shadow-xl shadow-blue-400/30"></span>
+                  </span>
+                </h1>
+              </div>
+
+              <p className="text-xl text-slate-500 leading-relaxed max-w-lg font-medium border-l-4 border-slate-200 pl-6">
+                Conectamos os projetos mais exigentes aos pintores de elite que dominam as técnicas mais avançadas do mercado.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button
+                  onClick={() => setPage(Page.FindPainter)}
+                  className="bg-black text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em]"
+                >
+                  Contratar Agora
+                </button>
+                <button
+                  onClick={() => setPage(Page.Register)}
+                  className="bg-white border-2 border-slate-100 text-[#1e293b] px-10 py-6 rounded-2xl font-black text-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-300 flex items-center justify-center uppercase tracking-[0.1em] shadow-sm"
+                >
+                  Sou Pintor PRO
+                </button>
+              </div>
+
+              <div className="flex items-center gap-8 pt-8">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4].map(i => <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} className="w-12 h-12 rounded-full border-4 border-white shadow-sm" />)}
+                </div>
+                <div>
+                  <div className="flex text-yellow-400 mb-1">
+                    <Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" />
+                  </div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+[NÚMERO] Projetos Concluídos</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              {/* Frame Container - Reforçado para visibilidade */}
+              <div className="relative z-10 w-full max-w-[620px] mx-auto bg-gradient-to-b from-slate-50 to-slate-200 rounded-[60px] overflow-hidden border-[12px] border-white shadow-[0_60px_100px_-20px_rgba(0,0,0,0.12)]">
+                {!imgError ? (
+                  <img
+                    src={mascostesImage}
+                    alt="Padrão Pintor PRO"
+                    className="block w-full h-auto"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-12">
+                    <Logo className="h-32 mb-6" color="#000" />
+                    <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Aguardando Carregamento do Mascote</p>
+                  </div>
+                )}
+
+                {/* Roller Reveal UI Badge */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-[360px] animate-in slide-in-from-bottom duration-700 delay-300 z-20">
+                  <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200"><ShieldCheck size={22} /></div>
+                    <div>
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status</div>
+                      <div className="text-sm font-black text-slate-900 leading-none uppercase">Pintor Verificado</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Overlay de gradiente inferior para fusão suave */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-200/50 via-transparent to-transparent pointer-events-none"></div>
+              </div>
+
+              <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-600/5 rounded-full blur-[80px]"></div>
+              <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-400/10 rounded-full blur-[100px]"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO: MAPA REAL (DÚVIDA DO USUÁRIO) */}
+      <section className="py-32 bg-slate-900 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+
+            <div className="order-2 lg:order-1 relative">
+              {/* UI de Mapa Premium */}
+              <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
+                <div className="relative aspect-[16/11] rounded-[40px] overflow-hidden bg-slate-900 group">
+                  {/* Grid de Mapa */}
+                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]"></div>
+
+                  {/* Pins de Pintores Reais */}
+                  <div className="absolute top-[35%] left-[25%] group-hover:scale-110 transition-transform cursor-pointer">
+                    <div className="relative">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute inset-0"></div>
+                      <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-xl"></div>
+                      <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2">
+                        <img src="https://i.pravatar.cc/100?u=1" className="w-8 h-8 rounded-lg" />
+                        <span className="text-[10px] font-black text-slate-900">RICARDO</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="absolute top-[60%] left-[65%] group-hover:scale-110 transition-transform cursor-pointer">
+                    <div className="relative">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute inset-0"></div>
+                      <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-xl"></div>
+                      <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2">
+                        <img src="https://i.pravatar.cc/100?u=2" className="w-8 h-8 rounded-lg" />
+                        <span className="text-[10px] font-black text-slate-900">ELAINE</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UI Overlay */}
+                  <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
+                    <div className="bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700 flex items-center gap-3">
+                      <Navigation size={16} className="text-blue-500" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">São Paulo, BR</span>
+                    </div>
+                    <button onClick={() => setPage(Page.FindPainter)} className="bg-blue-600 text-white p-3 rounded-2xl shadow-xl shadow-blue-500/20">
+                      <Search size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Badge de Profissionais Online */}
+              <div className="absolute -top-10 -right-10 bg-blue-600 text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
+                <p className="text-4xl font-black mb-1">+[NÚMERO]</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Online agora</p>
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2 space-y-8">
+              <h2 className="text-blue-500 font-black uppercase tracking-[0.3em] text-xs">Geolocalização PRO</h2>
+              <h3 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none">
+                O melhor pintor <br /> está <span className="text-blue-500 underline decoration-slate-700">do seu lado.</span>
+              </h3>
+              <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-md">
+                Nossa tecnologia cruza sua localização com a agenda dos pintores de elite, garantindo rapidez no orçamento e na execução.
+              </p>
+              <div className="space-y-4 pt-4">
+                <div className="flex items-center gap-4 text-white">
+                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-500"><CheckCircle size={20} /></div>
+                  <span className="font-bold text-lg">Busca por KM de distância</span>
+                </div>
+                <div className="flex items-center gap-4 text-white">
+                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-500"><CheckCircle size={20} /></div>
+                  <span className="font-bold text-lg">Tempo de resposta em minutos</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* STATS SECTION */}
+      <section className="py-20 bg-black text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+            <div className="space-y-4">
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">+[NÚMERO]</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pintores Elite</div>
+            </div>
+            <div className="space-y-4">
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">R$ [NÚMERO]M</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Investidos em Qualidade</div>
+            </div>
+            <div className="space-y-4">
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">100%</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pagamento Protegido</div>
+            </div>
+            <div className="space-y-4">
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">Brasil</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Atendimento Nacional</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
+      <section className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-24">
+            <h2 className="text-blue-600 font-black uppercase tracking-[0.3em] text-xs mb-6">Processo Premium</h2>
+            <h3 className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter leading-tight">Como elevamos o seu projeto.</h3>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
+            {HOW_IT_WORKS_CLIENTS.map((item, idx) => (
+              <div key={idx} className="relative group">
+                <div className="mb-10 relative">
+                  <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm group-hover:shadow-xl group-hover:shadow-blue-200">
+                    {React.cloneElement(item.icon as React.ReactElement<any>, { size: 36 })}
+                  </div>
+                  <div className="absolute -top-4 -right-4 w-12 h-12 bg-white border border-slate-100 rounded-full flex items-center justify-center font-black text-slate-200 text-xl">0{idx + 1}</div>
+                </div>
+                <h4 className="text-2xl font-black mb-6 uppercase tracking-tight text-slate-900">{item.title}</h4>
+                <p className="text-slate-500 leading-relaxed font-medium text-lg">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PORTFOLIOS SECTION */}
+      <section className="py-32 bg-slate-50 border-y border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+            <div className="max-w-2xl">
+              <h2 className="text-blue-600 font-black uppercase tracking-[0.3em] text-xs mb-6">Galeria de Elite</h2>
+              <h3 className="text-5xl font-black text-slate-900 tracking-tighter">Acabamentos que inspiram.</h3>
+            </div>
+            <button onClick={() => setPage(Page.FindPainter)} className="bg-white border-2 border-slate-900 text-slate-900 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all duration-300">
+              Ver Todos os Pintores
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {loading ? (
+              <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando Elite...</div>
+            ) : (
+              painters.map((painter, idx) => (
+                <PainterCard key={idx} painter={painter} onClick={() => setPage(Page.PainterProfile)} />
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="py-32 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-blue-600 font-black uppercase tracking-[0.3em] text-xs mb-6">Suporte</h2>
+            <h3 className="text-5xl font-black text-slate-900 tracking-tighter">Perguntas Frequentes.</h3>
+          </div>
+          <div className="space-y-6">
+            {FAQ_DATA.map((item, idx) => (
+              <div key={idx} className="border-2 border-slate-100 rounded-[24px] overflow-hidden transition-all duration-300 hover:border-blue-200">
+                <button
+                  onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-8 text-left transition"
+                >
+                  <span className="font-black text-slate-800 text-lg uppercase tracking-tight leading-tight">{item.q}</span>
+                  <div className={`shrink-0 ml-4 transition-transform duration-300 ${activeFaq === idx ? 'rotate-180 text-blue-600' : 'text-slate-400'}`}>
+                    <ChevronDown size={28} />
+                  </div>
+                </button>
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeFaq === idx ? 'max-h-96' : 'max-h-0'}`}>
+                  <div className="px-8 pb-8 pt-2 bg-slate-50/50 text-slate-600 font-medium leading-relaxed text-lg">
+                    {item.a}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};

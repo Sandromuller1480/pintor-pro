@@ -1,0 +1,118 @@
+
+import React, { useState } from 'react';
+import { Page } from '../types';
+import { Logo } from './Logo';
+import { Menu, X, ChevronRight, Instagram, Facebook, Linkedin } from 'lucide-react';
+
+interface LayoutProps {
+  children: React.ReactNode;
+  currentPage: Page;
+  setPage: (p: Page) => void;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans">
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-24">
+            <div className="flex items-center cursor-pointer" onClick={() => setPage(Page.Home)}>
+              <Logo className="h-16" color="#000000" />
+            </div>
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex space-x-8 items-center">
+              <button onClick={() => setPage(Page.FindPainter)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-blue-600' : 'text-slate-600 hover:text-black'}`}>Encontrar Pintor</button>
+              <button onClick={() => setPage(Page.HowItWorks)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-blue-600' : 'text-slate-600 hover:text-black'}`}>Como Funciona</button>
+              <button onClick={() => setPage(Page.Plans)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-blue-600' : 'text-slate-600 hover:text-black'}`}>Planos</button>
+              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+              <button onClick={() => setPage(Page.Register)} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest">Área do Pintor</button>
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600 p-2">
+                {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
+            <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
+            <button onClick={() => { setPage(Page.HowItWorks); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Como Funciona</button>
+            <button onClick={() => { setPage(Page.Plans); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Planos</button>
+            <button onClick={() => { setPage(Page.Register); setIsMenuOpen(false); }} className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4">Sou Pintor</button>
+          </div>
+        )}
+      </header>
+
+      {/* CONTENT */}
+      <main className="flex-grow">
+        {children}
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-[#0f172a] text-white pt-20 pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
+            <div className="col-span-1 md:col-span-1">
+              <Logo className="h-20 mb-8" color="#ffffff" />
+              <p className="text-slate-400 text-sm leading-relaxed mb-8">
+                A primeira plataforma nacional focada exclusivamente na elite da pintura imobiliária. Qualidade inegociável, tecnologia de ponta.
+              </p>
+              <div className="flex space-x-5">
+                <a href="#" className="bg-white/5 p-3 rounded-full hover:bg-blue-600 transition duration-300"><Instagram className="w-5 h-5" /></a>
+                <a href="#" className="bg-white/5 p-3 rounded-full hover:bg-blue-600 transition duration-300"><Facebook className="w-5 h-5" /></a>
+                <a href="#" className="bg-white/5 p-3 rounded-full hover:bg-blue-600 transition duration-300"><Linkedin className="w-5 h-5" /></a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-blue-600 pl-4"> Marketplace</h4>
+              <ul className="space-y-4 text-slate-400 text-sm font-medium">
+                <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-blue-400 transition">Encontrar Profissionais</button></li>
+                <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-blue-400 transition">Como funciona para Clientes</button></li>
+                <li><button className="hover:text-blue-400 transition">Categorias de Pintura</button></li>
+                <li><button className="hover:text-blue-400 transition">Galeria de Inspiração</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-blue-600 pl-4">Profissionais</h4>
+              <ul className="space-y-4 text-slate-400 text-sm font-medium">
+                <li><button onClick={() => setPage(Page.Register)} className="hover:text-blue-400 transition">Cadastrar Portfólio</button></li>
+                <li><button onClick={() => setPage(Page.Plans)} className="hover:text-blue-400 transition">Planos PRO</button></li>
+                <li><button className="hover:text-blue-400 transition">PINTOR PRO Academy</button></li>
+                <li><button className="hover:text-blue-400 transition">Central do Parceiro</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-blue-600 pl-4">Institucional</h4>
+              <ul className="space-y-4 text-slate-400 text-sm font-medium">
+                <li><button className="hover:text-blue-400 transition">Sobre a Marca</button></li>
+                <li><button className="hover:text-blue-400 transition">Trabalhe Conosco</button></li>
+                <li><button className="hover:text-blue-400 transition">Política de Qualidade</button></li>
+                <li><button className="hover:text-blue-400 transition text-blue-400">Atendimento 24h</button></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+            <p>© 2025 PINTOR PRO - O PADRÃO OURO DA PINTURA NACIONAL.</p>
+            <div className="flex gap-8">
+              <a href="#" className="hover:text-white transition">Termos de Uso</a>
+              <a href="#" className="hover:text-white transition">Privacidade</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};

@@ -1,0 +1,9 @@
+
+{
+  "name": "PINTOR PRO - Marketplace de Pintura Premium",
+  "description": "Plataforma nacional que conecta clientes a pintores profissionais de alto padrão, com estrutura de branding premium, UX refinada e foco em autoridade no mercado brasileiro.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
