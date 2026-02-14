@@ -15,7 +15,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* HEADER */}
+      {/* CABEÇALHO */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-24">
@@ -23,7 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <Logo className="h-16" color="#000000" />
             </div>
 
-            {/* Desktop Nav */}
+            {/* Navegação Desktop */}
             <nav className="hidden md:flex space-x-8 items-center">
               <button onClick={() => setPage(Page.FindPainter)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-blue-600' : 'text-slate-600 hover:text-black'}`}>Encontrar Pintor</button>
               <button onClick={() => setPage(Page.HowItWorks)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-blue-600' : 'text-slate-600 hover:text-black'}`}>Como Funciona</button>
@@ -32,7 +32,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <button onClick={() => setPage(Page.Register)} className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest">Área do Pintor</button>
             </nav>
 
-            {/* Mobile Menu Button */}
+            {/* Botão de Menu Mobile */}
             <div className="md:hidden flex items-center">
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600 p-2">
                 {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -41,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Menu Mobile */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
@@ -52,12 +52,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         )}
       </header>
 
-      {/* CONTENT */}
+      {/* CONTEÚDO */}
       <main className="flex-grow">
         {children}
       </main>
 
-      {/* FOOTER */}
+      {/* RODAPÉ */}
       <footer className="bg-[#0f172a] text-white pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
@@ -103,7 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               </ul>
             </div>
           </div>
-          
+
           <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
             <p>© 2025 PINTOR PRO - O PADRÃO OURO DA PINTURA NACIONAL.</p>
             <div className="flex gap-8">

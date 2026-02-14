@@ -4,10 +4,10 @@ import { Shield, Star, CheckCircle, Search, Calendar, Award, MapPin, Wrench, Zap
 import { Painter } from './types';
 
 export const COLORS = {
-  brand: '#000000', // Black Logo
-  primary: '#2563eb', // Vibrant Blue
-  secondary: '#1e3a8a', // Dark Institutional Blue
-  accent: '#3b82f6', // Light Blue
+  brand: '#000000', // Logo Preta
+  primary: '#2563eb', // Azul Vibrante
+  secondary: '#1e3a8a', // Azul Institucional Escuro
+  accent: '#3b82f6', // Azul Claro
   bg: '#f8fafc',
   white: '#ffffff'
 };

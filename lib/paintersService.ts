@@ -53,7 +53,16 @@ export const paintersService = {
         } as Painter;
     },
 
-    async submitApplication(formData: { fullName: string, city: string, whatsapp: string, email: string }) {
+    async submitApplication(formData: {
+        fullName: string,
+        city: string,
+        whatsapp: string,
+        email: string,
+        experienceTime: string,
+        specialty: string,
+        workPhotos: File[],
+        certifications: File[]
+    }) {
         // 1. Salvar no Supabase
         const { data, error } = await supabase
             .from('applications')

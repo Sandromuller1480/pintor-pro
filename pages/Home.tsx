@@ -115,7 +115,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   </div>
                 )}
 
-                {/* Roller Reveal UI Badge */}
+                {/* Selo Animado da UI */}
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-[360px] animate-in slide-in-from-bottom duration-700 delay-300 z-20">
                   <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200"><ShieldCheck size={22} /></div>
@@ -173,7 +173,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                     </div>
                   </div>
 
-                  {/* UI Overlay */}
+                  {/* Camada de UI */}
                   <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
                     <div className="bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700 flex items-center gap-3">
                       <Navigation size={16} className="text-blue-500" />
@@ -217,7 +217,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* STATS SECTION */}
+      {/* SEÇÃO DE ESTATÍSTICAS */}
       <section className="py-20 bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
@@ -266,7 +266,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* PORTFOLIOS SECTION */}
+      {/* SEÇÃO de PORTFÓLIOS */}
       <section className="py-32 bg-slate-50 border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
@@ -290,7 +290,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* FAQ SECTION */}
+      {/* SEÇÃO de PERGUNTAS FREQUENTES (FAQ) */}
       <section className="py-32 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">

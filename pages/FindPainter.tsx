@@ -33,7 +33,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     <div className="bg-slate-50 min-h-screen pt-12 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Header Search Area */}
+        {/* Área de Busca do Cabeçalho */}
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-5 relative">
@@ -63,7 +63,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
+          {/* Barra Lateral de Filtros */}
           <aside className="lg:w-72 space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-6">
@@ -123,7 +123,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             </div>
           </aside>
 
-          {/* Results List */}
+          {/* Lista de Resultados */}
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <p className="text-slate-500 font-medium">{filteredPainters.length} pintores encontrados</p>
@@ -145,7 +145,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               )}
             </div>
 
-            {/* Pagination */}
+            {/* Paginação */}
             <div className="mt-12 flex justify-center gap-2">
               <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-400 hover:border-blue-600 hover:text-blue-600 transition">1</button>
               <button className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-200">2</button>

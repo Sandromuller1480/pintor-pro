@@ -10,15 +10,73 @@ import { About } from './pages/About';
 import { HowItWorks } from './pages/HowItWorks';
 import { paintersService } from './lib/paintersService';
 
+const SPECIALTY_OPTIONS = [
+  'Preparo do reboco (Limpeza, Lixa, Selador/Fundo Preparador)',
+  'Preparo do Acartonado (Lixa e Fundo Preparador)',
+  'Massa Corrida (Aplicacao e lixamento)',
+  'Massa Acrilica (Aplicacao e lixamento)',
+  'Tintas Acrilicas',
+  'Tintas Solvente',
+  'Pinturas em Metais (Tratamento especial)',
+  'Pinturas em Madeira (Tratamento especial)',
+  'Pinturas com Efeitos',
+  'Texturas',
+  'Airless',
+  'Pistolas Industriais (Pinturas, Texturas e Efeitos)',
+  'Lixadeiras: Pequenas, medias e grande porte',
+  'Compressores de Pequenos, Medios e grande porte',
+  'Reformas (Tratamento de patologias e Superficies)',
+  'Acabamentos Finos',
+  'NR-35 (trabalho em altura)',
+  'EPIs'
+];
+
+type ApplicationFormData = {
+  fullName: string;
+  city: string;
+  whatsapp: string;
+  email: string;
+  experienceTime: string;
+  specialty: string;
+  workPhotos: File[];
+  certifications: File[];
+};
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.Home);
-  const [formData, setFormData] = useState({ fullName: '', city: '', whatsapp: '', email: '' });
+  const [formData, setFormData] = useState<ApplicationFormData>({
+    fullName: '',
+    city: '',
+    whatsapp: '',
+    email: '',
+    experienceTime: '',
+    specialty: '',
+    workPhotos: [],
+    certifications: []
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    if (!formData.fullName || !formData.city || !formData.whatsapp || !formData.email) {
+    if (
+      !formData.fullName ||
+      !formData.city ||
+      !formData.whatsapp ||
+      !formData.email ||
+      !formData.experienceTime ||
+      !formData.specialty
+    ) {
       alert('Por favor, preencha todos os campos.');
+      return;
+    }
+
+    if (formData.workPhotos.length < 3) {
+      alert('Envie no minimo 3 fotos de trabalhos.');
+      return;
+    }
+
+    if (formData.certifications.length === 0) {
+      alert('Envie pelo menos 1 certificacao em PDF ou JPG.');
       return;
     }
 
@@ -32,6 +90,14 @@ const App: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleWorkPhotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, workPhotos: Array.from(e.target.files ?? []) });
+  };
+
+  const handleCertificationsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, certifications: Array.from(e.target.files ?? []) });
   };
 
   const renderPage = () => {
@@ -119,6 +185,57 @@ const App: React.FC = () => {
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                     />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tempo de Profissao</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 10 anos"
+                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                    value={formData.experienceTime}
+                    onChange={(e) => setFormData({ ...formData, experienceTime: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Especialidades</label>
+                  <select
+                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                    value={formData.specialty}
+                    onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                  >
+                    <option value="">Selecione uma especialidade</option>
+                    {SPECIALTY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Fotos de Trabalhos</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                      onChange={handleWorkPhotosChange}
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      Minimo de 3 fotos. Selecionadas: {formData.workPhotos.length}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Certificacao</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg"
+                      multiple
+                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                      onChange={handleCertificationsChange}
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      PDF ou JPG. Selecionados: {formData.certifications.length}
+                    </p>
                   </div>
                 </div>
                 <button
