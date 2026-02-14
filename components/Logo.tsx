@@ -1,6 +1,7 @@
 
 import React from 'react';
-import logoImage from '../imagens/PINTOR PRO.png';
+import logoImage from '../imagens/logo-colorido.png';
+import logoBrancoImage from '../imagens/logo-branco.png';
 
 interface LogoProps {
   className?: string;
@@ -19,9 +20,9 @@ export const Logo: React.FC<LogoProps> = ({ className = "h-12", color = "current
   return (
     <div className={`flex items-center ${className}`}>
       <img
-        src={logoImage}
+        src={useWhiteLogo ? logoBrancoImage : logoImage}
         alt="PINTOR PRO"
-        className={`h-full w-auto object-contain ${useWhiteLogo ? 'brightness-0 invert' : ''}`}
+        className="h-full w-auto object-contain"
       />
     </div>
   );

@@ -5,7 +5,7 @@ import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
 import { PainterCard } from '../components/PainterCard';
 import { Logo } from '../components/Logo';
 import { paintersService } from '../lib/paintersService';
-import mascostesImage from '../imagens/mascostes.png';
+import mascostesImage from '../imagens/mascotes.png';
 import {
   CheckCircle,
   ArrowRight,

@@ -1,0 +1,5 @@
+/* Estilos globais personalizados */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
