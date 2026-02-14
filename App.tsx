@@ -209,7 +209,7 @@ const App: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Especialidades (Selecione quantas desejar)</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">SELECIONE SUAS ESPECIALIDADES</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-6 rounded-2xl border border-slate-200 max-h-64 overflow-y-auto no-scrollbar">
                     {SPECIALTY_OPTIONS.map((option) => (
                       <label
