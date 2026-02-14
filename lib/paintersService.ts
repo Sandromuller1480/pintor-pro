@@ -59,7 +59,7 @@ export const paintersService = {
         whatsapp: string,
         email: string,
         experienceTime: string,
-        specialty: string,
+        specialty: string[],
         workPhotos: File[],
         certifications: File[]
     }) {
@@ -71,12 +71,17 @@ export const paintersService = {
                 city: formData.city,
                 whatsapp: formData.whatsapp,
                 email: formData.email,
+                experience_time: formData.experienceTime,
+                specialties: formData.specialty,
                 status: 'pending'
             }])
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Erro ao inserir aplicação:', error);
+            throw error;
+        }
 
         // 2. Processar Análise e Notificações (Assíncrono)
         this.processAutomatedAnalysis(data.id, formData);
@@ -93,7 +98,7 @@ export const paintersService = {
         const newStatus = isAccepted ? 'accepted' : 'rejected';
 
         // Atualizar Banco
-        await supabase
+        const { error } = await supabase
             .from('applications')
             .update({
                 status: newStatus,
@@ -102,6 +107,11 @@ export const paintersService = {
                     : 'Recusado: Dados insuficientes para validação PRO.'
             })
             .eq('id', applicationId);
+
+        if (error) {
+            console.error('Erro ao atualizar status da aplicação:', error);
+            return;
+        }
 
         // ENVIAR NOTIFICAÇÃO REAL (APENAS E-MAIL)
         this.sendNotificationEmail(formData.email, formData.fullName, isAccepted);

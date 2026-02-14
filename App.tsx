@@ -37,7 +37,7 @@ type ApplicationFormData = {
   whatsapp: string;
   email: string;
   experienceTime: string;
-  specialty: string;
+  specialty: string[];
   workPhotos: File[];
   certifications: File[];
 };
@@ -50,7 +50,7 @@ const App: React.FC = () => {
     whatsapp: '',
     email: '',
     experienceTime: '',
-    specialty: '',
+    specialty: [],
     workPhotos: [],
     certifications: []
   });
@@ -64,7 +64,7 @@ const App: React.FC = () => {
       !formData.whatsapp ||
       !formData.email ||
       !formData.experienceTime ||
-      !formData.specialty
+      formData.specialty.length === 0
     ) {
       alert('Por favor, preencha todos os campos.');
       return;
@@ -98,6 +98,17 @@ const App: React.FC = () => {
 
   const handleCertificationsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, certifications: Array.from(e.target.files ?? []) });
+  };
+
+  const toggleSpecialty = (option: string) => {
+    setFormData(prev => {
+      const isSelected = prev.specialty.includes(option);
+      if (isSelected) {
+        return { ...prev, specialty: prev.specialty.filter(s => s !== option) };
+      } else {
+        return { ...prev, specialty: [...prev.specialty, option] };
+      }
+    });
   };
 
   const renderPage = () => {
@@ -198,17 +209,35 @@ const App: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Especialidades</label>
-                  <select
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
-                    value={formData.specialty}
-                    onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                  >
-                    <option value="">Selecione uma especialidade</option>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Especialidades (Selecione quantas desejar)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-6 rounded-2xl border border-slate-200 max-h-64 overflow-y-auto no-scrollbar">
                     {SPECIALTY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
+                      <label
+                        key={option}
+                        className={`flex items-center p-3 rounded-xl border transition-all cursor-pointer group ${formData.specialty.includes(option) ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-100' : 'bg-white border-slate-100 hover:border-blue-200'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={formData.specialty.includes(option)}
+                          onChange={() => toggleSpecialty(option)}
+                        />
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center mr-3 transition-colors ${formData.specialty.includes(option) ? 'bg-white border-white text-blue-600' : 'bg-slate-50 border-slate-200 group-hover:border-blue-400'}`}>
+                          {formData.specialty.includes(option) && (
+                            <svg xmlns="http://www.w3.org/2003/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-xs font-bold uppercase tracking-tight leading-tight ${formData.specialty.includes(option) ? 'text-white' : 'text-slate-600'}`}>
+                          {option}
+                        </span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase tracking-widest">
+                    Selecionadas: {formData.specialty.length} especialidades
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
