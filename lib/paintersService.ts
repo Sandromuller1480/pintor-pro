@@ -1,6 +1,31 @@
-
 import { supabase } from './supabase';
 import { Painter } from '../types';
+
+const STORAGE_BUCKETS = {
+    workPhotos: 'application-work-photos',
+    certifications: 'application-certifications'
+} as const;
+
+type ApplicationFormSubmission = {
+    fullName: string,
+    city: string,
+    whatsapp: string,
+    email: string,
+    experienceTime: string,
+    specialty: string[],
+    workPhotos: File[],
+    certifications: File[]
+};
+
+type ApplicationProcessingRequest = {
+    applicationId: string;
+    applicant: Pick<ApplicationFormSubmission, 'fullName' | 'email' | 'city' | 'experienceTime'>;
+    uploadedFiles: {
+        workPhotoCount: number;
+        certificationCount: number;
+    };
+    specialtiesCount: number;
+};
 
 export const paintersService = {
     async getAll() {
@@ -14,7 +39,6 @@ export const paintersService = {
             return [];
         }
 
-        // Mapear campos do banco (snake_case) para o tipo do frontend (camelCase) se necessário
         return data.map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -53,17 +77,7 @@ export const paintersService = {
         } as Painter;
     },
 
-    async submitApplication(formData: {
-        fullName: string,
-        city: string,
-        whatsapp: string,
-        email: string,
-        experienceTime: string,
-        specialty: string[],
-        workPhotos: File[],
-        certifications: File[]
-    }) {
-        // 1. Salvar no Supabase
+    async submitApplication(formData: ApplicationFormSubmission) {
         const { data, error } = await supabase
             .from('applications')
             .insert([{
@@ -79,95 +93,109 @@ export const paintersService = {
             .single();
 
         if (error) {
-            console.error('Erro ao inserir aplicação:', error);
+            console.error('Erro ao inserir aplicacao:', error);
             throw error;
         }
 
-        // 2. Processar Análise e Notificações (Assíncrono)
-        this.processAutomatedAnalysis(data.id, formData);
+        const [workPhotoPaths, certificationPaths] = await Promise.all([
+            this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
+            this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
+        ]);
 
-        return data;
-    },
-
-    async processAutomatedAnalysis(applicationId: string, formData: any) {
-        // Delay simulado de processamento da "IA" (Análise técnica)
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        // CRITÉRIO DE ANÁLISE (Exemplo: Aceita se a cidade for informada corretamente)
-        const isAccepted = formData.city.length > 3;
-        const newStatus = isAccepted ? 'accepted' : 'rejected';
-
-        // Atualizar Banco
-        const { error } = await supabase
+        const { error: filesUpdateError } = await supabase
             .from('applications')
             .update({
-                status: newStatus,
-                analysis_notes: isAccepted
-                    ? 'Aprovado via Filtro Técnico Automático: Localização e identificação válidas.'
-                    : 'Recusado: Dados insuficientes para validação PRO.'
+                work_photo_paths: workPhotoPaths,
+                certification_paths: certificationPaths,
+                work_photo_count: workPhotoPaths.length,
+                certification_count: certificationPaths.length
             })
-            .eq('id', applicationId);
+            .eq('id', data.id);
 
-        if (error) {
-            console.error('Erro ao atualizar status da aplicação:', error);
-            return;
+        if (filesUpdateError) {
+            console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
+            throw filesUpdateError;
         }
 
-        // ENVIAR NOTIFICAÇÃO REAL (APENAS E-MAIL)
-        this.sendNotificationEmail(formData.email, formData.fullName, isAccepted);
+        this.processAutomatedAnalysis({
+            applicationId: data.id,
+            applicant: {
+                fullName: formData.fullName,
+                email: formData.email,
+                city: formData.city,
+                experienceTime: formData.experienceTime
+            },
+            uploadedFiles: {
+                workPhotoCount: workPhotoPaths.length,
+                certificationCount: certificationPaths.length
+            },
+            specialtiesCount: formData.specialty.length
+        }).catch((processingError) => {
+            console.error('Erro no processamento assincrono da aplicacao:', processingError);
+        });
+
+        return {
+            ...data,
+            work_photo_paths: workPhotoPaths,
+            certification_paths: certificationPaths
+        };
     },
 
-    async sendNotificationEmail(email: string, name: string, isAccepted: boolean) {
-        const apiKey = import.meta.env.VITE_RESEND_API_KEY;
-        if (!apiKey || apiKey.includes('aqui')) {
-            console.warn('[AVISO] API Key do Resend não configurada. E-mail não enviado.');
-            return;
+    async uploadApplicationFiles(
+        applicationId: string,
+        files: File[],
+        bucket: (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS],
+        folder: string
+    ) {
+        if (!files.length) return [];
+
+        const uploadedPaths: string[] = [];
+
+        for (const [index, file] of files.entries()) {
+            const extension = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+            const safeBaseName = file.name
+                .replace(/\.[^/.]+$/, '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9-_]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '')
+                .toLowerCase() || 'arquivo';
+
+            const uniqueId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                ? crypto.randomUUID()
+                : `${Date.now()}-${index}`;
+
+            const filePath = `${applicationId}/${folder}/${uniqueId}-${safeBaseName}.${extension}`;
+
+            const { error } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, file, {
+                    upsert: false,
+                    contentType: file.type || undefined
+                });
+
+            if (error) {
+                console.error(`Erro ao enviar arquivo para o bucket ${bucket}:`, error);
+                throw error;
+            }
+
+            uploadedPaths.push(filePath);
         }
 
-        try {
-            await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    from: 'Pintor PRO <onboarding@resend.dev>',
-                    to: email,
-                    subject: isAccepted ? 'Parabéns! Você é um Pintor PRO 🏅' : 'Atualização sobre seu cadastro no Pintor PRO',
-                    html: `
-                        <div style="font-family: sans-serif; padding: 40px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 32px; background-color: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-                            <div style="text-align: center; margin-bottom: 30px;">
-                                <h1 style="color: #000; font-size: 24px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase;">PINTOR <span style="color: #2563eb;">PRO</span></h1>
-                            </div>
-                            
-                            <h2 style="color: #1e293b; font-size: 20px; font-weight: 800; margin-bottom: 20px;">Olá, ${name}!</h2>
-                            
-                            <p style="font-size: 16px; line-height: 1.6; color: #475569; margin-bottom: 24px;">
-                                ${isAccepted
-                            ? 'Temos o prazer de informar que sua solicitação de credenciamento foi <strong>APROVADA</strong>. Você agora faz parte da elite da pintura brasileira.'
-                            : 'Agradecemos o seu interesse no Padrão PRO. No momento, após nossa análise técnica automática, seu perfil não foi selecionado para o credenciamento.'}
-                            </p>
-                            
-                            ${isAccepted ? `
-                                <div style="background: #f8fafc; padding: 24px; border-radius: 16px; border-left: 4px solid #2563eb; margin-bottom: 24px;">
-                                    <p style="margin: 0; font-weight: 800; color: #1e293b; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Próximo Passo</p>
-                                    <p style="margin: 8px 0 0 0; color: #64748b;">Acesse seu painel agora para configurar seu portfólio e começar a receber pedidos de obras de alto padrão.</p>
-                                </div>
-                            ` : ''}
+        return uploadedPaths;
+    },
 
-                            <div style="border-top: 1px solid #f1f5f9; padding-top: 24px; margin-top: 40px;">
-                                <p style="font-size: 12px; color: #94a3b8; text-align: center;">
-                                    Este é um e-mail automático enviado pelo sistema de curadoria PINTOR PRO.
-                                </p>
-                            </div>
-                        </div>
-                    `
-                })
-            });
-            console.log(`[SUCESSO] Notificação enviada para: ${email}`);
-        } catch (e) {
-            console.error('Erro ao enviar e-mail via Resend:', e);
+    async processAutomatedAnalysis(payload: ApplicationProcessingRequest) {
+        const { data, error } = await supabase.functions.invoke('process-application', {
+            body: payload
+        });
+
+        if (error) {
+            console.error('Erro ao invocar funcao process-application:', error);
+            throw error;
         }
+
+        return data;
     }
 };
