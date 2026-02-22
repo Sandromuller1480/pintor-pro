@@ -95,7 +95,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
                 </div>
                 <h4 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Por que ser Verificado?</h4>
                 <p className="text-slate-500 font-medium leading-relaxed">
-                    Pintores verificados recebem [NÚMERO]% mais cliques e são fechados [NÚMERO]x mais rápido por clientes que buscam segurança.
+                    Pintores verificados recebem 68% mais cliques e são fechados 2,4x mais rápido por clientes que buscam segurança.
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-6 w-full lg:w-auto">

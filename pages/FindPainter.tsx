@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { PainterCard } from '../components/PainterCard';
 import { Search, MapPin, Filter, SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { Page, Painter } from '../types';
+import { NavigateToPage, Page, Painter } from '../types';
 import { paintersService } from '../lib/paintersService';
 
 interface FindPainterProps {
-  setPage: (p: Page) => void;
+  setPage: NavigateToPage;
 }
 
 export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
@@ -138,7 +138,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                 <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando Elite...</div>
               ) : filteredPainters.length > 0 ? (
                 filteredPainters.map(painter => (
-                  <PainterCard key={painter.id} painter={painter} onClick={() => setPage(Page.PainterProfile)} />
+                  <PainterCard key={painter.id} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
                 ))
               ) : (
                 <div className="col-span-full py-20 text-center text-slate-400 font-medium">Nenhum pintor encontrado com esse termo.</div>

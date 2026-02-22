@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Page } from './types';
+import React, { useEffect, useState } from 'react';
+import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { FindPainter } from './pages/FindPainter';
@@ -42,8 +42,48 @@ type ApplicationFormData = {
   certifications: File[];
 };
 
+const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
+  [Page.Home]: '/',
+  [Page.FindPainter]: '/encontrar-pintor',
+  [Page.Register]: '/cadastro-pintor',
+  [Page.HowItWorks]: '/como-funciona',
+  [Page.Plans]: '/planos',
+  [Page.About]: '/sobre'
+};
+
+const getInitialRoute = (): AppRoute => {
+  if (typeof window === 'undefined') {
+    return { page: Page.Home };
+  }
+
+  const rawPath = window.location.pathname || '/';
+  const cleanPath = rawPath.replace(/\/+$/, '') || '/';
+  const parts = cleanPath.split('/').filter(Boolean);
+
+  if (parts.length === 0) return { page: Page.Home };
+  if (parts[0] === 'encontrar-pintor') return { page: Page.FindPainter };
+  if (parts[0] === 'cadastro-pintor') return { page: Page.Register };
+  if (parts[0] === 'como-funciona') return { page: Page.HowItWorks };
+  if (parts[0] === 'planos') return { page: Page.Plans };
+  if (parts[0] === 'sobre') return { page: Page.About };
+  if (parts[0] === 'pintor' && parts[1]) {
+    return { page: Page.PainterProfile, painterId: decodeURIComponent(parts[1]) };
+  }
+
+  return { page: Page.Home };
+};
+
+const buildPathForRoute = (route: AppRoute): string => {
+  if (route.page === Page.PainterProfile) {
+    return route.painterId ? `/pintor/${encodeURIComponent(route.painterId)}` : ROUTE_PATHS[Page.FindPainter];
+  }
+
+  return ROUTE_PATHS[route.page];
+};
+
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>(Page.Home);
+  const [route, setRoute] = useState<AppRoute>(getInitialRoute);
+  const currentPage = route.page;
   const [formData, setFormData] = useState<ApplicationFormData>({
     fullName: '',
     city: '',
@@ -56,6 +96,29 @@ const App: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
+    const nextRoute: AppRoute =
+      page === Page.PainterProfile
+        ? { page, painterId: params?.painterId }
+        : { page };
+
+    setRoute(nextRoute);
+
+    if (typeof window !== 'undefined') {
+      const nextPath = buildPathForRoute(nextRoute);
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, '', nextPath);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => setRoute(getInitialRoute());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleSubmit = async () => {
     if (
@@ -114,15 +177,15 @@ const App: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case Page.Home:
-        return <Home setPage={setCurrentPage} />;
+        return <Home setPage={navigateToPage} />;
       case Page.FindPainter:
-        return <FindPainter setPage={setCurrentPage} />;
+        return <FindPainter setPage={navigateToPage} />;
       case Page.PainterProfile:
-        return <PainterProfile />;
+        return <PainterProfile painterId={route.painterId} setPage={navigateToPage} />;
       case Page.HowItWorks:
-        return <HowItWorks setPage={setCurrentPage} />;
+        return <HowItWorks setPage={navigateToPage} />;
       case Page.Plans:
-        return <Plans setPage={setCurrentPage} />;
+        return <Plans setPage={navigateToPage} />;
       case Page.About:
         return <About />;
       case Page.Register:
@@ -139,7 +202,7 @@ const App: React.FC = () => {
                 Iniciamos a sua <b>Análise Técnica Automática</b>. <br />
                 Você receberá uma notificação via E-mail e WhatsApp em alguns minutos com o resultado.
               </p>
-              <button onClick={() => { setCurrentPage(Page.Home); setSubmitted(false); }} className="bg-black text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-600 transition uppercase tracking-widest">
+              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); }} className="bg-black text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-600 transition uppercase tracking-widest">
                 Voltar para a Home
               </button>
             </div>
@@ -279,18 +342,18 @@ const App: React.FC = () => {
             <p className="mt-8 text-slate-400 text-sm font-medium">
               Sua inscrição passará por uma curadoria técnica antes de ser publicada.
             </p>
-            <button onClick={() => setCurrentPage(Page.Home)} className="mt-8 text-slate-900 hover:text-blue-600 font-black uppercase text-xs tracking-widest transition">
+            <button onClick={() => navigateToPage(Page.Home)} className="mt-8 text-slate-900 hover:text-blue-600 font-black uppercase text-xs tracking-widest transition">
               ← Voltar para a Home
             </button>
           </div>
         );
       default:
-        return <Home setPage={setCurrentPage} />;
+        return <Home setPage={navigateToPage} />;
     }
   };
 
   return (
-    <Layout currentPage={currentPage} setPage={setCurrentPage}>
+    <Layout currentPage={currentPage} setPage={navigateToPage}>
       {renderPage()}
     </Layout>
   );

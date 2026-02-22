@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Page, Painter } from '../types';
+import { NavigateToPage, Page, Painter } from '../types';
 import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
 import { PainterCard } from '../components/PainterCard';
 import { Logo } from '../components/Logo';
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface HomeProps {
-  setPage: (p: Page) => void;
+  setPage: NavigateToPage;
 }
 
 export const Home: React.FC<HomeProps> = ({ setPage }) => {
@@ -93,7 +93,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   <div className="flex text-yellow-400 mb-1">
                     <Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" />
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+[NÚMERO] Projetos Concluídos</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+1.200 Projetos Concluídos</p>
                 </div>
               </div>
             </div>
@@ -188,7 +188,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               {/* Badge de Profissionais Online */}
               <div className="absolute -top-10 -right-10 bg-blue-600 text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
-                <p className="text-4xl font-black mb-1">+[NÚMERO]</p>
+                <p className="text-4xl font-black mb-1">+380</p>
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Online agora</p>
               </div>
             </div>
@@ -222,11 +222,11 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
             <div className="space-y-4">
-              <div className="text-5xl font-black text-blue-500 tracking-tighter">+[NÚMERO]</div>
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">+2.500</div>
               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pintores Elite</div>
             </div>
             <div className="space-y-4">
-              <div className="text-5xl font-black text-blue-500 tracking-tighter">R$ [NÚMERO]M</div>
+              <div className="text-5xl font-black text-blue-500 tracking-tighter">R$ 18M</div>
               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Investidos em Qualidade</div>
             </div>
             <div className="space-y-4">
@@ -282,8 +282,8 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             {loading ? (
               <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando Elite...</div>
             ) : (
-              painters.map((painter, idx) => (
-                <PainterCard key={idx} painter={painter} onClick={() => setPage(Page.PainterProfile)} />
+                painters.map((painter, idx) => (
+                <PainterCard key={idx} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
               ))
             )}
           </div>

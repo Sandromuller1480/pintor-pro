@@ -1,11 +1,76 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MOCK_PAINTERS } from '../constants';
+import { paintersService } from '../lib/paintersService';
+import { NavigateToPage, Page, Painter } from '../types';
 import { Shield, Star, MapPin, CheckCircle, Zap, Calendar, MessageSquare, ArrowRight, Camera, Share2, Heart, Info } from 'lucide-react';
 
-export const PainterProfile: React.FC = () => {
-    const painter = MOCK_PAINTERS[0];
+interface PainterProfileProps {
+    painterId?: string;
+    setPage?: NavigateToPage;
+}
+
+export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPage }) => {
+    const [painter, setPainter] = useState<Painter | null>(null);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadPainter() {
+            setLoading(true);
+
+            if (!painterId) {
+                if (!cancelled) {
+                    setPainter(MOCK_PAINTERS[0] ?? null);
+                    setLoading(false);
+                }
+                return;
+            }
+
+            const found = await paintersService.getById(painterId);
+            const fallback = MOCK_PAINTERS.find((item) => item.id === painterId) ?? null;
+
+            if (!cancelled) {
+                setPainter(found ?? fallback);
+                setLoading(false);
+            }
+        }
+
+        loadPainter();
+        return () => {
+            cancelled = true;
+        };
+    }, [painterId]);
+
+    if (loading) {
+        return (
+            <div className="bg-slate-50 min-h-screen flex items-center justify-center px-4">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Carregando perfil...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!painter) {
+        return (
+            <div className="bg-slate-50 min-h-screen flex items-center justify-center px-4">
+                <div className="max-w-xl w-full bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm text-center">
+                    <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil não encontrado</h1>
+                    <p className="text-slate-500 mb-8">O pintor solicitado não está disponível ou foi removido.</p>
+                    <button
+                        onClick={() => setPage?.(Page.FindPainter)}
+                        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
+                    >
+                        Voltar para busca
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-slate-50 min-h-screen">
@@ -81,7 +146,7 @@ export const PainterProfile: React.FC = () => {
                                 <div className="prose prose-slate max-w-none">
                                     <h3 className="text-2xl font-black mb-4">A excelência em cada demão</h3>
                                     <p className="text-slate-600 leading-relaxed text-lg">
-                                        Atuo no mercado há mais de [NÚMERO] anos, com foco em projetos residenciais de luxo e ambientes corporativos que exigem rigor técnico e acabamento impecável. Meu compromisso é transformar espaços através da cor e da proteção, utilizando sempre os melhores materiais do mercado.
+                                        Atuo no mercado há mais de 15 anos, com foco em projetos residenciais de luxo e ambientes corporativos que exigem rigor técnico e acabamento impecável. Meu compromisso é transformar espaços através da cor e da proteção, utilizando sempre os melhores materiais do mercado.
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

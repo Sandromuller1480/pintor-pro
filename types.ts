@@ -41,3 +41,14 @@ export enum Page {
   Plans = 'plans',
   About = 'about'
 }
+
+export type PageNavigationParams = {
+  painterId?: string;
+};
+
+export type NavigateToPage = (page: Page, params?: PageNavigationParams) => void;
+
+export type AppRoute = {
+  page: Page;
+  painterId?: string;
+};
