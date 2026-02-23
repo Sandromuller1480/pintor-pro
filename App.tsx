@@ -343,7 +343,7 @@ const App: React.FC = () => {
               Sua inscrição passará por uma curadoria técnica antes de ser publicada.
             </p>
             <button onClick={() => navigateToPage(Page.Home)} className="mt-8 text-slate-900 hover:text-[#9A077B] font-black uppercase text-xs tracking-widest transition">
-              â† Voltar para a Home
+              ← Voltar para a Home
             </button>
           </div>
         );
