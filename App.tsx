@@ -31,8 +31,14 @@ const SPECIALTY_OPTIONS = [
   'EPIs'
 ];
 
+const GENDER_OPTIONS = [
+  { value: 'feminino', label: 'Feminino' },
+  { value: 'masculino', label: 'Masculino' }
+] as const;
+
 type ApplicationFormData = {
   fullName: string;
+  gender: '' | 'feminino' | 'masculino';
   city: string;
   whatsapp: string;
   email: string;
@@ -86,6 +92,7 @@ const App: React.FC = () => {
   const currentPage = route.page;
   const [formData, setFormData] = useState<ApplicationFormData>({
     fullName: '',
+    gender: '',
     city: '',
     whatsapp: '',
     email: '',
@@ -238,6 +245,31 @@ const App: React.FC = () => {
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                    Sexo (Pessoa Física)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {GENDER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, gender: option.value })}
+                        className={`p-4 rounded-2xl border text-sm font-black uppercase tracking-widest transition ${
+                          formData.gender === option.value
+                            ? 'bg-[#9A077B] text-white border-[#9A077B] shadow-lg shadow-[#F7E3F1]'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-[#EFC6E3] hover:text-[#9A077B]'
+                        }`}
+                        aria-pressed={formData.gender === option.value}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                    Opcional para empresa. Selecione quando o cadastro for de profissional pessoa física.
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
