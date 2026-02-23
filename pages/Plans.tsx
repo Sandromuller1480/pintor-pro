@@ -11,25 +11,25 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
   const plans = [
     {
       name: "Bronze",
-      price: "GrÃ¡tis",
-      desc: "Para quem estÃ¡ comeÃ§ando a digitalizar seu trabalho.",
-      features: ["Perfil bÃ¡sico", "AtÃ© 3 fotos no portfÃ³lio", "Recebimento de orÃ§amentos", "Suporte via E-mail"],
-      cta: "ComeÃ§ar Agora",
+      price: "Grátis",
+      desc: "Para quem está começando a digitalizar seu trabalho.",
+      features: ["Perfil básico", "Até 3 fotos no portfólio", "Recebimento de orçamentos", "Suporte via E-mail"],
+      cta: "Começar Agora",
       highlight: false
     },
     {
       name: "Elite Silver",
-      price: "R$ 49/mÃªs",
-      desc: "O melhor custo-benefÃ­cio para pintores autÃ´nomos.",
-      features: ["Tudo do Bronze", "Selo de VerificaÃ§Ã£o BÃ¡sico", "AtÃ© 15 fotos no portfÃ³lio", "Destaque regional na busca", "EstatÃ­sticas de visitas"],
+      price: "R$ 49/mês",
+      desc: "O melhor custo-benefício para pintores autônomos.",
+      features: ["Tudo do Bronze", "Selo de Verificação Básico", "Até 15 fotos no portfólio", "Destaque regional na busca", "Estatísticas de visitas"],
       cta: "Assinar Silver",
       highlight: false
     },
     {
       name: "PINTOR PRO",
-      price: "R$ 97/mÃªs",
+      price: "R$ 97/mês",
       desc: "Para os melhores do Brasil que buscam projetos de luxo.",
-      features: ["Tudo do Silver", "Selo 'Top Avaliado' Ouro", "PortfÃ³lio Ilimitado", "Prioridade MÃ¡xima Nacional", "Suporte VIP via WhatsApp", "Acesso ao PINTOR PRO Academy"],
+      features: ["Tudo do Silver", "Selo 'Top Avaliado' Ouro", "Portfólio Ilimitado", "Prioridade Máxima Nacional", "Suporte VIP via WhatsApp", "Acesso ao PINTOR PRO Academy"],
       cta: "Seja um PRO",
       highlight: true
     }
@@ -41,10 +41,10 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
         <div className="text-center mb-20">
           <h2 className="text-[#9A077B] font-black uppercase tracking-[0.3em] text-xs mb-6">Investimento de Carreira</h2>
           <h1 className="text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter mb-8 leading-none">
-            Planos de <span className="text-[#9A077B] underline decoration-[#EFC6E3]">AceleraÃ§Ã£o</span>
+            Planos de <span className="text-[#9A077B] underline decoration-[#EFC6E3]">Aceleração</span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">
-            Escolha o nÃ­vel de visibilidade que seu talento merece. Planos pensados para valorizar a mÃ£o de obra especializada.
+            Escolha o nível de visibilidade que seu talento merece. Planos pensados para valorizar a mão de obra especializada.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-black text-slate-900">{plan.price}</span>
-                  {plan.price !== "GrÃ¡tis" && <span className="text-slate-400 font-bold">/mÃªs</span>}
+                  {plan.price !== "Grátis" && <span className="text-slate-400 font-bold">/mês</span>}
                 </div>
                 <p className="text-slate-500 text-sm font-medium leading-relaxed">{plan.desc}</p>
               </div>
@@ -91,17 +91,17 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
             <div className="max-w-md">
                 <div className="flex items-center gap-2 mb-4 text-[#9A077B]">
                     <Award size={24} />
-                    <span className="font-black uppercase tracking-[0.2em] text-xs">Selo de VerificaÃ§Ã£o</span>
+                    <span className="font-black uppercase tracking-[0.2em] text-xs">Selo de Verificação</span>
                 </div>
                 <h4 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Por que ser Verificado?</h4>
                 <p className="text-slate-500 font-medium leading-relaxed">
-                    Pintores verificados recebem 68% mais cliques e sÃ£o fechados 2,4x mais rÃ¡pido por clientes que buscam seguranÃ§a.
+                    Pintores verificados recebem 68% mais cliques e são fechados 2,4x mais rápido por clientes que buscam segurança.
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-6 w-full lg:w-auto">
                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                     <ShieldCheck className="text-[#9A077B] mb-3" size={32} />
-                    <div className="font-black text-sm uppercase mb-1">ConfianÃ§a</div>
+                    <div className="font-black text-sm uppercase mb-1">Confiança</div>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Selo no Perfil</p>
                 </div>
                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">

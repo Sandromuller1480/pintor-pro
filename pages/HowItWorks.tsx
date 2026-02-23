@@ -12,14 +12,14 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
 
   const steps = {
     client: [
-      { icon: <Search size={32} />, title: "Busca Inteligente", desc: "Filtre pintores por especialidade (ex: Laca, Airless, Cimento Queimado) e localizaÃ§Ã£o exata." },
-      { icon: <ShieldCheck size={32} />, title: "AnÃ¡lise de PortfÃ³lio", desc: "Veja fotos reais de 'Antes e Depois' verificadas por nossa equipe. Leia depoimentos reais." },
-      { icon: <CreditCard size={32} />, title: "Pagamento Seguro", desc: "Sua obra Ã© protegida. O pagamento fica retido e sÃ³ Ã© liberado conforme as etapas sÃ£o concluÃ­das." }
+      { icon: <Search size={32} />, title: "Busca Inteligente", desc: "Filtre pintores por especialidade (ex: Laca, Airless, Cimento Queimado) e localização exata." },
+      { icon: <ShieldCheck size={32} />, title: "Análise de Portfólio", desc: "Veja fotos reais de 'Antes e Depois' verificadas por nossa equipe. Leia depoimentos reais." },
+      { icon: <CreditCard size={32} />, title: "Pagamento Seguro", desc: "Sua obra é protegida. O pagamento fica retido e só é liberado conforme as etapas são concluídas." }
     ],
     painter: [
-      { icon: <Award size={32} />, title: "Credenciamento", desc: "Envie seus melhores trabalhos e certificaÃ§Ãµes. Nossa curadoria avaliarÃ¡ seu padrÃ£o tÃ©cnico." },
-      { icon: <Camera size={32} />, title: "Sua Vitrine Digital", desc: "Tenha um perfil premium que converte. Mostre sua tÃ©cnica atravÃ©s de fotos, vÃ­deos e descriÃ§Ãµes tÃ©cnicas." },
-      { icon: <CheckCircle2 size={32} />, title: "Projetos Qualificados", desc: "Receba propostas de clientes que buscam qualidade acima de preÃ§o baixo. Valorize sua hora." }
+      { icon: <Award size={32} />, title: "Credenciamento", desc: "Envie seus melhores trabalhos e certificações. Nossa curadoria avaliará seu padrão técnico." },
+      { icon: <Camera size={32} />, title: "Sua Vitrine Digital", desc: "Tenha um perfil premium que converte. Mostre sua técnica através de fotos, vídeos e descrições técnicas." },
+      { icon: <CheckCircle2 size={32} />, title: "Projetos Qualificados", desc: "Receba propostas de clientes que buscam qualidade acima de preço baixo. Valorize sua hora." }
     ]
   };
 
@@ -62,7 +62,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
         </div>
 
         <div className="mt-32 text-center bg-slate-50 p-16 rounded-[60px] border border-slate-100">
-          <h4 className="text-3xl font-black text-slate-900 mb-8 tracking-tighter uppercase">Pronto para comeÃ§ar?</h4>
+          <h4 className="text-3xl font-black text-slate-900 mb-8 tracking-tighter uppercase">Pronto para começar?</h4>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <button
               onClick={() => setPage(view === 'client' ? Page.FindPainter : Page.Register)}

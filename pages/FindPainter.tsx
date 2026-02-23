@@ -33,14 +33,14 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     <div className="bg-slate-50 min-h-screen pt-12 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Ãrea de Busca do CabeÃ§alho */}
+        {/* Área de Busca do Cabeçalho */}
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-5 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Qual tipo de pintura vocÃª precisa?"
+                placeholder="Qual tipo de pintura você precisa?"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -75,7 +75,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Especialidade</h4>
                   <div className="space-y-2">
-                    {['Laca', 'Cimento Queimado', 'Airless', 'EpÃ³xi', 'Fachadas', 'Residencial'].map(s => (
+                    {['Laca', 'Cimento Queimado', 'Airless', 'Epóxi', 'Fachadas', 'Residencial'].map(s => (
                       <label key={s} className="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
                         <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{s}</span>
@@ -85,7 +85,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de ConfianÃ§a</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confiança</h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
@@ -99,7 +99,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">AvaliaÃ§Ã£o MÃ­nima</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Avaliação Mínima</h4>
                   <div className="flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map(n => (
                       <button key={n} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs font-bold hover:border-[#9A077B] hover:text-[#9A077B] transition">
@@ -128,7 +128,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             <div className="flex justify-between items-center mb-6">
               <p className="text-slate-500 font-medium">{filteredPainters.length} pintores encontrados</p>
               <div className="flex items-center gap-2 text-sm font-bold cursor-pointer hover:text-[#9A077B] transition">
-                <span>Ordenar por: <span className="text-[#9A077B]">RelevÃ¢ncia</span></span>
+                <span>Ordenar por: <span className="text-[#9A077B]">Relevância</span></span>
                 <ChevronDown className="w-4 h-4" />
               </div>
             </div>
@@ -145,7 +145,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               )}
             </div>
 
-            {/* PaginaÃ§Ã£o */}
+            {/* Paginação */}
             <div className="mt-12 flex justify-center gap-2">
               <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-400 hover:border-[#9A077B] hover:text-[#9A077B] transition">1</button>
               <button className="w-10 h-10 rounded-xl bg-[#9A077B] text-white flex items-center justify-center font-bold shadow-lg shadow-[#EFC6E3]">2</button>

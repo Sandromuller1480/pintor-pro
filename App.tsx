@@ -149,7 +149,7 @@ const App: React.FC = () => {
       setSubmitted(true);
     } catch (error) {
       console.error(error);
-      alert('Erro ao enviar solicitaÃ§Ã£o. Tente novamente.');
+      alert('Erro ao enviar solicitação. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -197,10 +197,10 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">SolicitaÃ§Ã£o Enviada!</h1>
+              <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">Solicitação Enviada!</h1>
               <p className="text-slate-600 text-lg mb-12 font-medium">
-                Iniciamos a sua <b>AnÃ¡lise TÃ©cnica AutomÃ¡tica</b>. <br />
-                VocÃª receberÃ¡ uma notificaÃ§Ã£o via E-mail e WhatsApp em alguns minutos com o resultado.
+                Iniciamos a sua <b>Análise Técnica Automática</b>. <br />
+                Você receberá uma notificação via E-mail e WhatsApp em alguns minutos com o resultado.
               </p>
               <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); }} className="bg-[#000747] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#9A077B] transition uppercase tracking-widest">
                 Voltar para a Home
@@ -214,7 +214,7 @@ const App: React.FC = () => {
               Seja a Elite: <span className="text-[#9A077B]">PINTOR PRO</span>
             </h1>
             <p className="text-slate-600 text-lg mb-12 font-medium">
-              NÃ£o somos apenas um diretÃ³rio. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
+              Não somos apenas um diretório. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
             </p>
             <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/5 rounded-full -translate-y-10 translate-x-10"></div>
@@ -233,7 +233,7 @@ const App: React.FC = () => {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cidade Base (Atendimento Nacional)</label>
                   <input
                     type="text"
-                    placeholder="Ex: SÃ£o Paulo - SP"
+                    placeholder="Ex: São Paulo - SP"
                     className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -340,7 +340,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <p className="mt-8 text-slate-400 text-sm font-medium">
-              Sua inscriÃ§Ã£o passarÃ¡ por uma curadoria tÃ©cnica antes de ser publicada.
+              Sua inscrição passará por uma curadoria técnica antes de ser publicada.
             </p>
             <button onClick={() => navigateToPage(Page.Home)} className="mt-8 text-slate-900 hover:text-[#9A077B] font-black uppercase text-xs tracking-widest transition">
               â† Voltar para a Home

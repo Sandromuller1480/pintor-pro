@@ -15,7 +15,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* CABEÃ‡ALHO */}
+      {/* CABEÇALHO */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-24">
@@ -23,16 +23,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <Logo className="h-16" color="#000000" />
             </div>
 
-            {/* NavegaÃ§Ã£o Desktop */}
+            {/* Navegação Desktop */}
             <nav className="hidden md:flex space-x-8 items-center">
               <button onClick={() => setPage(Page.FindPainter)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Encontrar Pintor</button>
               <button onClick={() => setPage(Page.HowItWorks)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Como Funciona</button>
               <button onClick={() => setPage(Page.Plans)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Planos</button>
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
-              <button onClick={() => setPage(Page.Register)} className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest">Ãrea do Pintor</button>
+              <button onClick={() => setPage(Page.Register)} className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest">Área do Pintor</button>
             </nav>
 
-            {/* BotÃ£o de Menu Mobile */}
+            {/* Botão de Menu Mobile */}
             <div className="md:hidden flex items-center">
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600 p-2">
                 {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -52,19 +52,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         )}
       </header>
 
-      {/* CONTEÃšDO */}
+      {/* CONTEÚDO */}
       <main className="flex-grow">
         {children}
       </main>
 
-      {/* RODAPÃ‰ */}
+      {/* RODAPÉ */}
       <footer className="bg-[#0f172a] text-white pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
             <div className="col-span-1 md:col-span-1">
               <Logo className="h-20 mb-8" color="#ffffff" />
               <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                A primeira plataforma nacional focada exclusivamente na elite da pintura imobiliÃ¡ria. Qualidade inegociÃ¡vel, tecnologia de ponta.
+                A primeira plataforma nacional focada exclusivamente na elite da pintura imobiliária. Qualidade inegociável, tecnologia de ponta.
               </p>
               <div className="flex space-x-5">
                 <a href="#" className="bg-white/5 p-3 rounded-full hover:bg-[#9A077B] transition duration-300"><Instagram className="w-5 h-5" /></a>
@@ -79,14 +79,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-[#C93EA6] transition">Encontrar Profissionais</button></li>
                 <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Categorias de Pintura</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">Galeria de InspiraÃ§Ã£o</button></li>
+                <li><button className="hover:text-[#C93EA6] transition">Galeria de Inspiração</button></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Profissionais</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar PortfÃ³lio</button></li>
+                <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfólio</button></li>
                 <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">PINTOR PRO Academy</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
@@ -98,14 +98,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
                 <li><button className="hover:text-[#C93EA6] transition">Sobre a Marca</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Trabalhe Conosco</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">PolÃ­tica de Qualidade</button></li>
+                <li><button className="hover:text-[#C93EA6] transition">Política de Qualidade</button></li>
                 <li><button className="hover:text-[#C93EA6] transition text-[#C93EA6]">Atendimento 24h</button></li>
               </ul>
             </div>
           </div>
 
           <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
-            <p>Â© 2025 PINTOR PRO - O PADRÃƒO OURO DA PINTURA NACIONAL.</p>
+            <p>© 2025 PINTOR PRO - O PADRÃO OURO DA PINTURA NACIONAL.</p>
             <div className="flex gap-8">
               <a href="#" className="hover:text-white transition">Termos de Uso</a>
               <a href="#" className="hover:text-white transition">Privacidade</a>

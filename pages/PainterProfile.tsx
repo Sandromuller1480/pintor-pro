@@ -59,8 +59,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         return (
             <div className="bg-slate-50 min-h-screen flex items-center justify-center px-4">
                 <div className="max-w-xl w-full bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm text-center">
-                    <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil nÃ£o encontrado</h1>
-                    <p className="text-slate-500 mb-8">O pintor solicitado nÃ£o estÃ¡ disponÃ­vel ou foi removido.</p>
+                    <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil não encontrado</h1>
+                    <p className="text-slate-500 mb-8">O pintor solicitado não está disponível ou foi removido.</p>
                     <button
                         onClick={() => setPage?.(Page.FindPainter)}
                         className="bg-[#9A077B] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
@@ -74,7 +74,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
     return (
         <div className="bg-slate-50 min-h-screen">
-            {/* CabeÃ§alho do Perfil */}
+            {/* Cabeçalho do Perfil */}
             <div className="relative h-64 lg:h-80 w-full overflow-hidden">
                 <img src={painter.banner} alt="Banner" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -88,7 +88,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
                                 </div>
                                 <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
-                                    <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> {painter.rating} ({painter.reviewsCount} avaliaÃ§Ãµes)</span>
+                                    <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> {painter.rating} ({painter.reviewsCount} avaliações)</span>
                                     <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {painter.location}</span>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    {/* ConteÃºdo da Esquerda */}
+                    {/* Conteúdo da Esquerda */}
                     <div className="lg:col-span-8 space-y-12">
                         {/* Abas */}
                         <div className="flex gap-8 border-b border-slate-200 overflow-x-auto">
@@ -113,7 +113,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     onClick={() => setActiveTab(tab)}
                                     className={`pb-4 text-sm font-bold uppercase tracking-widest transition whitespace-nowrap ${activeTab === tab ? 'text-[#9A077B] border-b-2 border-[#9A077B]' : 'text-slate-400 hover:text-[#000747]'}`}
                                 >
-                                    {tab === 'portfolio' ? 'PortfÃ³lio' : tab === 'about' ? 'Sobre o Pintor' : 'AvaliaÃ§Ãµes'}
+                                    {tab === 'portfolio' ? 'Portfólio' : tab === 'about' ? 'Sobre o Pintor' : 'Avaliações'}
                                 </button>
                             ))}
                         </div>
@@ -129,8 +129,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                             </div>
                                         </div>
                                         <div className="p-6">
-                                            <h4 className="font-bold text-lg mb-2">Pintura Comercial de Alto PadrÃ£o</h4>
-                                            <p className="text-slate-500 text-sm mb-4 line-clamp-2">RevitalizaÃ§Ã£o completa de fachada utilizando tecnologia airless e acabamento epÃ³xi.</p>
+                                            <h4 className="font-bold text-lg mb-2">Pintura Comercial de Alto Padrão</h4>
+                                            <p className="text-slate-500 text-sm mb-4 line-clamp-2">Revitalização completa de fachada utilizando tecnologia airless e acabamento epóxi.</p>
                                             <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ver Detalhes</span>
                                                 <ArrowRight className="w-4 h-4 text-[#9A077B]" />
@@ -144,14 +144,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                         {activeTab === 'about' && (
                             <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100 space-y-8">
                                 <div className="prose prose-slate max-w-none">
-                                    <h3 className="text-2xl font-black mb-4">A excelÃªncia em cada demÃ£o</h3>
+                                    <h3 className="text-2xl font-black mb-4">A excelência em cada demão</h3>
                                     <p className="text-slate-600 leading-relaxed text-lg">
-                                        Atuo no mercado hÃ¡ mais de 15 anos, com foco em projetos residenciais de luxo e ambientes corporativos que exigem rigor tÃ©cnico e acabamento impecÃ¡vel. Meu compromisso Ã© transformar espaÃ§os atravÃ©s da cor e da proteÃ§Ã£o, utilizando sempre os melhores materiais do mercado.
+                                        Atuo no mercado há mais de 15 anos, com foco em projetos residenciais de luxo e ambientes corporativos que exigem rigor técnico e acabamento impecável. Meu compromisso é transformar espaços através da cor e da proteção, utilizando sempre os melhores materiais do mercado.
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                     <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">ExperiÃªncia</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Experiência</div>
                                         <div className="font-black text-slate-800">15 Anos</div>
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl">
@@ -168,7 +168,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 className="font-bold mb-4 flex items-center"><CheckCircle className="w-5 h-5 mr-2 text-[#9A077B]" /> CertificaÃ§Ãµes</h4>
+                                    <h4 className="font-bold mb-4 flex items-center"><CheckCircle className="w-5 h-5 mr-2 text-[#9A077B]" /> Certificações</h4>
                                     <div className="flex flex-wrap gap-3">
                                         {['Pintor Airless Certificado', 'NR-35 (Trabalho em Altura)', 'Especialista em Texturas Coral', 'Suvinil Master Pro'].map(c => (
                                             <span key={c} className="bg-[#FDF3FA] text-[#7F0665] px-4 py-2 rounded-full text-xs font-bold">{c}</span>
@@ -187,23 +187,23 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                                 <img src={`https://picsum.photos/seed/user${id}/100/100`} alt="User" className="w-12 h-12 rounded-xl object-cover" />
                                                 <div>
                                                     <h4 className="font-bold">Cliente {id}</h4>
-                                                    <span className="text-xs text-slate-400">HÃ¡ 2 meses</span>
+                                                    <span className="text-xs text-slate-400">Há 2 meses</span>
                                                 </div>
                                             </div>
                                             <div className="flex text-yellow-400"><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /></div>
                                         </div>
-                                        <p className="text-slate-600 leading-relaxed italic">"Trabalho excepcional. Pontualidade britÃ¢nica e um acabamento que nunca vi igual. Recomendo muito o Roberto para quem busca perfeiÃ§Ã£o."</p>
+                                        <p className="text-slate-600 leading-relaxed italic">"Trabalho excepcional. Pontualidade britânica e um acabamento que nunca vi igual. Recomendo muito o Roberto para quem busca perfeição."</p>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* AÃ§Ãµes Fixas da Barra Lateral */}
+                    {/* Ações Fixas da Barra Lateral */}
                     <aside className="lg:col-span-4">
                         <div className="sticky top-28 space-y-6">
                             <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-slate-100">
-                                <h3 className="text-xl font-black mb-6">Solicitar OrÃ§amento</h3>
+                                <h3 className="text-xl font-black mb-6">Solicitar Orçamento</h3>
                                 <div className="space-y-4 mb-8">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500">Taxa de Resposta</span>
@@ -211,11 +211,11 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500">Agenda</span>
-                                        <span className="font-bold text-[#9A077B]">DisponÃ­vel em 10 dias</span>
+                                        <span className="font-bold text-[#9A077B]">Disponível em 10 dias</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500">Meios de Pagamento</span>
-                                        <span className="font-bold">CartÃ£o, Pix, Boleto</span>
+                                        <span className="font-bold">Cartão, Pix, Boleto</span>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
@@ -227,7 +227,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     </button>
                                 </div>
                                 <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold flex items-center justify-center">
-                                    <Shield className="w-3 h-3 mr-1" /> ContrataÃ§Ã£o Segura PINTOR PRO
+                                    <Shield className="w-3 h-3 mr-1" /> Contratação Segura PINTOR PRO
                                 </p>
                             </div>
 
@@ -237,8 +237,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                         <Info className="w-5 h-5" />
                                         <span className="font-bold text-sm uppercase tracking-widest">Dica Premium</span>
                                     </div>
-                                    <h4 className="font-black text-lg mb-4">ProteÃ§Ã£o de Pagamento</h4>
-                                    <p className="text-slate-400 text-xs leading-relaxed mb-6">Contrate atravÃ©s da plataforma e garanta que seu dinheiro sÃ³ seja liberado apÃ³s a conclusÃ£o da obra.</p>
+                                    <h4 className="font-black text-lg mb-4">Proteção de Pagamento</h4>
+                                    <p className="text-slate-400 text-xs leading-relaxed mb-6">Contrate através da plataforma e garanta que seu dinheiro só seja liberado após a conclusão da obra.</p>
                                     <button className="text-sm font-bold border-b border-[#C93EA6] text-[#C93EA6]">Saiba mais como funciona</button>
                                 </div>
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/10 rounded-full -translate-y-16 translate-x-16"></div>

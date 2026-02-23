@@ -43,7 +43,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
   return (
     <div className="overflow-x-hidden">
-      {/* HERO SECTION - PUBLICITÃRIA */}
+      {/* HERO SECTION - PUBLICITÁRIA */}
       <section className="relative bg-white pt-12 pb-24 lg:pt-20 lg:pb-40 overflow-hidden">
         <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] bg-[#FDF3FA] rounded-full blur-[100px] -z-10"></div>
         <div className="absolute bottom-[5%] left-[40%] w-[500px] h-[500px] bg-[#FDF3FA]/50 rounded-full blur-[120px] -z-10"></div>
@@ -53,21 +53,21 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
             <div className="space-y-8 animate-in">
               <div className="inline-flex items-center bg-gradient-to-r from-[#C93EA6] to-[#9A077B] text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#EFC6E3]">
-                <Paintbrush className="w-3 h-3 mr-2" /> Plataforma LÃ­der no Brasil
+                <Paintbrush className="w-3 h-3 mr-2" /> Plataforma Líder no Brasil
               </div>
 
               <div className="relative">
                 <h1 className="text-6xl lg:text-[6.5rem] font-black text-[#1e293b] leading-[0.85] tracking-tighter mb-6">
                   Sua obra <br /> merece o <br />
                   <span className="relative inline-block mt-4">
-                    <span className="relative z-10 text-white px-6">PadrÃ£o PRO.</span>
+                    <span className="relative z-10 text-white px-6">Padrão PRO.</span>
                     <span className="absolute inset-0 bg-[#9A077B] -rotate-1 scale-105 shadow-xl shadow-[#C93EA6]/30"></span>
                   </span>
                 </h1>
               </div>
 
               <p className="text-xl text-slate-500 leading-relaxed max-w-lg font-medium border-l-4 border-slate-200 pl-6">
-                Conectamos os projetos mais exigentes aos pintores de elite que dominam as tÃ©cnicas mais avanÃ§adas do mercado.
+                Conectamos os projetos mais exigentes aos pintores de elite que dominam as técnicas mais avançadas do mercado.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -93,18 +93,18 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   <div className="flex text-yellow-400 mb-1">
                     <Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" />
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+1.200 Projetos ConcluÃ­dos</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+1.200 Projetos Concluídos</p>
                 </div>
               </div>
             </div>
 
             <div className="relative">
-              {/* Frame Container - ReforÃ§ado para visibilidade */}
+              {/* Frame Container - Reforçado para visibilidade */}
               <div className="relative z-10 w-full max-w-[620px] mx-auto bg-gradient-to-b from-slate-50 to-slate-200 rounded-[60px] overflow-hidden border-[12px] border-white shadow-[0_60px_100px_-20px_rgba(0,0,0,0.12)]">
                 {!imgError ? (
                   <img
                     src={mascostesImage}
-                    alt="PadrÃ£o Pintor PRO"
+                    alt="Padrão Pintor PRO"
                     className="block w-full h-auto"
                     onError={() => setImgError(true)}
                   />
@@ -126,7 +126,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   </div>
                 </div>
 
-                {/* Overlay de gradiente inferior para fusÃ£o suave */}
+                {/* Overlay de gradiente inferior para fusão suave */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-200/50 via-transparent to-transparent pointer-events-none"></div>
               </div>
 
@@ -137,7 +137,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* SEÃ‡ÃƒO: MAPA REAL (DÃšVIDA DO USUÃRIO) */}
+      {/* SEÇÃO: MAPA REAL (DÚVIDA DO USUÁRIO) */}
       <section className="py-32 bg-slate-900 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -177,7 +177,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
                     <div className="bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700 flex items-center gap-3">
                       <Navigation size={16} className="text-[#B21492]" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">SÃ£o Paulo, BR</span>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">São Paulo, BR</span>
                     </div>
                     <button onClick={() => setPage(Page.FindPainter)} className="bg-[#9A077B] text-white p-3 rounded-2xl shadow-xl shadow-[#B21492]/20">
                       <Search size={20} />
@@ -194,17 +194,17 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             </div>
 
             <div className="order-1 lg:order-2 space-y-8">
-              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">GeolocalizaÃ§Ã£o PRO</h2>
+              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Geolocalização PRO</h2>
               <h3 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none">
-                O melhor pintor <br /> estÃ¡ <span className="text-[#B21492] underline decoration-slate-700">do seu lado.</span>
+                O melhor pintor <br /> está <span className="text-[#B21492] underline decoration-slate-700">do seu lado.</span>
               </h3>
               <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-md">
-                Nossa tecnologia cruza sua localizaÃ§Ã£o com a agenda dos pintores de elite, garantindo rapidez no orÃ§amento e na execuÃ§Ã£o.
+                Nossa tecnologia cruza sua localização com a agenda dos pintores de elite, garantindo rapidez no orçamento e na execução.
               </p>
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Busca por KM de distÃ¢ncia</span>
+                  <span className="font-bold text-lg">Busca por KM de distância</span>
                 </div>
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
@@ -217,7 +217,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* SEÃ‡ÃƒO DE ESTATÃSTICAS */}
+      {/* SEÇÃO DE ESTATÍSTICAS */}
       <section className="py-20 bg-[#000747] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
@@ -266,7 +266,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* SEÃ‡ÃƒO de PORTFÃ“LIOS */}
+      {/* SEÇÃO de PORTFÓLIOS */}
       <section className="py-32 bg-slate-50 border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
@@ -290,7 +290,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* SEÃ‡ÃƒO de PERGUNTAS FREQUENTES (FAQ) */}
+      {/* SEÇÃO de PERGUNTAS FREQUENTES (FAQ) */}
       <section className="py-32 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
