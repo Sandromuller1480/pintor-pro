@@ -1,4 +1,4 @@
-
+﻿
 import React, { useEffect, useState } from 'react';
 import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 import { Layout } from './components/Layout';
@@ -149,7 +149,7 @@ const App: React.FC = () => {
       setSubmitted(true);
     } catch (error) {
       console.error(error);
-      alert('Erro ao enviar solicitação. Tente novamente.');
+      alert('Erro ao enviar solicitaÃ§Ã£o. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -197,12 +197,12 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">Solicitação Enviada!</h1>
+              <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">SolicitaÃ§Ã£o Enviada!</h1>
               <p className="text-slate-600 text-lg mb-12 font-medium">
-                Iniciamos a sua <b>Análise Técnica Automática</b>. <br />
-                Você receberá uma notificação via E-mail e WhatsApp em alguns minutos com o resultado.
+                Iniciamos a sua <b>AnÃ¡lise TÃ©cnica AutomÃ¡tica</b>. <br />
+                VocÃª receberÃ¡ uma notificaÃ§Ã£o via E-mail e WhatsApp em alguns minutos com o resultado.
               </p>
-              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); }} className="bg-black text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-600 transition uppercase tracking-widest">
+              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); }} className="bg-[#000747] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#9A077B] transition uppercase tracking-widest">
                 Voltar para a Home
               </button>
             </div>
@@ -210,21 +210,21 @@ const App: React.FC = () => {
         }
         return (
           <div className="py-24 text-center max-w-2xl mx-auto px-4">
-            <h1 className="text-5xl font-black mb-6 text-black tracking-tighter uppercase">
-              Seja a Elite: <span className="text-blue-600">PINTOR PRO</span>
+            <h1 className="text-5xl font-black mb-6 text-[#000747] tracking-tighter uppercase">
+              Seja a Elite: <span className="text-[#9A077B]">PINTOR PRO</span>
             </h1>
             <p className="text-slate-600 text-lg mb-12 font-medium">
-              Não somos apenas um diretório. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
+              NÃ£o somos apenas um diretÃ³rio. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
             </p>
             <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full -translate-y-10 translate-x-10"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/5 rounded-full -translate-y-10 translate-x-10"></div>
               <div className="space-y-6 relative z-10">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Nome do Profissional ou Empresa</label>
                   <input
                     type="text"
                     placeholder="Ex: Roberto Silva Pinturas"
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   />
@@ -233,8 +233,8 @@ const App: React.FC = () => {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cidade Base (Atendimento Nacional)</label>
                   <input
                     type="text"
-                    placeholder="Ex: São Paulo - SP"
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                    placeholder="Ex: SÃ£o Paulo - SP"
+                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
@@ -245,7 +245,7 @@ const App: React.FC = () => {
                     <input
                       type="email"
                       placeholder="seu@email.com"
-                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -255,7 +255,7 @@ const App: React.FC = () => {
                     <input
                       type="tel"
                       placeholder="(11) 99999-9999"
-                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                     />
@@ -266,7 +266,7 @@ const App: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Ex: 10 anos"
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition"
+                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                     value={formData.experienceTime}
                     onChange={(e) => setFormData({ ...formData, experienceTime: e.target.value })}
                   />
@@ -277,7 +277,7 @@ const App: React.FC = () => {
                     {SPECIALTY_OPTIONS.map((option) => (
                       <label
                         key={option}
-                        className={`flex items-center p-3 rounded-xl border transition-all cursor-pointer group ${formData.specialty.includes(option) ? 'bg-blue-600 border-blue-600 shadow-lg shadow-blue-100' : 'bg-white border-slate-100 hover:border-blue-200'}`}
+                        className={`flex items-center p-3 rounded-xl border transition-all cursor-pointer group ${formData.specialty.includes(option) ? 'bg-[#9A077B] border-[#9A077B] shadow-lg shadow-[#F7E3F1]' : 'bg-white border-slate-100 hover:border-[#EFC6E3]'}`}
                       >
                         <input
                           type="checkbox"
@@ -285,7 +285,7 @@ const App: React.FC = () => {
                           checked={formData.specialty.includes(option)}
                           onChange={() => toggleSpecialty(option)}
                         />
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center mr-3 transition-colors ${formData.specialty.includes(option) ? 'bg-white border-white text-blue-600' : 'bg-slate-50 border-slate-200 group-hover:border-blue-400'}`}>
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center mr-3 transition-colors ${formData.specialty.includes(option) ? 'bg-white border-white text-[#9A077B]' : 'bg-slate-50 border-slate-200 group-hover:border-[#C93EA6]'}`}>
                           {formData.specialty.includes(option) && (
                             <svg xmlns="http://www.w3.org/2003/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -309,7 +309,7 @@ const App: React.FC = () => {
                       type="file"
                       accept="image/*"
                       multiple
-                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition file:mr-3 file:rounded-lg file:border-0 file:bg-[#9A077B] file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
                       onChange={handleWorkPhotosChange}
                     />
                     <p className="text-xs text-slate-500 mt-2">
@@ -322,7 +322,7 @@ const App: React.FC = () => {
                       type="file"
                       accept=".pdf,.jpg,.jpeg"
                       multiple
-                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
                       onChange={handleCertificationsChange}
                     />
                     <p className="text-xs text-slate-500 mt-2">
@@ -333,17 +333,17 @@ const App: React.FC = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className={`w-full ${isSubmitting ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700'} text-white py-6 rounded-2xl font-black text-lg shadow-xl shadow-blue-200 transition uppercase tracking-widest`}
+                  className={`w-full ${isSubmitting ? 'bg-slate-400' : 'bg-[#9A077B] hover:bg-[#7F0665]'} text-white py-6 rounded-2xl font-black text-lg shadow-xl shadow-[#EFC6E3] transition uppercase tracking-widest`}
                 >
                   {isSubmitting ? 'Processando...' : 'Solicitar Credenciamento'}
                 </button>
               </div>
             </div>
             <p className="mt-8 text-slate-400 text-sm font-medium">
-              Sua inscrição passará por uma curadoria técnica antes de ser publicada.
+              Sua inscriÃ§Ã£o passarÃ¡ por uma curadoria tÃ©cnica antes de ser publicada.
             </p>
-            <button onClick={() => navigateToPage(Page.Home)} className="mt-8 text-slate-900 hover:text-blue-600 font-black uppercase text-xs tracking-widest transition">
-              ← Voltar para a Home
+            <button onClick={() => navigateToPage(Page.Home)} className="mt-8 text-slate-900 hover:text-[#9A077B] font-black uppercase text-xs tracking-widest transition">
+              â† Voltar para a Home
             </button>
           </div>
         );
@@ -360,3 +360,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

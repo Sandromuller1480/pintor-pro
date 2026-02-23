@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+﻿import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type ProcessApplicationRequest = {
   applicationId: string;
@@ -40,17 +40,17 @@ function buildAnalysis(input: ProcessApplicationRequest) {
 
   const reasons: string[] = [];
 
-  if (city.length < 3) reasons.push('cidade inválida ou ausente');
-  if (specialtiesCount < 1) reasons.push('especialidades não informadas');
-  if (workPhotoCount < 3) reasons.push('portfólio insuficiente (mínimo: 3 fotos)');
-  if (certificationCount < 1) reasons.push('certificação ausente');
-  if (experienceTime.length < 2) reasons.push('tempo de experiência insuficiente');
+  if (city.length < 3) reasons.push('cidade invÃ¡lida ou ausente');
+  if (specialtiesCount < 1) reasons.push('especialidades nÃ£o informadas');
+  if (workPhotoCount < 3) reasons.push('portfÃ³lio insuficiente (mÃ­nimo: 3 fotos)');
+  if (certificationCount < 1) reasons.push('certificaÃ§Ã£o ausente');
+  if (experienceTime.length < 2) reasons.push('tempo de experiÃªncia insuficiente');
 
   const isAccepted = reasons.length === 0;
   const status = isAccepted ? 'accepted' : 'rejected';
   const notes = isAccepted
-    ? 'Aprovado via filtro técnico automático: cadastro completo e evidências mínimas atendidas.'
-    : `Recusado via filtro técnico automático: ${reasons.join('; ')}.`;
+    ? 'Aprovado via filtro tÃ©cnico automÃ¡tico: cadastro completo e evidÃªncias mÃ­nimas atendidas.'
+    : `Recusado via filtro tÃ©cnico automÃ¡tico: ${reasons.join('; ')}.`;
 
   return { isAccepted, status, notes, reasons };
 }
@@ -58,28 +58,28 @@ function buildAnalysis(input: ProcessApplicationRequest) {
 function buildEmailHtml(name: string, isAccepted: boolean) {
   const acceptedBlock = isAccepted
     ? `
-      <div style="background:#f8fafc;padding:24px;border-radius:16px;border-left:4px solid #2563eb;margin-bottom:24px;">
-        <p style="margin:0;font-weight:800;color:#1e293b;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Próximo passo</p>
-        <p style="margin:8px 0 0 0;color:#64748b;">Em breve você poderá configurar seu portfólio e começar a receber pedidos de obras de alto padrão.</p>
+      <div style="background:#f8fafc;padding:24px;border-radius:16px;border-left:4px solid #9A077B;margin-bottom:24px;">
+        <p style="margin:0;font-weight:800;color:#1e293b;font-size:14px;text-transform:uppercase;letter-spacing:1px;">PrÃ³ximo passo</p>
+        <p style="margin:8px 0 0 0;color:#64748b;">Em breve vocÃª poderÃ¡ configurar seu portfÃ³lio e comeÃ§ar a receber pedidos de obras de alto padrÃ£o.</p>
       </div>
     `
     : '';
 
   const mainCopy = isAccepted
-    ? 'Sua solicitação de credenciamento foi <strong>APROVADA</strong>. Você agora faz parte da seleção de profissionais da PINTOR PRO.'
-    : 'Após nossa análise técnica automática, seu perfil não foi selecionado para o credenciamento neste momento.';
+    ? 'Sua solicitaÃ§Ã£o de credenciamento foi <strong>APROVADA</strong>. VocÃª agora faz parte da seleÃ§Ã£o de profissionais da PINTOR PRO.'
+    : 'ApÃ³s nossa anÃ¡lise tÃ©cnica automÃ¡tica, seu perfil nÃ£o foi selecionado para o credenciamento neste momento.';
 
   return `
     <div style="font-family:sans-serif;padding:40px;color:#333;max-width:600px;margin:auto;border:1px solid #eee;border-radius:32px;background-color:#ffffff;box-shadow:0 10px 30px rgba(0,0,0,0.05);">
       <div style="text-align:center;margin-bottom:30px;">
-        <h1 style="color:#000;font-size:24px;font-weight:900;letter-spacing:-1px;text-transform:uppercase;">PINTOR <span style="color:#2563eb;">PRO</span></h1>
+        <h1 style="color:#000;font-size:24px;font-weight:900;letter-spacing:-1px;text-transform:uppercase;">PINTOR <span style="color:#9A077B;">PRO</span></h1>
       </div>
-      <h2 style="color:#1e293b;font-size:20px;font-weight:800;margin-bottom:20px;">Olá, ${name}!</h2>
+      <h2 style="color:#1e293b;font-size:20px;font-weight:800;margin-bottom:20px;">OlÃ¡, ${name}!</h2>
       <p style="font-size:16px;line-height:1.6;color:#475569;margin-bottom:24px;">${mainCopy}</p>
       ${acceptedBlock}
       <div style="border-top:1px solid #f1f5f9;padding-top:24px;margin-top:40px;">
         <p style="font-size:12px;color:#94a3b8;text-align:center;">
-          Este é um e-mail automático enviado pelo sistema de curadoria PINTOR PRO.
+          Este Ã© um e-mail automÃ¡tico enviado pelo sistema de curadoria PINTOR PRO.
         </p>
       </div>
     </div>
@@ -103,8 +103,8 @@ async function sendNotificationEmail(params: {
       from: params.from,
       to: params.to,
       subject: params.isAccepted
-        ? 'Parabéns! Você foi aprovado na PINTOR PRO'
-        : 'Atualização sobre seu cadastro na PINTOR PRO',
+        ? 'ParabÃ©ns! VocÃª foi aprovado na PINTOR PRO'
+        : 'AtualizaÃ§Ã£o sobre seu cadastro na PINTOR PRO',
       html: buildEmailHtml(params.name, params.isAccepted)
     })
   });
@@ -203,3 +203,4 @@ Deno.serve(async (req) => {
     emailWarning
   });
 });
+
