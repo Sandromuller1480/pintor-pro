@@ -1,6 +1,6 @@
 
 import React from 'react';
-import logoImage from '../imagens/logo-colorido.png';
+import logoImage from '../imagens/Logo colorido PP.png';
 import logoBrancoImage from '../imagens/logo-branco.png';
 
 interface LogoProps {
