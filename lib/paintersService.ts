@@ -24,6 +24,7 @@ type ApplicationProcessingRequest = {
         workPhotoCount: number;
         certificationCount: number;
     };
+    specialties: string[];
     specialtiesCount: number;
 };
 
@@ -94,7 +95,7 @@ export const paintersService = {
 
         if (error) {
             console.error('Erro ao inserir aplicacao:', error);
-            throw error;
+            throw new Error(`Falha ao salvar cadastro: ${error.message}`);
         }
 
         const [workPhotoPaths, certificationPaths] = await Promise.all([
@@ -114,7 +115,7 @@ export const paintersService = {
 
         if (filesUpdateError) {
             console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
-            throw filesUpdateError;
+            throw new Error(`Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`);
         }
 
         this.processAutomatedAnalysis({
@@ -129,6 +130,7 @@ export const paintersService = {
                 workPhotoCount: workPhotoPaths.length,
                 certificationCount: certificationPaths.length
             },
+            specialties: formData.specialty,
             specialtiesCount: formData.specialty.length
         }).catch((processingError) => {
             console.error('Erro no processamento assincrono da aplicacao:', processingError);
@@ -177,7 +179,7 @@ export const paintersService = {
 
             if (error) {
                 console.error(`Erro ao enviar arquivo para o bucket ${bucket}:`, error);
-                throw error;
+                throw new Error(`Falha no upload (${bucket}): ${error.message}`);
             }
 
             uploadedPaths.push(filePath);

@@ -140,13 +140,8 @@ const App: React.FC = () => {
       return;
     }
 
-    if (formData.workPhotos.length < 3) {
-      alert('Envie no minimo 3 fotos de trabalhos.');
-      return;
-    }
-
-    if (formData.certifications.length === 0) {
-      alert('Envie pelo menos 1 certificacao em PDF ou JPG.');
+    if (formData.workPhotos.length < 5) {
+      alert('Envie no mínimo 5 fotos de trabalhos.');
       return;
     }
 
@@ -156,7 +151,8 @@ const App: React.FC = () => {
       setSubmitted(true);
     } catch (error) {
       console.error(error);
-      alert('Erro ao enviar solicitação. Tente novamente.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado.';
+      alert(`Erro ao enviar solicitação.\n\n${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -345,11 +341,11 @@ const App: React.FC = () => {
                       onChange={handleWorkPhotosChange}
                     />
                     <p className="text-xs text-slate-500 mt-2">
-                      Minimo de 3 fotos. Selecionadas: {formData.workPhotos.length}
+                      Mínimo de 5 fotos. Selecionadas: {formData.workPhotos.length}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Certificacao</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Certificados (Opcional para Bronze)</label>
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg"
@@ -358,7 +354,7 @@ const App: React.FC = () => {
                       onChange={handleCertificationsChange}
                     />
                     <p className="text-xs text-slate-500 mt-2">
-                      PDF ou JPG. Selecionados: {formData.certifications.length}
+                      PDF ou JPG. Opcional para Bronze e obrigatório para Ouro/Prata. Selecionados: {formData.certifications.length}
                     </p>
                   </div>
                 </div>

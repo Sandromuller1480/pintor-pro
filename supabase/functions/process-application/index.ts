@@ -12,7 +12,18 @@ type ProcessApplicationRequest = {
     workPhotoCount?: number;
     certificationCount?: number;
   };
+  specialties?: string[];
   specialtiesCount?: number;
+};
+
+type CategoryLevel = 'ouro' | 'prata' | 'bronze';
+
+type AnalysisResult = {
+  isAccepted: boolean;
+  status: 'accepted' | 'rejected';
+  category: CategoryLevel | null;
+  notes: string;
+  reasons: string[];
 };
 
 const corsHeaders = {
@@ -31,34 +42,98 @@ function jsonResponse(status: number, body: unknown) {
   });
 }
 
-function buildAnalysis(input: ProcessApplicationRequest) {
+const BRONZE_REQUIRED_SPECIALTIES = [
+  'Preparo do reboco (Limpeza, Lixa, Selador/Fundo Preparador)',
+  'Preparo do Acartonado (Lixa e Fundo Preparador)',
+  'Massa Corrida (Aplicação e lixamento)',
+  'Massa Acrílica (Aplicação e lixamento)'
+];
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function hasSpecialty(specialties: string[], expected: string) {
+  const normalizedExpected = normalizeText(expected);
+  return specialties.some((item) => normalizeText(item) === normalizedExpected);
+}
+
+function buildAnalysis(input: ProcessApplicationRequest): AnalysisResult {
   const city = (input.applicant?.city ?? '').trim();
-  const specialtiesCount = input.specialtiesCount ?? 0;
+  const specialties = input.specialties ?? [];
+  const specialtiesCount = specialties.length || (input.specialtiesCount ?? 0);
   const workPhotoCount = input.uploadedFiles?.workPhotoCount ?? 0;
   const certificationCount = input.uploadedFiles?.certificationCount ?? 0;
   const experienceTime = (input.applicant?.experienceTime ?? '').trim();
 
   const reasons: string[] = [];
+  const hasEpis = hasSpecialty(specialties, 'EPIs');
+  const hasNr35 = specialties.some((item) => normalizeText(item).includes('nr-35'));
+  const hasAllBronzeSpecialties = BRONZE_REQUIRED_SPECIALTIES.every((required) =>
+    hasSpecialty(specialties, required)
+  );
+  const hasTechnicalCertification = certificationCount > 0;
 
   if (city.length < 3) reasons.push('cidade inválida ou ausente');
   if (specialtiesCount < 1) reasons.push('especialidades não informadas');
-  if (workPhotoCount < 3) reasons.push('portfólio insuficiente (mínimo: 3 fotos)');
-  if (certificationCount < 1) reasons.push('certificação ausente');
+  if (workPhotoCount < 5) reasons.push('portfólio insuficiente (mínimo: 5 fotos para categoria Bronze)');
   if (experienceTime.length < 2) reasons.push('tempo de experiência insuficiente');
 
-  const isAccepted = reasons.length === 0;
+  // Regras de categoria (avaliadas da mais alta para a mais baixa)
+  const qualifiesOuro =
+    reasons.length === 0 &&
+    hasTechnicalCertification &&
+    hasEpis &&
+    hasNr35 &&
+    workPhotoCount >= 10;
+
+  const qualifiesPrata =
+    reasons.length === 0 &&
+    hasTechnicalCertification &&
+    hasEpis &&
+    workPhotoCount > 10;
+
+  const qualifiesBronze =
+    reasons.length === 0 &&
+    workPhotoCount >= 5 &&
+    hasAllBronzeSpecialties;
+
+  let category: CategoryLevel | null = null;
+  if (qualifiesOuro) category = 'ouro';
+  else if (qualifiesPrata) category = 'prata';
+  else if (qualifiesBronze) category = 'bronze';
+
+  if (!category) {
+    if (!hasAllBronzeSpecialties) reasons.push('faltam especialidades mínimas da categoria Bronze');
+    if (workPhotoCount < 10) reasons.push('menos de 10 fotos para categoria Ouro');
+    if (workPhotoCount <= 10) reasons.push('não atende requisito de mais de 10 fotos para categoria Prata');
+    if (!hasTechnicalCertification) reasons.push('certificados técnicos de pintura não enviados (necessário para Ouro/Prata)');
+    if (!hasEpis) reasons.push('especialidade EPIs não informada (necessário para Ouro/Prata)');
+    if (!hasNr35) reasons.push('NR-35 não informado (necessário para Ouro)');
+  }
+
+  const isAccepted = category !== null;
   const status = isAccepted ? 'accepted' : 'rejected';
   const notes = isAccepted
-    ? 'Aprovado via filtro técnico automático: cadastro completo e evidências mínimas atendidas.'
-    : `Recusado via filtro técnico automático: ${reasons.join('; ')}.`;
+    ? `Aprovado via filtro técnico automático na categoria ${category.toUpperCase()}.`
+    : `Recusado via filtro técnico automático: ${Array.from(new Set(reasons)).join('; ')}.`;
 
-  return { isAccepted, status, notes, reasons };
+  return { isAccepted, status, category, notes, reasons: Array.from(new Set(reasons)) };
 }
 
-function buildEmailHtml(name: string, isAccepted: boolean) {
+function buildEmailHtml(name: string, isAccepted: boolean, category: CategoryLevel | null) {
+  const categoryLabel = category ? category.toUpperCase() : null;
   const acceptedBlock = isAccepted
     ? `
       <div style="background:#f8fafc;padding:24px;border-radius:16px;border-left:4px solid #9A077B;margin-bottom:24px;">
+        <p style="margin:0;font-weight:800;color:#1e293b;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Categoria aprovada</p>
+        <p style="margin:8px 0 0 0;color:#1e293b;font-weight:800;">${categoryLabel ?? 'NÃO DEFINIDA'}</p>
+      </div>
+      <div style="background:#f8fafc;padding:24px;border-radius:16px;border:1px solid #e2e8f0;margin-bottom:24px;">
         <p style="margin:0;font-weight:800;color:#1e293b;font-size:14px;text-transform:uppercase;letter-spacing:1px;">Próximo passo</p>
         <p style="margin:8px 0 0 0;color:#64748b;">Em breve você poderá configurar seu portfólio e começar a receber pedidos de obras de alto padrão.</p>
       </div>
@@ -66,7 +141,7 @@ function buildEmailHtml(name: string, isAccepted: boolean) {
     : '';
 
   const mainCopy = isAccepted
-    ? 'Sua solicitação de credenciamento foi <strong>APROVADA</strong>. Você agora faz parte da seleção de profissionais da PINTOR PRO.'
+    ? `Sua solicitação de credenciamento foi <strong>APROVADA</strong>${categoryLabel ? ` na categoria <strong>${categoryLabel}</strong>` : ''}. Você agora faz parte da seleção de profissionais da PINTOR PRO.`
     : 'Após nossa análise técnica automática, seu perfil não foi selecionado para o credenciamento neste momento.';
 
   return `
@@ -91,6 +166,7 @@ async function sendNotificationEmail(params: {
   to: string;
   name: string;
   isAccepted: boolean;
+  category: CategoryLevel | null;
   from: string;
 }) {
   const response = await fetch('https://api.resend.com/emails', {
@@ -103,9 +179,9 @@ async function sendNotificationEmail(params: {
       from: params.from,
       to: params.to,
       subject: params.isAccepted
-        ? 'Parabéns! Você foi aprovado na PINTOR PRO'
+        ? `Parabéns! Você foi aprovado${params.category ? ` (${params.category.toUpperCase()})` : ''} na PINTOR PRO`
         : 'Atualização sobre seu cadastro na PINTOR PRO',
-      html: buildEmailHtml(params.name, params.isAccepted)
+      html: buildEmailHtml(params.name, params.isAccepted, params.category)
     })
   });
 
@@ -159,13 +235,27 @@ Deno.serve(async (req) => {
     auth: { persistSession: false }
   });
 
-  const { error: updateError } = await supabase
+  const updatePayload = {
+    status: analysis.status,
+    analysis_notes: analysis.notes,
+    category_level: analysis.category
+  };
+
+  let { error: updateError } = await supabase
     .from('applications')
-    .update({
-      status: analysis.status,
-      analysis_notes: analysis.notes
-    })
+    .update(updatePayload)
     .eq('id', payload.applicationId);
+
+  // Fallback para projetos que ainda não aplicaram a migration da coluna category_level.
+  if (updateError && updateError.message?.toLowerCase().includes('category_level')) {
+    ({ error: updateError } = await supabase
+      .from('applications')
+      .update({
+        status: analysis.status,
+        analysis_notes: analysis.notes
+      })
+      .eq('id', payload.applicationId));
+  }
 
   if (updateError) {
     console.error('Erro ao atualizar aplicacao:', updateError);
@@ -185,6 +275,7 @@ Deno.serve(async (req) => {
         to: applicantEmail,
         name: applicantName || 'Profissional',
         isAccepted: analysis.isAccepted,
+        category: analysis.category,
         from: resendFromEmail
       });
       emailSent = true;
@@ -198,6 +289,7 @@ Deno.serve(async (req) => {
     ok: true,
     applicationId: payload.applicationId,
     status: analysis.status,
+    category: analysis.category,
     analysisNotes: analysis.notes,
     emailSent,
     emailWarning
