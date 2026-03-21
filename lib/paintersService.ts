@@ -114,6 +114,7 @@ export const paintersService = {
         const normalizedSpecialties = formData.specialty
             .map((item) => item.trim())
             .filter(Boolean);
+        let authUserId: string | null = null;
 
         if (formData.password) {
             const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -123,6 +124,7 @@ export const paintersService = {
                     data: { full_name: normalizedFullName }
                 }
             });
+            authUserId = authData.user?.id ?? null;
 
             const authErrorMessage = authError?.message?.toLowerCase() ?? '';
             const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
@@ -147,6 +149,7 @@ export const paintersService = {
         const { data, error } = await supabase
             .from('applications')
             .insert([{
+                auth_user_id: authUserId,
                 full_name: normalizedFullName,
                 city: normalizedCity,
                 whatsapp: normalizedWhatsapp,
@@ -170,10 +173,12 @@ export const paintersService = {
         ]);
 
         const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
+        const profilePhotoPath = profilePhotoPaths[0] ?? finalWorkPhotos.find((path) => path.includes('/profile-photo/')) ?? null;
 
         const { error: filesUpdateError } = await supabase
             .from('applications')
             .update({
+                profile_photo_path: profilePhotoPath,
                 work_photo_paths: finalWorkPhotos,
                 certification_paths: certificationPaths,
                 work_photo_count: finalWorkPhotos.length,

@@ -65,8 +65,19 @@ ON applications FOR UPDATE
 TO anon, authenticated
 USING (true)
 WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can read own applications" ON applications;
+CREATE POLICY "Authenticated users can read own applications"
+ON applications FOR SELECT
+TO authenticated
+USING (
+  auth_user_id = auth.uid()
+  OR lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+);
 -- Compatibilidade para bancos jÃ¡ criados anteriormente
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS experience_time TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS profile_photo_path TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS specialties TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS work_photo_paths TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS certification_paths TEXT[] DEFAULT ARRAY[]::TEXT[];
@@ -79,6 +90,12 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_provider_id
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_error TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_sent_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_last_attempt_at TIMESTAMP WITH TIME ZONE;
+
+UPDATE applications AS a
+SET auth_user_id = u.id
+FROM auth.users AS u
+WHERE a.auth_user_id IS NULL
+  AND lower(a.email) = lower(u.email);
 
 -- Buckets para uploads do credenciamento (MVP)
 INSERT INTO storage.buckets (id, name, public)
@@ -94,6 +111,23 @@ CREATE POLICY "Public can upload application work photos"
 ON storage.objects FOR INSERT
 TO anon, authenticated
 WITH CHECK (bucket_id = 'application-work-photos');
+
+DROP POLICY IF EXISTS "Authenticated users can read own application work photos" ON storage.objects;
+CREATE POLICY "Authenticated users can read own application work photos"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'application-work-photos'
+  AND EXISTS (
+    SELECT 1
+    FROM public.applications a
+    WHERE a.id::text = (storage.foldername(name))[1]
+      AND (
+        a.auth_user_id = auth.uid()
+        OR lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+      )
+  )
+);
 
 DROP POLICY IF EXISTS "Anon can upload application certifications" ON storage.objects;
 DROP POLICY IF EXISTS "Public can upload application certifications" ON storage.objects;
@@ -246,6 +280,7 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_applications_email ON applications(email);
+CREATE INDEX IF NOT EXISTS idx_applications_auth_user_id ON applications(auth_user_id);
 CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_customer_email ON billing_subscriptions(customer_email);
 CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_status ON billing_subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_billing_checkout_sessions_email ON billing_checkout_sessions(customer_email);

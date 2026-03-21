@@ -15,9 +15,86 @@ interface DashboardProps {
 
 type Tab = 'inicio' | 'portfolio' | 'orcamentos' | 'config';
 
+type CurrentPainterProfile = {
+  fullName: string;
+  email: string;
+  city: string;
+  experienceTime: string;
+  specialties: string[];
+  profilePhotoUrl: string | null;
+  applicationStatus: string | null;
+  categoryLevel: string | null;
+  subscriptionPlan: string | null;
+  subscriptionStatus: string | null;
+};
+
+type DashboardMetrics = {
+  portfolioCount: number;
+  quoteCount: number;
+  pendingQuoteCount: number;
+};
+
+const DEFAULT_COVER_IMAGE = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop';
+const DEFAULT_PROFILE_IMAGE = 'https://i.pravatar.cc/150?u=dashboard-profile';
+
+const PLAN_LABELS: Record<string, string> = {
+  bronze: 'Bronze',
+  silver: 'Elite Silver',
+  pro: 'PINTOR PRO'
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  bronze: 'Bronze',
+  prata: 'Prata',
+  ouro: 'Ouro'
+};
+
+const APPLICATION_STATUS_LABELS: Record<string, string> = {
+  pending: 'Em analise',
+  accepted: 'Ativo',
+  rejected: 'Reprovado'
+};
+
+const getPlanLabel = (profile: CurrentPainterProfile | null) => {
+  if (profile?.subscriptionPlan && PLAN_LABELS[profile.subscriptionPlan]) {
+    return PLAN_LABELS[profile.subscriptionPlan];
+  }
+
+  if (profile?.categoryLevel && CATEGORY_LABELS[profile.categoryLevel]) {
+    return `Categoria ${CATEGORY_LABELS[profile.categoryLevel]}`;
+  }
+
+  return 'Sem plano';
+};
+
+const getApplicationStatusLabel = (status: string | null | undefined) => {
+  if (!status) return 'Sem status';
+  return APPLICATION_STATUS_LABELS[status] ?? status;
+};
+
+const formatShortDate = (value: string) => {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(parsedDate);
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
+  const [currentProfile, setCurrentProfile] = useState<CurrentPainterProfile | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    portfolioCount: 0,
+    quoteCount: 0,
+    pendingQuoteCount: 0
+  });
   const [isSignOut, setIsSignOut] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
@@ -26,10 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
 
-  const loadPortfolio = async (userId: string) => {
-    setIsLoadingPortfolio(true);
-    setPortfolioError('');
-
+  const fetchPortfolioItems = async (userId: string) => {
     const { data, error } = await supabase
       .from('obras')
       .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
@@ -37,21 +111,113 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao carregar portfolio:', error);
-      setPortfolioItems([]);
-      setPortfolioError('Nao foi possivel carregar suas obras agora.');
-      setIsLoadingPortfolio(false);
-      return;
+      throw error;
     }
 
-    setPortfolioItems(data ?? []);
-    setIsLoadingPortfolio(false);
+    return (data ?? []) as SavedObra[];
+  };
+
+  const fetchQuoteMetrics = async (userId: string): Promise<DashboardMetrics> => {
+    const [totalResult, pendingResult] = await Promise.all([
+      supabase
+        .from('orcamentos')
+        .select('id', { count: 'exact', head: true })
+        .eq('pintor_id', userId),
+      supabase
+        .from('orcamentos')
+        .select('id', { count: 'exact', head: true })
+        .eq('pintor_id', userId)
+        .eq('status', 'novo')
+    ]);
+
+    if (totalResult.error) {
+      throw totalResult.error;
+    }
+
+    if (pendingResult.error) {
+      throw pendingResult.error;
+    }
+
+    return {
+      portfolioCount: 0,
+      quoteCount: totalResult.count ?? 0,
+      pendingQuoteCount: pendingResult.count ?? 0
+    };
+  };
+
+  const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
+    if (!email) return null;
+
+    const initialQuery = await supabase
+      .from('applications')
+      .select('full_name, email, city, experience_time, specialties, status, category_level, subscription_plan, subscription_status, profile_photo_path, work_photo_paths, created_at')
+      .eq('email', email)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    let data = (initialQuery.data ?? null) as any[] | null;
+    let error = initialQuery.error;
+
+    if (error && `${error.message}`.toLowerCase().includes('profile_photo_path')) {
+      const fallbackQuery = await supabase
+        .from('applications')
+        .select('full_name, email, city, experience_time, specialties, status, category_level, subscription_plan, subscription_status, work_photo_paths, created_at')
+        .eq('email', email)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      data = (fallbackQuery.data ?? null) as any[] | null;
+      error = fallbackQuery.error;
+    }
+
+    if (error) {
+      throw error;
+    }
+
+    const application = data?.[0] as any;
+
+    if (!application) {
+      return null;
+    }
+
+    const profilePhotoPath =
+      application.profile_photo_path ||
+      application.work_photo_paths?.find((path: string) => path.includes('/profile-photo/')) ||
+      application.work_photo_paths?.[0] ||
+      null;
+
+    let profilePhotoUrl: string | null = null;
+
+    if (profilePhotoPath) {
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('application-work-photos')
+        .createSignedUrl(profilePhotoPath, 60 * 60);
+
+      if (signedUrlError) {
+        console.error('Erro ao gerar URL assinada da foto de perfil:', signedUrlError);
+      } else {
+        profilePhotoUrl = signedUrlData.signedUrl;
+      }
+    }
+
+    return {
+      fullName: application.full_name || email.split('@')[0],
+      email: application.email || email,
+      city: application.city || '',
+      experienceTime: application.experience_time || '',
+      specialties: application.specialties || [],
+      profilePhotoUrl,
+      applicationStatus: application.status || null,
+      categoryLevel: application.category_level || null,
+      subscriptionPlan: application.subscription_plan || null,
+      subscriptionStatus: application.subscription_status || null
+    };
   };
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadCurrentUser = async () => {
+    const loadDashboard = async () => {
       const { data, error } = await supabase.auth.getUser();
 
       if (!isMounted) return;
@@ -65,26 +231,73 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         return;
       }
 
-      const fullName = data.user.user_metadata?.full_name;
+      const normalizedEmail = data.user.email?.trim().toLowerCase() ?? '';
+      const fallbackFullName =
+        (typeof data.user.user_metadata?.full_name === 'string' && data.user.user_metadata.full_name.trim())
+          ? data.user.user_metadata.full_name.trim()
+          : normalizedEmail.split('@')[0];
 
-      if (typeof fullName === 'string' && fullName.trim()) {
-        setUserName(fullName.split(' ')[0]);
-      } else if (data.user.email) {
-        setUserName(data.user.email.split('@')[0]);
-      }
-
-      await loadPortfolio(data.user.id);
+      const [portfolioResult, quotesResult, profileResult] = await Promise.allSettled([
+        fetchPortfolioItems(data.user.id),
+        fetchQuoteMetrics(data.user.id),
+        fetchCurrentPainterProfile(normalizedEmail)
+      ]);
 
       if (!isMounted) return;
+
+      if (portfolioResult.status === 'fulfilled') {
+        setPortfolioItems(portfolioResult.value);
+        setPortfolioError('');
+      } else {
+        console.error('Erro ao carregar portfolio:', portfolioResult.reason);
+        setPortfolioItems([]);
+        setPortfolioError('Nao foi possivel carregar suas obras agora.');
+      }
+
+      if (quotesResult.status === 'fulfilled') {
+        setMetrics((currentMetrics) => ({
+          ...currentMetrics,
+          quoteCount: quotesResult.value.quoteCount,
+          pendingQuoteCount: quotesResult.value.pendingQuoteCount
+        }));
+      } else {
+        console.error('Erro ao carregar metricas de orcamentos:', quotesResult.reason);
+        setMetrics((currentMetrics) => ({
+          ...currentMetrics,
+          quoteCount: 0,
+          pendingQuoteCount: 0
+        }));
+      }
+
+      if (profileResult.status === 'fulfilled' && profileResult.value) {
+        setCurrentProfile(profileResult.value);
+        setUserName(profileResult.value.fullName.split(' ')[0]);
+      } else {
+        if (profileResult.status === 'rejected') {
+          console.error('Erro ao carregar cadastro do pintor:', profileResult.reason);
+        }
+        setCurrentProfile(null);
+        setUserName(fallbackFullName.split(' ')[0]);
+      }
+
+      setIsLoadingPortfolio(false);
       setIsCheckingAccess(false);
     };
 
-    void loadCurrentUser();
+    setIsLoadingPortfolio(true);
+    void loadDashboard();
 
     return () => {
       isMounted = false;
     };
   }, [setPage]);
+
+  useEffect(() => {
+    setMetrics((currentMetrics) => ({
+      ...currentMetrics,
+      portfolioCount: portfolioItems.length
+    }));
+  }, [portfolioItems]);
 
   const handleLogout = async () => {
     setIsSignOut(true);
@@ -147,9 +360,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl -translate-y-10 translate-x-10"></div>
           <div className="flex items-center space-x-2 mb-1 relative z-10">
             <Star size={14} className="text-yellow-400 fill-yellow-400" />
-            <span className="font-black text-xs uppercase tracking-widest">Plano Ouro</span>
+            <span className="font-black text-xs uppercase tracking-widest">{getPlanLabel(currentProfile)}</span>
           </div>
-          <p className="text-[10px] text-white/80 font-medium relative z-10">Seu perfil esta recebendo visibilidade maxima.</p>
+          <p className="text-[10px] text-white/80 font-medium relative z-10">
+            {getApplicationStatusLabel(currentProfile?.applicationStatus)}
+            {currentProfile?.city ? ` • ${currentProfile.city}` : ''}
+          </p>
         </div>
 
         <button
@@ -164,76 +380,122 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     </div>
   );
 
-  const renderInicio = () => (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 mb-8 relative">
-        <div className="h-48 bg-slate-800 relative group">
-          <img src="https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover opacity-60" alt="Capa" />
-          <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center hover:bg-white/30 transition">
-            <Camera size={14} className="mr-2" /> Alterar Capa
-          </button>
-        </div>
-        <div className="px-8 pb-8 relative">
-          <div className="absolute -top-16 border-4 border-white rounded-full bg-white shadow-xl group cursor-pointer inline-block">
-            <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Perfil" className="w-32 h-32 rounded-full object-cover relative z-10" />
-            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              <Camera className="text-white" />
-            </div>
-          </div>
-          <div className="pt-20 flex justify-between items-start">
-            <div>
-              <h2 className="text-3xl font-black text-[#000747]">Bem-vindo de volta, {userName}!</h2>
-              <p className="text-slate-500 font-medium">Seu perfil esta ativo e visivel para clientes em sua regiao.</p>
-            </div>
-            <button className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center hover:bg-slate-200 transition">
-              <Edit2 size={16} className="mr-2" /> Editar Perfil
+  const renderInicio = () => {
+    const displayName = currentProfile?.fullName || userName;
+    const profilePhotoUrl = currentProfile?.profilePhotoUrl || DEFAULT_PROFILE_IMAGE;
+    const coverPhotoUrl = portfolioItems.find((obra) => obra.imagem_url)?.imagem_url || DEFAULT_COVER_IMAGE;
+    const introDetails = [
+      currentProfile?.city,
+      currentProfile?.experienceTime ? `${currentProfile.experienceTime} de experiencia` : null,
+      currentProfile?.specialties.length ? `${currentProfile.specialties.length} especialidades` : null
+    ].filter(Boolean);
+
+    const lastPortfolioEntry = portfolioItems[0];
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 mb-8 relative">
+          <div className="h-48 bg-slate-800 relative group">
+            <img src={coverPhotoUrl} className="w-full h-full object-cover opacity-60" alt="Capa do perfil" />
+            <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center hover:bg-white/30 transition">
+              <Camera size={14} className="mr-2" /> Alterar Capa
             </button>
           </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {[
-          { label: 'Visitas ao Perfil', value: '1.248', trend: '+12% este mes', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'Orcamentos Solicitados', value: '34', trend: '4 aguardando resposta', icon: FileText, color: 'text-[#9A077B]', bg: 'bg-[#9A077B]/10' },
-          { label: 'Avaliacao Media', value: '4.9', trend: 'Baseado em 42 avaliacoes', icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' }
-        ].map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between hover:shadow-md transition">
-            <div>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{stat.label}</p>
-              <h3 className="text-4xl font-black text-slate-900 mb-2">{stat.value}</h3>
-              <p className="text-slate-400 text-sm font-medium">{stat.trend}</p>
+          <div className="px-8 pb-8 relative">
+            <div className="absolute -top-16 border-4 border-white rounded-full bg-white shadow-xl group cursor-pointer inline-block">
+              <img src={profilePhotoUrl} alt={displayName} className="w-32 h-32 rounded-full object-cover relative z-10" />
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <Camera className="text-white" />
+              </div>
             </div>
-            <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
-              <stat.icon size={24} />
+            <div className="pt-20 flex justify-between items-start">
+              <div>
+                <h2 className="text-3xl font-black text-[#000747]">Bem-vindo de volta, {displayName.split(' ')[0]}!</h2>
+                <p className="text-slate-500 font-medium">
+                  {introDetails.length > 0
+                    ? introDetails.join(' • ')
+                    : 'Seu perfil esta ativo e visivel para clientes em sua regiao.'}
+                </p>
+              </div>
+              <button className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center hover:bg-slate-200 transition">
+                <Edit2 size={16} className="mr-2" /> Editar Perfil
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-        <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
-          <TrendingUp className="mr-3 text-[#9A077B]" /> Insights & Proximos Passos
-        </h3>
-        <ul className="space-y-4">
-          <li className="flex items-center p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-100">
-            <Clock className="mr-4 flex-shrink-0" />
-            <div>
-              <p className="font-bold">Tempo de Resposta Acima da Media</p>
-              <p className="text-sm opacity-80">Respondendo orcamentos mais rapido voce ganha destaque no algoritmo Ouro.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[
+            {
+              label: 'Obras no Portfolio',
+              value: String(metrics.portfolioCount),
+              trend: lastPortfolioEntry ? `Ultima obra em ${formatShortDate(lastPortfolioEntry.created_at)}` : 'Nenhuma obra cadastrada ainda',
+              icon: Users,
+              color: 'text-blue-500',
+              bg: 'bg-blue-50'
+            },
+            {
+              label: 'Orcamentos Recebidos',
+              value: String(metrics.quoteCount),
+              trend: `${metrics.pendingQuoteCount} aguardando resposta`,
+              icon: FileText,
+              color: 'text-[#9A077B]',
+              bg: 'bg-[#9A077B]/10'
+            },
+            {
+              label: 'Plano Atual',
+              value: getPlanLabel(currentProfile),
+              trend: getApplicationStatusLabel(currentProfile?.applicationStatus),
+              icon: Star,
+              color: 'text-amber-500',
+              bg: 'bg-amber-50'
+            }
+          ].map((stat, index) => (
+            <div key={index} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between hover:shadow-md transition">
+              <div>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{stat.label}</p>
+                <h3 className="text-4xl font-black text-slate-900 mb-2 break-words">{stat.value}</h3>
+                <p className="text-slate-400 text-sm font-medium">{stat.trend}</p>
+              </div>
+              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
+                <stat.icon size={24} />
+              </div>
             </div>
-          </li>
-          <li className="flex items-center p-4 bg-slate-50 text-slate-700 rounded-2xl border border-slate-100">
-            <Camera className="mr-4 flex-shrink-0 text-slate-400" />
-            <div>
-              <p className="font-bold">Hora de Atualizar o Portfolio</p>
-              <p className="text-sm text-slate-500">Adicione novas obras para manter seu perfil relevante para os clientes.</p>
-            </div>
-          </li>
-        </ul>
+          ))}
+        </div>
+
+        <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
+          <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
+            <TrendingUp className="mr-3 text-[#9A077B]" /> Insights & Proximos Passos
+          </h3>
+          <ul className="space-y-4">
+            <li className="flex items-center p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-100">
+              <Clock className="mr-4 flex-shrink-0" />
+              <div>
+                <p className="font-bold">Orcamentos aguardando retorno</p>
+                <p className="text-sm opacity-80">
+                  {metrics.pendingQuoteCount > 0
+                    ? `Voce tem ${metrics.pendingQuoteCount} orcamento(s) novos esperando resposta.`
+                    : 'Nenhum novo orcamento pendente no momento.'}
+                </p>
+              </div>
+            </li>
+            <li className="flex items-center p-4 bg-slate-50 text-slate-700 rounded-2xl border border-slate-100">
+              <Camera className="mr-4 flex-shrink-0 text-slate-400" />
+              <div>
+                <p className="font-bold">Portfolio em evolucao</p>
+                <p className="text-sm text-slate-500">
+                  {metrics.portfolioCount > 0
+                    ? `Seu portfolio ja possui ${metrics.portfolioCount} obra(s) publicada(s).`
+                    : 'Adicione sua primeira obra para fortalecer sua apresentacao no painel.'}
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPortfolio = () => (
     <div className="animate-in fade-in duration-500">
