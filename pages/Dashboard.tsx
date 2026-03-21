@@ -6,6 +6,7 @@ import {
   Plus, Edit2, Camera, TrendingUp, Users, Star, Clock 
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { OrcamentoModal } from '../components/OrcamentoModal';
 
 interface DashboardProps {
   setPage: NavigateToPage;
@@ -17,6 +18,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
   const [isSignOut, setIsSignOut] = useState(false);
+  const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -198,7 +200,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <h2 className="text-3xl font-black text-[#000747]">Orçamentos e Leads</h2>
           <p className="text-slate-500 font-medium">Acompanhe novos contatos e negociações em aberto.</p>
         </div>
-        <button className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center">
+        <button 
+          onClick={() => setIsOrcamentoModalOpen(true)}
+          className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center"
+        >
           <Plus size={18} className="mr-2" /> Novo Orçamento
         </button>
       </div>
@@ -254,9 +259,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   return (
     <div className="flex min-h-screen bg-slate-50/50">
       {renderSidebar()}
-      <main className="ml-64 flex-1 p-10 max-w-7xl">
+      <main className="ml-64 flex-1 p-10 max-w-7xl relative">
         {content}
       </main>
+      
+      {/* Modais */}
+      <OrcamentoModal 
+        isOpen={isOrcamentoModalOpen} 
+        onClose={() => setIsOrcamentoModalOpen(false)} 
+      />
     </div>
   );
 };
