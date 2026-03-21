@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+rimport React, { useEffect, useState } from 'react';
 import { Page, NavigateToPage } from '../types';
 import { supabase } from '../lib/supabase';
-import { 
-  LogOut, LayoutDashboard, Briefcase, FileText, Settings, 
-  Plus, Edit2, Camera, TrendingUp, Users, Star, Clock 
+import {
+  LogOut, LayoutDashboard, Briefcase, FileText, Settings,
+  Plus, Edit2, Camera, TrendingUp, Users, Star, Clock
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { OrcamentoModal } from '../components/OrcamentoModal';
@@ -50,11 +50,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id as Tab)}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-bold text-sm ${
-              activeTab === item.id 
-                ? 'bg-[#9A077B]/10 text-[#9A077B]' 
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-bold text-sm ${activeTab === item.id
+                ? 'bg-[#9A077B]/10 text-[#9A077B]'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`}
+              }`}
           >
             <item.icon size={20} className={activeTab === item.id ? 'text-[#9A077B]' : 'text-slate-400'} />
             <span>{item.label}</span>
@@ -72,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <p className="text-[10px] text-white/80 font-medium relative z-10">Seu perfil está recebendo visibilidade máxima.</p>
         </div>
 
-        <button 
+        <button
           onClick={handleLogout}
           disabled={isSignOut}
           className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition font-bold text-sm"
@@ -132,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           </div>
         ))}
       </div>
-      
+
       {/* Últimas Ações Inteligentes */}
       <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
         <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
@@ -200,7 +199,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <h2 className="text-3xl font-black text-[#000747]">Orçamentos e Leads</h2>
           <p className="text-slate-500 font-medium">Acompanhe novos contatos e negociações em aberto.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsOrcamentoModalOpen(true)}
           className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center"
         >
@@ -216,7 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <div className="col-span-2">Status</div>
           <div className="col-span-1 text-center">Ação</div>
         </div>
-        
+
         <div className="divide-y divide-slate-100">
           {[
             { client: 'Carlos Mendonça', serv: 'Pintura interna 120m² (Massa Corrida)', data: 'Hoje, 09:30', status: 'Novo', color: 'bg-emerald-100 text-emerald-700' },
@@ -262,11 +261,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       <main className="ml-64 flex-1 p-10 max-w-7xl relative">
         {content}
       </main>
-      
+
       {/* Modais */}
-      <OrcamentoModal 
-        isOpen={isOrcamentoModalOpen} 
-        onClose={() => setIsOrcamentoModalOpen(false)} 
+      <OrcamentoModal
+        isOpen={isOrcamentoModalOpen}
+        onClose={() => setIsOrcamentoModalOpen(false)}
       />
     </div>
   );
