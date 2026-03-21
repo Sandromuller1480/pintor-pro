@@ -193,9 +193,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   const renderOrcamentos = () => (
     <div className="animate-in fade-in duration-500">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-[#000747]">Orçamentos e Leads</h2>
-        <p className="text-slate-500 font-medium">Acompanhe novos contatos e negociações em aberto.</p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-black text-[#000747]">Orçamentos e Leads</h2>
+          <p className="text-slate-500 font-medium">Acompanhe novos contatos e negociações em aberto.</p>
+        </div>
+        <button className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center">
+          <Plus size={18} className="mr-2" /> Novo Orçamento
+        </button>
       </div>
 
       <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden text-left">
