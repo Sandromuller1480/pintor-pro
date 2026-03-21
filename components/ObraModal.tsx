@@ -24,7 +24,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-[#000747] to-[#9A077B] p-6 text-white flex justify-between items-center z-10 shadow-md">
@@ -38,8 +38,8 @@ export const ObraModal: React.FC<ObraModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Form Content */}
-        <div className="p-8">
-          <form className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 scroll-smooth" style={{ scrollbarWidth: 'thin' }}>
+          <form className="space-y-5">
             
             <InputGroup label="Título da Obra">
               <input 
