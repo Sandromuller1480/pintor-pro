@@ -12,9 +12,12 @@ const EXISTING_USER_ERROR_PATTERNS = [
     'user already exists'
 ];
 
-type ApplicationFormSubmission = {
+export type ApplicationFormSubmission = {
     fullName: string,
+    gender?: '' | 'feminino' | 'masculino',
+    cep: string,
     city: string,
+    uf: string,
     whatsapp: string,
     email: string,
     password?: string,
@@ -108,7 +111,10 @@ export const paintersService = {
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {
         const normalizedEmail = formData.email.trim().toLowerCase();
         const normalizedFullName = formData.fullName.trim();
+        const normalizedGender = formData.gender?.trim() || null;
+        const normalizedCep = formData.cep.replace(/\D/g, '').slice(0, 8);
         const normalizedCity = formData.city.trim();
+        const normalizedUf = formData.uf.trim().toUpperCase();
         const normalizedWhatsapp = formData.whatsapp.trim();
         const normalizedExperienceTime = formData.experienceTime.trim();
         const normalizedSpecialties = formData.specialty
@@ -151,7 +157,10 @@ export const paintersService = {
             .insert([{
                 auth_user_id: authUserId,
                 full_name: normalizedFullName,
+                gender: normalizedGender,
+                cep: normalizedCep,
                 city: normalizedCity,
+                uf: normalizedUf,
                 whatsapp: normalizedWhatsapp,
                 email: normalizedEmail,
                 experience_time: normalizedExperienceTime,

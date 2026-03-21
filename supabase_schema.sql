@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS painters (
 CREATE TABLE IF NOT EXISTS applications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name TEXT NOT NULL,
+  gender TEXT,
+  cep TEXT,
   city TEXT NOT NULL,
+  uf TEXT,
   whatsapp TEXT NOT NULL,
   email TEXT NOT NULL, -- Adicionado para notificaÃ§Ãµes
   experience_time TEXT,
@@ -82,6 +85,9 @@ USING (
 );
 -- Compatibilidade para bancos jÃ¡ criados anteriormente
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS experience_time TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS cep TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS uf TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS specialties TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS work_photo_paths TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS certification_paths TEXT[] DEFAULT ARRAY[]::TEXT[];

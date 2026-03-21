@@ -10,7 +10,7 @@ import { About } from './pages/About';
 import { HowItWorks } from './pages/HowItWorks';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-import { paintersService, type ApplicationSubmissionResult } from './lib/paintersService';
+import { paintersService, type ApplicationFormSubmission, type ApplicationSubmissionResult } from './lib/paintersService';
 import { supabase } from './lib/supabase';
 
 const SPECIALTY_OPTIONS = [
@@ -233,10 +233,12 @@ const App: React.FC = () => {
     setIsSubmitting(true);
     setSubmissionFeedback(null);
     try {
-      const formPayload = {
+      const formPayload: ApplicationFormSubmission = {
         ...formData,
         profilePhoto: formData.profilePhoto as File,
-        city: `${formData.city} - ${formData.uf} (CEP: ${formData.cep})`
+        cep: formData.cep.replace(/\D/g, '').slice(0, 8),
+        city: formData.city.trim(),
+        uf: formData.uf.trim().toUpperCase()
       };
       const submissionResult = await paintersService.submitApplication(formPayload);
 

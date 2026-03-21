@@ -31,6 +31,7 @@ type CurrentPainterProfile = {
   fullName: string;
   email: string;
   city: string;
+  uf: string;
   experienceTime: string;
   specialties: string[];
   profilePhotoPath: string | null;
@@ -262,6 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       fullName: application.full_name || email.split('@')[0],
       email: application.email || email,
       city: application.city || '',
+      uf: application.uf || '',
       experienceTime: application.experience_time || '',
       specialties: application.specialties || [],
       profilePhotoPath,
@@ -585,7 +587,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           </div>
           <p className="text-[10px] text-white/80 font-medium relative z-10">
             {getApplicationStatusLabel(currentProfile?.applicationStatus)}
-            {currentProfile?.city ? ` | ${currentProfile.city}` : ''}
+            {currentProfile?.city ? ` | ${[currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')}` : ''}
           </p>
         </div>
 
@@ -604,12 +606,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const renderInicio = () => {
     const displayName = currentProfile?.fullName || userName;
     const profilePhotoUrl = currentProfile?.profilePhotoUrl || DEFAULT_PROFILE_IMAGE;
+    const locationLabel = currentProfile?.city
+      ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
+      : '';
     const coverPhotoUrl =
       currentProfile?.coverPhotoUrl ||
       portfolioItems.find((obra) => obra.imagem_url)?.imagem_url ||
       DEFAULT_COVER_IMAGE;
     const introDetails = [
-      currentProfile?.city,
+      locationLabel || null,
       currentProfile?.experienceTime ? `${currentProfile.experienceTime} de experiencia` : null,
       currentProfile?.specialties.length ? `${currentProfile.specialties.length} especialidades` : null
     ].filter(Boolean);
