@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS applications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Colunas de compatibilidade que precisam existir antes das policies
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS profile_photo_path TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS foto_perfil TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS foto_capa TEXT;
+
 -- Politicas para envio publico de credenciamento (MVP)
 -- O signUp pode autenticar o usuario imediatamente, entao o cadastro precisa
 -- funcionar tanto para anon quanto para authenticated.
@@ -75,9 +81,7 @@ USING (
   OR lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
 );
 -- Compatibilidade para bancos jÃ¡ criados anteriormente
-ALTER TABLE applications ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS experience_time TEXT;
-ALTER TABLE applications ADD COLUMN IF NOT EXISTS profile_photo_path TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS specialties TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS work_photo_paths TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS certification_paths TEXT[] DEFAULT ARRAY[]::TEXT[];

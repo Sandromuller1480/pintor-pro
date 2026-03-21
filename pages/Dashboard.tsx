@@ -1,9 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Page, NavigateToPage } from '../types';
 import { supabase } from '../lib/supabase';
 import {
-  LogOut, LayoutDashboard, Briefcase, FileText, Settings,
-  Plus, Edit2, Camera, TrendingUp, Users, Star, Clock
+  LogOut,
+  LayoutDashboard,
+  Briefcase,
+  FileText,
+  Settings,
+  Plus,
+  Edit2,
+  Camera,
+  TrendingUp,
+  Users,
+  Star,
+  Clock,
+  Loader2
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { OrcamentoModal } from '../components/OrcamentoModal';
@@ -16,12 +27,16 @@ interface DashboardProps {
 type Tab = 'inicio' | 'portfolio' | 'orcamentos' | 'config';
 
 type CurrentPainterProfile = {
+  applicationId: string;
   fullName: string;
   email: string;
   city: string;
   experienceTime: string;
   specialties: string[];
+  profilePhotoPath: string | null;
   profilePhotoUrl: string | null;
+  coverPhotoPath: string | null;
+  coverPhotoUrl: string | null;
   applicationStatus: string | null;
   categoryLevel: string | null;
   subscriptionPlan: string | null;
@@ -36,6 +51,8 @@ type DashboardMetrics = {
 
 const DEFAULT_COVER_IMAGE = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop';
 const DEFAULT_PROFILE_IMAGE = 'https://i.pravatar.cc/150?u=dashboard-profile';
+const PAINTER_MEDIA_BUCKET = 'painters-media';
+const LEGACY_PROFILE_BUCKET = 'application-work-photos';
 
 const PLAN_LABELS: Record<string, string> = {
   bronze: 'Bronze',
@@ -86,6 +103,64 @@ const formatShortDate = (value: string) => {
   }).format(parsedDate);
 };
 
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+
+const getPublicMediaUrl = (path: string | null | undefined) => {
+  if (!path) {
+    return null;
+  }
+
+  if (isAbsoluteUrl(path)) {
+    return path;
+  }
+
+  const {
+    data: { publicUrl }
+  } = supabase.storage.from(PAINTER_MEDIA_BUCKET).getPublicUrl(path);
+
+  return publicUrl;
+};
+
+const getSignedLegacyMediaUrl = async (path: string | null | undefined) => {
+  if (!path) {
+    return null;
+  }
+
+  if (isAbsoluteUrl(path)) {
+    return path;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(LEGACY_PROFILE_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) {
+    console.error('Erro ao gerar URL assinada da foto antiga:', error);
+    return null;
+  }
+
+  return data.signedUrl;
+};
+
+const sanitizeFileName = (fileName: string) => {
+  const cleanedName = fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return cleanedName || 'imagem';
+};
+
+const buildPainterMediaPath = (folder: 'foto-perfil' | 'foto-capa', userId: string, file: File) => {
+  const nameParts = file.name.split('.');
+  const extension = nameParts.length > 1 ? nameParts.pop()?.toLowerCase() : 'jpg';
+  const baseName = sanitizeFileName(nameParts.join('.'));
+
+  return `${folder}/${userId}/${baseName}-${Date.now()}.${extension || 'jpg'}`;
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
@@ -102,6 +177,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [portfolioError, setPortfolioError] = useState('');
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [mediaFeedback, setMediaFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const profileInputRef = useRef<HTMLInputElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchPortfolioItems = async (userId: string) => {
     const { data, error } = await supabase
@@ -148,65 +228,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
     if (!email) return null;
 
-    const initialQuery = await supabase
+    const { data, error } = await supabase
       .from('applications')
-      .select('full_name, email, city, experience_time, specialties, status, category_level, subscription_plan, subscription_status, profile_photo_path, work_photo_paths, created_at')
-      .eq('email', email)
+      .select('*')
+      .ilike('email', email)
       .order('created_at', { ascending: false })
       .limit(1);
-
-    let data = (initialQuery.data ?? null) as any[] | null;
-    let error = initialQuery.error;
-
-    if (error && `${error.message}`.toLowerCase().includes('profile_photo_path')) {
-      const fallbackQuery = await supabase
-        .from('applications')
-        .select('full_name, email, city, experience_time, specialties, status, category_level, subscription_plan, subscription_status, work_photo_paths, created_at')
-        .eq('email', email)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      data = (fallbackQuery.data ?? null) as any[] | null;
-      error = fallbackQuery.error;
-    }
 
     if (error) {
       throw error;
     }
 
-    const application = data?.[0] as any;
+    const application = (data?.[0] ?? null) as any;
 
     if (!application) {
       return null;
     }
 
-    const profilePhotoPath =
+    const publicProfilePhotoPath = application.foto_perfil || null;
+    const publicCoverPhotoPath = application.foto_capa || null;
+    const legacyProfilePhotoPath =
       application.profile_photo_path ||
       application.work_photo_paths?.find((path: string) => path.includes('/profile-photo/')) ||
       application.work_photo_paths?.[0] ||
       null;
 
-    let profilePhotoUrl: string | null = null;
-
-    if (profilePhotoPath) {
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('application-work-photos')
-        .createSignedUrl(profilePhotoPath, 60 * 60);
-
-      if (signedUrlError) {
-        console.error('Erro ao gerar URL assinada da foto de perfil:', signedUrlError);
-      } else {
-        profilePhotoUrl = signedUrlData.signedUrl;
-      }
-    }
+    const profilePhotoPath = publicProfilePhotoPath || legacyProfilePhotoPath;
+    const profilePhotoUrl =
+      getPublicMediaUrl(publicProfilePhotoPath) || await getSignedLegacyMediaUrl(legacyProfilePhotoPath);
 
     return {
+      applicationId: application.id,
       fullName: application.full_name || email.split('@')[0],
       email: application.email || email,
       city: application.city || '',
       experienceTime: application.experience_time || '',
       specialties: application.specialties || [],
+      profilePhotoPath,
       profilePhotoUrl,
+      coverPhotoPath: publicCoverPhotoPath,
+      coverPhotoUrl: getPublicMediaUrl(publicCoverPhotoPath),
       applicationStatus: application.status || null,
       categoryLevel: application.category_level || null,
       subscriptionPlan: application.subscription_plan || null,
@@ -328,6 +389,166 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setActiveTab('portfolio');
   };
 
+  const openProfilePicker = () => {
+    if (!isUploadingProfile && currentProfile?.applicationId) {
+      profileInputRef.current?.click();
+    }
+  };
+
+  const openCoverPicker = () => {
+    if (!isUploadingCover && currentProfile?.applicationId) {
+      coverInputRef.current?.click();
+    }
+  };
+
+  const uploadPainterMedia = async (
+    file: File,
+    folder: 'foto-perfil' | 'foto-capa',
+    column: 'foto_perfil' | 'foto_capa',
+    applicationId: string,
+    userId: string,
+    previousPath: string | null
+  ) => {
+    const filePath = buildPainterMediaPath(folder, userId, file);
+
+    const { error: uploadError } = await supabase.storage
+      .from(PAINTER_MEDIA_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { error: updateError } = await supabase
+      .from('applications')
+      .update({ [column]: filePath })
+      .eq('id', applicationId);
+
+    if (updateError) {
+      await supabase.storage.from(PAINTER_MEDIA_BUCKET).remove([filePath]);
+      throw updateError;
+    }
+
+    if (previousPath && previousPath !== filePath && previousPath.startsWith(`${folder}/`)) {
+      const { error: removeError } = await supabase.storage
+        .from(PAINTER_MEDIA_BUCKET)
+        .remove([previousPath]);
+
+      if (removeError) {
+        console.error('Erro ao remover midia anterior do pintor:', removeError);
+      }
+    }
+
+    return {
+      path: filePath,
+      url: getPublicMediaUrl(filePath)
+    };
+  };
+
+  const handlePainterMediaSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    mediaType: 'profile' | 'cover'
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setMediaFeedback({
+        type: 'error',
+        message: 'Selecione uma imagem valida para atualizar o perfil.'
+      });
+      return;
+    }
+
+    if (!currentProfile?.applicationId) {
+      setMediaFeedback({
+        type: 'error',
+        message: 'Nao encontramos seu cadastro para salvar essa imagem.'
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMediaFeedback({
+        type: 'error',
+        message: 'A imagem precisa ter no maximo 10 MB.'
+      });
+      return;
+    }
+
+    const setLoadingState = mediaType === 'profile' ? setIsUploadingProfile : setIsUploadingCover;
+    setLoadingState(true);
+    setMediaFeedback(null);
+
+    try {
+      const {
+        data: { user },
+        error: authError
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!user) {
+        throw new Error('Sua sessao expirou. Entre novamente para atualizar as imagens.');
+      }
+
+      const uploadResult = await uploadPainterMedia(
+        file,
+        mediaType === 'profile' ? 'foto-perfil' : 'foto-capa',
+        mediaType === 'profile' ? 'foto_perfil' : 'foto_capa',
+        currentProfile.applicationId,
+        user.id,
+        mediaType === 'profile' ? currentProfile.profilePhotoPath : currentProfile.coverPhotoPath
+      );
+
+      setCurrentProfile((profile) => {
+        if (!profile) {
+          return profile;
+        }
+
+        if (mediaType === 'profile') {
+          return {
+            ...profile,
+            profilePhotoPath: uploadResult.path,
+            profilePhotoUrl: uploadResult.url
+          };
+        }
+
+        return {
+          ...profile,
+          coverPhotoPath: uploadResult.path,
+          coverPhotoUrl: uploadResult.url
+        };
+      });
+
+      setMediaFeedback({
+        type: 'success',
+        message: mediaType === 'profile'
+          ? 'Foto de perfil atualizada com sucesso.'
+          : 'Foto de capa atualizada com sucesso.'
+      });
+    } catch (error) {
+      console.error(`Erro ao atualizar ${mediaType === 'profile' ? 'foto de perfil' : 'foto de capa'}:`, error);
+      setMediaFeedback({
+        type: 'error',
+        message: mediaType === 'profile'
+          ? 'Nao foi possivel atualizar a foto de perfil agora.'
+          : 'Nao foi possivel atualizar a foto de capa agora.'
+      });
+    } finally {
+      setLoadingState(false);
+    }
+  };
+
   const renderSidebar = () => (
     <div className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col">
       <div className="p-6 border-b border-slate-100 flex items-center justify-center cursor-pointer" onClick={() => setPage(Page.Home)}>
@@ -364,7 +585,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           </div>
           <p className="text-[10px] text-white/80 font-medium relative z-10">
             {getApplicationStatusLabel(currentProfile?.applicationStatus)}
-            {currentProfile?.city ? ` • ${currentProfile.city}` : ''}
+            {currentProfile?.city ? ` | ${currentProfile.city}` : ''}
           </p>
         </div>
 
@@ -383,37 +604,81 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const renderInicio = () => {
     const displayName = currentProfile?.fullName || userName;
     const profilePhotoUrl = currentProfile?.profilePhotoUrl || DEFAULT_PROFILE_IMAGE;
-    const coverPhotoUrl = portfolioItems.find((obra) => obra.imagem_url)?.imagem_url || DEFAULT_COVER_IMAGE;
+    const coverPhotoUrl =
+      currentProfile?.coverPhotoUrl ||
+      portfolioItems.find((obra) => obra.imagem_url)?.imagem_url ||
+      DEFAULT_COVER_IMAGE;
     const introDetails = [
       currentProfile?.city,
       currentProfile?.experienceTime ? `${currentProfile.experienceTime} de experiencia` : null,
       currentProfile?.specialties.length ? `${currentProfile.specialties.length} especialidades` : null
     ].filter(Boolean);
-
     const lastPortfolioEntry = portfolioItems[0];
+    const canEditMedia = Boolean(currentProfile?.applicationId);
 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <input
+          ref={profileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => void handlePainterMediaSelected(event, 'profile')}
+        />
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => void handlePainterMediaSelected(event, 'cover')}
+        />
+
         <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 mb-8 relative">
-          <div className="h-48 bg-slate-800 relative group">
+          <div className="h-48 bg-slate-800 relative">
             <img src={coverPhotoUrl} className="w-full h-full object-cover opacity-60" alt="Capa do perfil" />
-            <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center hover:bg-white/30 transition">
-              <Camera size={14} className="mr-2" /> Alterar Capa
+            <button
+              type="button"
+              onClick={openCoverPicker}
+              disabled={isUploadingCover || !canEditMedia}
+              className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center hover:bg-white/30 transition disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isUploadingCover ? (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              ) : (
+                <Camera size={14} className="mr-2" />
+              )}
+              {isUploadingCover ? 'Enviando capa...' : 'Alterar Capa'}
             </button>
           </div>
+
           <div className="px-8 pb-8 relative">
-            <div className="absolute -top-16 border-4 border-white rounded-full bg-white shadow-xl group cursor-pointer inline-block">
-              <img src={profilePhotoUrl} alt={displayName} className="w-32 h-32 rounded-full object-cover relative z-10" />
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                <Camera className="text-white" />
+            <button
+              type="button"
+              onClick={openProfilePicker}
+              disabled={isUploadingProfile || !canEditMedia}
+              className="absolute -top-16 rounded-full bg-white shadow-xl group disabled:cursor-not-allowed"
+            >
+              <div className="border-4 border-white rounded-full overflow-hidden relative">
+                <img src={profilePhotoUrl} alt={displayName} className="w-32 h-32 rounded-full object-cover relative z-10" />
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                  {isUploadingProfile ? (
+                    <Loader2 className="text-white animate-spin" />
+                  ) : (
+                    <Camera className="text-white" />
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="pt-20 flex justify-between items-start">
+              <div className="absolute bottom-1 right-1 z-30 bg-[#9A077B] text-white rounded-full p-2 shadow-lg">
+                {isUploadingProfile ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+              </div>
+            </button>
+
+            <div className="pt-20 flex justify-between items-start gap-4">
               <div>
                 <h2 className="text-3xl font-black text-[#000747]">Bem-vindo de volta, {displayName.split(' ')[0]}!</h2>
                 <p className="text-slate-500 font-medium">
                   {introDetails.length > 0
-                    ? introDetails.join(' • ')
+                    ? introDetails.join(' | ')
                     : 'Seu perfil esta ativo e visivel para clientes em sua regiao.'}
                 </p>
               </div>
@@ -421,6 +686,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                 <Edit2 size={16} className="mr-2" /> Editar Perfil
               </button>
             </div>
+
+            {mediaFeedback && (
+              <div
+                className={`mt-6 rounded-2xl border px-4 py-3 text-sm font-bold ${
+                  mediaFeedback.type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}
+              >
+                {mediaFeedback.message}
+              </div>
+            )}
           </div>
         </div>
 
