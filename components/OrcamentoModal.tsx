@@ -46,9 +46,8 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
     </div>
   );
 
-  const SectionTitle = ({ title, icon }: { title: string, icon?: string }) => (
+  const SectionTitle = ({ title }: { title: string }) => (
     <div className="flex items-center space-x-2 mt-8 mb-6 pb-2 border-b border-slate-200">
-      {icon && <span className="text-xl">{icon}</span>}
       <h3 className="text-lg font-black text-[#000747] uppercase tracking-wide">{title}</h3>
     </div>
   );
@@ -60,7 +59,6 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
         {/* Header */}
         <div className="bg-gradient-to-r from-[#000747] to-[#9A077B] p-6 text-white flex justify-between items-center z-10 shadow-md">
           <div className="flex items-center space-x-3">
-            <span className="text-3xl">📋</span>
             <div>
               <h2 className="text-xl font-black tracking-wide">Formulário Profissional de Orçamento</h2>
               <p className="text-white/80 text-sm font-medium">Pintura Imobiliária - Cadastro Detalhado</p>
@@ -76,7 +74,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
           <form className="space-y-6">
 
             {/* 1. Dados do Cliente */}
-            <SectionTitle icon="🧾" title="1. Dados do Cliente" />
+            <SectionTitle title="1. Dados do Cliente" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputGroup label="Nome completo"><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="Nome do cliente" /></InputGroup>
               <InputGroup label="CPF / CNPJ"><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="000.000.000-00" /></InputGroup>
@@ -96,7 +94,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 2. Dados do Imóvel */}
-            <SectionTitle icon="📍" title="2. Dados do Imóvel" />
+            <SectionTitle title="2. Dados do Imóvel" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-1 md:col-span-2">
                 <InputGroup label="Endereço completo"><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="Rua, Número, Bairro" /></InputGroup>
@@ -133,7 +131,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 3. Detalhamento das Áreas */}
-            <SectionTitle icon="📐" title="3. Detalhamento das Áreas" />
+            <SectionTitle title="3. Detalhamento das Áreas" />
             <div className="space-y-4">
               {ambientes.map((amb, index) => (
                 <div key={amb.id} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl relative">
@@ -169,7 +167,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 4. Tipo de Pintura */}
-            <SectionTitle icon="🎨" title="4. Tipo de Pintura" />
+            <SectionTitle title="4. Tipo de Pintura" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <InputGroup label="Tipo de serviço">
                 {['Pintura interna', 'Pintura externa', 'Ambas'].map(t => (
@@ -198,7 +196,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 5. Preparação da Superfície */}
-            <SectionTitle icon="🛠️" title="5. Preparação da Superfície" />
+            <SectionTitle title="5. Preparação da Superfície" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <InputGroup label="Situação atual da parede">
                  <div className="flex flex-wrap gap-2 mt-2">
@@ -223,7 +221,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 6. Complexidade do Serviço */}
-            <SectionTitle icon="🎯" title="6. Complexidade do Serviço" />
+            <SectionTitle title="6. Complexidade do Serviço" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <InputGroup label="Altura do trabalho">
                 {['Até 3m', '3m a 6m', 'Acima de 6m'].map(t => (
@@ -252,7 +250,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 7. Serviços Extras */}
-            <SectionTitle icon="🧹" title="7. Serviços Extras" />
+            <SectionTitle title="7. Serviços Extras" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {['Proteção de móveis', 'Proteção de piso', 'Limpeza pós-obra', 'Remoção de tinta antiga', 'Aplicação de textura', 'Grafiato', 'Efeito decorativo'].map(t => (
                 <label key={t} className="flex items-center space-x-2 cursor-pointer p-3 bg-slate-50 border rounded-xl hover:bg-slate-100 transition">
@@ -263,7 +261,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 8. Cores e Personalização */}
-            <SectionTitle icon="🎨" title="8. Cores e Personalização" />
+            <SectionTitle title="8. Cores e Personalização" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <InputGroup label="Já possui cores definidas?">
                  <div className="flex gap-4 mt-2">
@@ -295,7 +293,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             {/* 9 & 10. Prazo & Fornecimento */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <SectionTitle icon="📅" title="9. Prazo e Urgência" />
+                <SectionTitle title="9. Prazo e Urgência" />
                 <InputGroup label="Data ideal de início"><input type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-[#9A077B]" /></InputGroup>
                 <InputGroup label="Prazo estimado na cabeça do cliente"><input type="text" placeholder="Ex: 1 semana, 15 dias" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-[#9A077B]" /></InputGroup>
                 <InputGroup label="Urgência">
@@ -310,7 +308,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
                 </InputGroup>
               </div>
               <div>
-                <SectionTitle icon="💰" title="10. Fornecimento" />
+                <SectionTitle title="10. Fornecimento" />
                 <InputGroup label="Materiais serão:">
                   <div className="flex flex-col gap-3 mt-2">
                     {['Fornecidos pelo cliente', 'Fornecidos pelo profissional', 'A combinar'].map(t => (
@@ -325,7 +323,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
             </div>
 
             {/* 11. Imagens e 12. Observações */}
-            <SectionTitle icon="📸" title="11. Imagens do Local (Opcionais)" />
+            <SectionTitle title="11. Imagens do Local (Opcionais)" />
             <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
                <Camera size={32} className="text-slate-400 mb-2" />
                <p className="font-bold text-slate-600">Clique para adicionar Fotos ou Vídeos do local</p>
@@ -333,14 +331,14 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
                <input type="file" multiple className="hidden" />
             </div>
 
-            <SectionTitle icon="📝" title="12. Observações" />
+            <SectionTitle title="12. Observações" />
             <InputGroup label="Detalhes adicionais ou restrições">
               <textarea rows={4} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700 resize-none" placeholder="Ex: Prédio só aceita obras das 9h as 17h. Existem móveis pesados na sala..."></textarea>
             </InputGroup>
 
             {/* 13. Confirmação */}
             <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl mt-8">
-               <SectionTitle icon="✔️" title="13. Confirmação Final" />
+               <SectionTitle title="13. Confirmação Final" />
                <div className="space-y-4">
                  <label className="flex items-start space-x-3 cursor-pointer">
                     <input type="checkbox" className="accent-[#9A077B] w-5 h-5 mt-0.5" />
