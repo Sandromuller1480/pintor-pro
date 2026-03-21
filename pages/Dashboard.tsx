@@ -266,14 +266,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <p className="text-slate-500 font-medium">Adicione sua primeira obra e ela aparecera aqui sem recarregar a pagina.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 justify-items-start">
           {portfolioItems.map((obra) => (
-            <div key={obra.id} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm group">
-              <div className="h-48 relative overflow-hidden bg-slate-100">
+            <div key={obra.id} className="w-full max-w-[290px] bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-[0_12px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.12)] transition-shadow group">
+              <div className="aspect-square relative overflow-hidden bg-slate-100">
                 {obra.video_url ? (
-                  <video src={obra.video_url} className="w-full h-full object-cover" muted playsInline controls />
+                  <video src={obra.video_url} className="w-full h-full object-cover object-center" muted playsInline controls />
                 ) : obra.imagem_url ? (
-                  <img src={obra.imagem_url} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" alt={obra.titulo} />
+                  <img src={obra.imagem_url} className="w-full h-full object-cover object-center transition duration-500 group-hover:scale-[1.03]" alt={obra.titulo} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold">
                     Sem midia
@@ -283,9 +283,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                   {obra.status === 'EM ANDAMENTO' ? 'Em Andamento' : 'Concluido'}
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-5">
                 <h4 className="font-black text-lg text-slate-900 mb-1">{obra.titulo}</h4>
-                <p className="text-sm text-slate-500 mb-4">{obra.local}</p>
+                <p className="text-sm text-slate-500 mb-4 line-clamp-2 min-h-[2.75rem]">{obra.local}</p>
                 <div className="flex gap-2 flex-wrap">
                   <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">{obra.tipo_imovel}</span>
                   <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">{obra.tipo_pintura}</span>
