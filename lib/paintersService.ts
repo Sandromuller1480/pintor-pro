@@ -11,8 +11,10 @@ type ApplicationFormSubmission = {
     city: string,
     whatsapp: string,
     email: string,
+    password?: string,
     experienceTime: string,
     specialty: string[],
+    profilePhoto?: File,
     workPhotos: File[],
     certifications: File[]
 };
@@ -98,6 +100,20 @@ export const paintersService = {
     },
 
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {
+        if (formData.password) {
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: { full_name: formData.fullName }
+                }
+            });
+            if (authError && authError.status !== 400) { 
+                console.error('Erro de autenticação:', authError);
+                throw new Error(`Erro ao criar acesso: ${authError.message}`);
+            }
+        }
+
         const { data, error } = await supabase
             .from('applications')
             .insert([{
@@ -117,17 +133,20 @@ export const paintersService = {
             throw new Error(`Falha ao salvar cadastro: ${error.message}`);
         }
 
-        const [workPhotoPaths, certificationPaths] = await Promise.all([
+        const [profilePhotoPaths, workPhotoPaths, certificationPaths] = await Promise.all([
+            formData.profilePhoto ? this.uploadApplicationFiles(data.id, [formData.profilePhoto], STORAGE_BUCKETS.workPhotos, 'profile-photo') : Promise.resolve([]),
             this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
             this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
         ]);
+        
+        const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
 
         const { error: filesUpdateError } = await supabase
             .from('applications')
             .update({
-                work_photo_paths: workPhotoPaths,
+                work_photo_paths: finalWorkPhotos,
                 certification_paths: certificationPaths,
-                work_photo_count: workPhotoPaths.length,
+                work_photo_count: finalWorkPhotos.length,
                 certification_count: certificationPaths.length
             })
             .eq('id', data.id);
@@ -165,7 +184,7 @@ export const paintersService = {
 
         return {
             id: data.id,
-            work_photo_paths: workPhotoPaths,
+            work_photo_paths: finalWorkPhotos,
             certification_paths: certificationPaths,
             processingResult,
             processingWarning

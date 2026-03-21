@@ -42,11 +42,16 @@ type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' |
 type ApplicationFormData = {
   fullName: string;
   gender: '' | 'feminino' | 'masculino';
+  cep: string;
   city: string;
+  uf: string;
   whatsapp: string;
   email: string;
+  password: string;
+  confirmPassword: string;
   experienceTime: string;
   specialty: string[];
+  profilePhoto: File | null;
   workPhotos: File[];
   certifications: File[];
 };
@@ -98,11 +103,16 @@ const App: React.FC = () => {
   const [formData, setFormData] = useState<ApplicationFormData>({
     fullName: '',
     gender: '',
+    cep: '',
     city: '',
+    uf: '',
     whatsapp: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     experienceTime: '',
     specialty: [],
+    profilePhoto: null,
     workPhotos: [],
     certifications: []
   });
@@ -135,13 +145,28 @@ const App: React.FC = () => {
   const handleSubmit = async () => {
     if (
       !formData.fullName ||
+      !formData.cep ||
       !formData.city ||
+      !formData.uf ||
       !formData.whatsapp ||
       !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword ||
       !formData.experienceTime ||
-      formData.specialty.length === 0
+      formData.specialty.length === 0 ||
+      !formData.profilePhoto
     ) {
-      alert('Por favor, preencha todos os campos.');
+      alert('Por favor, preencha todos os campos obrigatórios e adicione a foto de perfil.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      alert('A Senha e a Confirmação de Senha não coincidem.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      alert('A Senha precisa ter no mínimo 6 caracteres.');
       return;
     }
 
@@ -152,7 +177,12 @@ const App: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await paintersService.submitApplication(formData);
+      const formPayload = {
+        ...formData,
+        profilePhoto: formData.profilePhoto as File,
+        city: `${formData.city} - ${formData.uf} (CEP: ${formData.cep})`
+      };
+      await paintersService.submitApplication(formPayload);
       
       setShowSuccessToast(true);
       setTimeout(() => {
@@ -161,11 +191,16 @@ const App: React.FC = () => {
         setFormData({
           fullName: '',
           gender: '',
+          cep: '',
           city: '',
+          uf: '',
           whatsapp: '',
           email: '',
+          password: '',
+          confirmPassword: '',
           experienceTime: '',
           specialty: [],
+          profilePhoto: null,
           workPhotos: [],
           certifications: []
         });
@@ -181,6 +216,34 @@ const App: React.FC = () => {
 
   const handleWorkPhotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, workPhotos: Array.from(e.target.files ?? []) });
+  };
+
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormData({ ...formData, profilePhoto: file });
+  };
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let cep = e.target.value.replace(/\D/g, '');
+    if (cep.length > 8) cep = cep.slice(0, 8);
+    
+    setFormData(prev => ({ ...prev, cep }));
+
+    if (cep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setFormData(prev => ({ 
+            ...prev, 
+            city: data.localidade || '',
+            uf: data.uf || ''
+          }));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP', error);
+      }
+    }
   };
 
   const handleCertificationsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,70 +294,144 @@ const App: React.FC = () => {
             <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/5 rounded-full -translate-y-10 translate-x-10"></div>
               <div className="space-y-6 relative z-10">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Nome do Profissional ou Empresa</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Roberto Silva Pinturas"
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cidade Base (Atendimento Nacional)</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: São Paulo - SP"
-                    className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                    Sexo (Pessoa Física)
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {GENDER_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, gender: option.value })}
-                        className={`p-4 rounded-2xl border text-sm font-black uppercase tracking-widest transition ${
-                          formData.gender === option.value
-                            ? 'bg-[#9A077B] text-white border-[#9A077B] shadow-lg shadow-[#F7E3F1]'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-[#EFC6E3] hover:text-[#9A077B]'
-                        }`}
-                        aria-pressed={formData.gender === option.value}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="col-span-1 border border-slate-200 rounded-2xl p-6 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden group">
+                    {formData.profilePhoto ? (
+                      <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg mb-2 relative">
+                        <img src={URL.createObjectURL(formData.profilePhoto)} alt="Perfil" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-inner mb-2">
+                        <svg xmlns="http://www.w3.org/2003/svg" className="h-10 w-10 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                    <label className="text-center cursor-pointer mt-2 text-[#9A077B] text-xs font-bold uppercase tracking-widest hover:text-[#7F0665]">
+                      Upload Foto
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoChange} />
+                    </label>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                    Opcional para empresa. Selecione quando o cadastro for de profissional pessoa física.
-                  </p>
+                  
+                  <div className="col-span-2 space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Nome do Profissional ou Empresa *</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Roberto Silva Pinturas"
+                        className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                        Sexo (Pessoa Física)
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {GENDER_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, gender: option.value })}
+                            className={`p-4 rounded-2xl border text-sm font-black uppercase tracking-widest transition ${
+                              formData.gender === option.value
+                                ? 'bg-[#9A077B] text-white border-[#9A077B] shadow-lg shadow-[#F7E3F1]'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-[#EFC6E3] hover:text-[#9A077B]'
+                            }`}
+                            aria-pressed={formData.gender === option.value}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">CEP *</label>
+                    <input
+                      type="text"
+                      placeholder="00000000"
+                      maxLength={8}
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition text-center"
+                      value={formData.cep}
+                      onChange={handleCepChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cidade *</label>
+                    <input
+                      type="text"
+                      placeholder="São Paulo"
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">UF *</label>
+                    <input
+                      type="text"
+                      placeholder="SP"
+                      maxLength={2}
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition uppercase"
+                      value={formData.uf}
+                      onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">E-mail</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">E-mail *</label>
                     <input
                       type="email"
                       placeholder="seu@email.com"
                       className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">WhatsApp</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">WhatsApp *</label>
                     <input
                       type="tel"
                       placeholder="(11) 99999-9999"
                       className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Crie uma Senha *</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Confirme a Senha *</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required
+                      minLength={6}
                     />
                   </div>
                 </div>
