@@ -28,6 +28,24 @@ type ApplicationProcessingRequest = {
     specialtiesCount: number;
 };
 
+export type ApplicationProcessingResult = {
+    ok: boolean;
+    applicationId: string;
+    status: 'accepted' | 'rejected';
+    category: 'ouro' | 'prata' | 'bronze' | null;
+    analysisNotes: string;
+    emailSent: boolean;
+    emailWarning: string | null;
+};
+
+export type ApplicationSubmissionResult = {
+    id: string;
+    work_photo_paths: string[];
+    certification_paths: string[];
+    processingResult: ApplicationProcessingResult | null;
+    processingWarning: string | null;
+};
+
 export const paintersService = {
     async getAll() {
         const { data, error } = await supabase
@@ -78,7 +96,7 @@ export const paintersService = {
         } as Painter;
     },
 
-    async submitApplication(formData: ApplicationFormSubmission) {
+    async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {
         const { data, error } = await supabase
             .from('applications')
             .insert([{
@@ -118,28 +136,38 @@ export const paintersService = {
             throw new Error(`Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`);
         }
 
-        this.processAutomatedAnalysis({
-            applicationId: data.id,
-            applicant: {
-                fullName: formData.fullName,
-                email: formData.email,
-                city: formData.city,
-                experienceTime: formData.experienceTime
-            },
-            uploadedFiles: {
-                workPhotoCount: workPhotoPaths.length,
-                certificationCount: certificationPaths.length
-            },
-            specialties: formData.specialty,
-            specialtiesCount: formData.specialty.length
-        }).catch((processingError) => {
-            console.error('Erro no processamento assincrono da aplicacao:', processingError);
-        });
+        let processingResult: ApplicationProcessingResult | null = null;
+        let processingWarning: string | null = null;
+
+        try {
+            processingResult = await this.processAutomatedAnalysis({
+                applicationId: data.id,
+                applicant: {
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    city: formData.city,
+                    experienceTime: formData.experienceTime
+                },
+                uploadedFiles: {
+                    workPhotoCount: workPhotoPaths.length,
+                    certificationCount: certificationPaths.length
+                },
+                specialties: formData.specialty,
+                specialtiesCount: formData.specialty.length
+            });
+        } catch (processingError) {
+            console.error('Erro no processamento da aplicacao:', processingError);
+            processingWarning = processingError instanceof Error
+                ? processingError.message
+                : 'Falha ao concluir a analise automatica.';
+        }
 
         return {
-            ...data,
+            id: data.id,
             work_photo_paths: workPhotoPaths,
-            certification_paths: certificationPaths
+            certification_paths: certificationPaths,
+            processingResult,
+            processingWarning
         };
     },
 
@@ -188,7 +216,7 @@ export const paintersService = {
         return uploadedPaths;
     },
 
-    async processAutomatedAnalysis(payload: ApplicationProcessingRequest) {
+    async processAutomatedAnalysis(payload: ApplicationProcessingRequest): Promise<ApplicationProcessingResult> {
         const { data, error } = await supabase.functions.invoke('process-application', {
             body: payload
         });

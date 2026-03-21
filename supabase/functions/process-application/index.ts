@@ -204,8 +204,11 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'Pintor PRO <onboarding@resend.dev>';
+  const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? Deno.env.get('VITE_RESEND_API_KEY');
+  const resendFromEmail =
+    Deno.env.get('RESEND_FROM_EMAIL') ??
+    Deno.env.get('VITE_RESEND_FROM_EMAIL') ??
+    'Pintor PRO <onboarding@resend.dev>';
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return jsonResponse(500, { error: 'Missing Supabase server environment variables' });
@@ -266,7 +269,7 @@ Deno.serve(async (req) => {
   let emailWarning: string | null = null;
 
   if (!resendApiKey) {
-    emailWarning = 'RESEND_API_KEY not configured';
+    emailWarning = 'RESEND_API_KEY or VITE_RESEND_API_KEY not configured';
     console.warn(emailWarning);
   } else {
     try {

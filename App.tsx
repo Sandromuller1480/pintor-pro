@@ -8,7 +8,7 @@ import { PainterProfile } from './pages/PainterProfile';
 import { Plans } from './pages/Plans';
 import { About } from './pages/About';
 import { HowItWorks } from './pages/HowItWorks';
-import { paintersService } from './lib/paintersService';
+import { paintersService, type ApplicationSubmissionResult } from './lib/paintersService';
 
 const SPECIALTY_OPTIONS = [
   'Preparo do reboco (Limpeza, Lixa, Selador/Fundo Preparador)',
@@ -35,6 +35,8 @@ const GENDER_OPTIONS = [
   { value: 'feminino', label: 'Feminino' },
   { value: 'masculino', label: 'Masculino' }
 ] as const;
+
+type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' | 'processingWarning'>;
 
 type ApplicationFormData = {
   fullName: string;
@@ -103,6 +105,7 @@ const App: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null);
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -145,9 +148,14 @@ const App: React.FC = () => {
       return;
     }
 
+    setSubmissionFeedback(null);
     setIsSubmitting(true);
     try {
-      await paintersService.submitApplication(formData);
+      const submission = await paintersService.submitApplication(formData);
+      setSubmissionFeedback({
+        processingResult: submission.processingResult,
+        processingWarning: submission.processingWarning
+      });
       setSubmitted(true);
     } catch (error) {
       console.error(error);
@@ -193,6 +201,11 @@ const App: React.FC = () => {
         return <About />;
       case Page.Register:
         if (submitted) {
+          const emailSent = submissionFeedback?.processingResult?.emailSent ?? false;
+          const hasNotificationIssue = Boolean(
+            submissionFeedback?.processingWarning || submissionFeedback?.processingResult?.emailWarning
+          );
+
           return (
             <div className="py-24 text-center max-w-2xl mx-auto px-4 animate-in">
               <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-green-100">
@@ -202,10 +215,16 @@ const App: React.FC = () => {
               </div>
               <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">Solicitação Enviada!</h1>
               <p className="text-slate-600 text-lg mb-12 font-medium">
-                Iniciamos a sua <b>Análise Técnica Automática</b>. <br />
-                Você receberá uma notificação via E-mail e WhatsApp em alguns minutos com o resultado.
+                {emailSent
+                  ? <>Sua <b>Análise Técnica Automática</b> foi concluída e enviamos a confirmação por e-mail.</>
+                  : <>Recebemos sua solicitação, mas não conseguimos confirmar o envio do e-mail automático neste momento.</>}
               </p>
-              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); }} className="bg-[#000747] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#9A077B] transition uppercase tracking-widest">
+              {hasNotificationIssue && (
+                <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm font-medium text-amber-900">
+                  A confirmação por WhatsApp ainda não está disponível neste fluxo, e o e-mail automático depende da configuração do serviço de envio.
+                </div>
+              )}
+              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); setSubmissionFeedback(null); }} className="bg-[#000747] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#9A077B] transition uppercase tracking-widest">
                 Voltar para a Home
               </button>
             </div>
