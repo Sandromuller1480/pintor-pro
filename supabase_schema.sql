@@ -46,19 +46,23 @@ CREATE TABLE IF NOT EXISTS applications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Políticas para envio público de credenciamento (MVP)
+-- Politicas para envio publico de credenciamento (MVP)
+-- O signUp pode autenticar o usuario imediatamente, entao o cadastro precisa
+-- funcionar tanto para anon quanto para authenticated.
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anon can insert applications" ON applications;
-CREATE POLICY "Anon can insert applications"
+DROP POLICY IF EXISTS "Public can insert applications" ON applications;
+CREATE POLICY "Public can insert applications"
 ON applications FOR INSERT
-TO anon
+TO anon, authenticated
 WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Anon can update applications" ON applications;
-CREATE POLICY "Anon can update applications"
+DROP POLICY IF EXISTS "Public can update applications" ON applications;
+CREATE POLICY "Public can update applications"
 ON applications FOR UPDATE
-TO anon
+TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 -- Compatibilidade para bancos jÃ¡ criados anteriormente
@@ -83,17 +87,19 @@ VALUES
   ('application-certifications', 'application-certifications', false)
 ON CONFLICT (id) DO NOTHING;
 
--- PolÃ­ticas mÃ­nimas para upload via cliente (revisar em produÃ§Ã£o)
+-- Politicas minimas para upload via cliente (revisar em producao)
 DROP POLICY IF EXISTS "Anon can upload application work photos" ON storage.objects;
-CREATE POLICY "Anon can upload application work photos"
+DROP POLICY IF EXISTS "Public can upload application work photos" ON storage.objects;
+CREATE POLICY "Public can upload application work photos"
 ON storage.objects FOR INSERT
-TO anon
+TO anon, authenticated
 WITH CHECK (bucket_id = 'application-work-photos');
 
 DROP POLICY IF EXISTS "Anon can upload application certifications" ON storage.objects;
-CREATE POLICY "Anon can upload application certifications"
+DROP POLICY IF EXISTS "Public can upload application certifications" ON storage.objects;
+CREATE POLICY "Public can upload application certifications"
 ON storage.objects FOR INSERT
-TO anon
+TO anon, authenticated
 WITH CHECK (bucket_id = 'application-certifications');
 
 -- Inserir dados iniciais (opcional)

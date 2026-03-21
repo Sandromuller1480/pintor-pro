@@ -19,21 +19,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
   const [isSignOut, setIsSignOut] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.user_metadata?.full_name) {
-        setUserName(data.user.user_metadata.full_name.split(' ')[0]);
+    let isMounted = true;
+
+    const loadCurrentUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+
+      if (error || !data.user) {
+        if (error) {
+          console.error('Erro ao carregar usuario do painel:', error);
+        }
+        setIsCheckingAccess(false);
+        setPage(Page.Login);
+        return;
       }
-    });
+
+      const fullName = data.user.user_metadata?.full_name;
+
+      if (typeof fullName === 'string' && fullName.trim()) {
+        setUserName(fullName.split(' ')[0]);
+      } else if (data.user.email) {
+        setUserName(data.user.email.split('@')[0]);
+      }
+
+      setIsCheckingAccess(false);
+    };
+
+    loadCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleLogout = async () => {
     setIsSignOut(true);
-    await supabase.auth.signOut();
-    setPage(Page.Home);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      setPage(Page.Home);
+    } catch (error) {
+      console.error('Erro ao encerrar sessao:', error);
+      alert('Nao foi possivel sair da conta agora. Tente novamente.');
+      setIsSignOut(false);
+    }
   };
 
   const renderSidebar = () => (
@@ -258,6 +298,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     case 'portfolio': content = renderPortfolio(); break;
     case 'orcamentos': content = renderOrcamentos(); break;
     case 'config': content = <div className="p-10 text-center text-slate-500">Configurações em desenvolvimento...</div>; break;
+  }
+
+  if (isCheckingAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500 font-black uppercase tracking-widest">Carregando painel...</p>
+      </div>
+    );
   }
 
   return (

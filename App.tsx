@@ -11,6 +11,7 @@ import { HowItWorks } from './pages/HowItWorks';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { paintersService, type ApplicationSubmissionResult } from './lib/paintersService';
+import { supabase } from './lib/supabase';
 
 const SPECIALTY_OPTIONS = [
   'Preparo do reboco (Limpeza, Lixa, Selador/Fundo Preparador)',
@@ -55,6 +56,23 @@ type ApplicationFormData = {
   profilePhoto: File | null;
   workPhotos: File[];
   certifications: File[];
+};
+
+const INITIAL_FORM_DATA: ApplicationFormData = {
+  fullName: '',
+  gender: '',
+  cep: '',
+  city: '',
+  uf: '',
+  whatsapp: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  experienceTime: '',
+  specialty: [],
+  profilePhoto: null,
+  workPhotos: [],
+  certifications: []
 };
 
 const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
@@ -103,24 +121,12 @@ const buildPathForRoute = (route: AppRoute): string => {
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(getInitialRoute);
   const currentPage = route.page;
-  const [formData, setFormData] = useState<ApplicationFormData>({
-    fullName: '',
-    gender: '',
-    cep: '',
-    city: '',
-    uf: '',
-    whatsapp: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    experienceTime: '',
-    specialty: [],
-    profilePhoto: null,
-    workPhotos: [],
-    certifications: []
-  });
+  const [formData, setFormData] = useState<ApplicationFormData>(INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -144,6 +150,52 @@ const App: React.FC = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error('Erro ao recuperar sessao:', error);
+      }
+
+      setIsAuthenticated(Boolean(data.session));
+      setIsAuthReady(true);
+    };
+
+    syncSession();
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
+      setIsAuthenticated(Boolean(session));
+      setIsAuthReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+
+    if (route.page === Page.Dashboard && !isAuthenticated) {
+      navigateToPage(Page.Login);
+      return;
+    }
+
+    if (route.page === Page.Login && isAuthenticated) {
+      navigateToPage(Page.Dashboard);
+    }
+  }, [route.page, isAuthReady, isAuthenticated]);
 
   const handleSubmit = async () => {
     if (
@@ -179,35 +231,27 @@ const App: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setSubmissionFeedback(null);
     try {
       const formPayload = {
         ...formData,
         profilePhoto: formData.profilePhoto as File,
         city: `${formData.city} - ${formData.uf} (CEP: ${formData.cep})`
       };
-      await paintersService.submitApplication(formPayload);
+      const submissionResult = await paintersService.submitApplication(formPayload);
+
+      setSubmissionFeedback({
+        processingResult: submissionResult.processingResult,
+        processingWarning: submissionResult.processingWarning
+      });
       
       setShowSuccessToast(true);
       setTimeout(() => {
         setShowSuccessToast(false);
         setIsSubmitting(false);
-        setFormData({
-          fullName: '',
-          gender: '',
-          cep: '',
-          city: '',
-          uf: '',
-          whatsapp: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          experienceTime: '',
-          specialty: [],
-          profilePhoto: null,
-          workPhotos: [],
-          certifications: []
-        });
-        navigateToPage(Page.Home);
+        setSubmissionFeedback(null);
+        setFormData(INITIAL_FORM_DATA);
+        navigateToPage(Page.Login);
       }, 3000);
     } catch (error) {
       console.error(error);
@@ -265,6 +309,14 @@ const App: React.FC = () => {
   };
 
   const renderPage = () => {
+    if (currentPage === Page.Dashboard && !isAuthReady) {
+      return (
+        <div className="py-24 text-center max-w-xl mx-auto px-4">
+          <p className="text-slate-500 font-black uppercase tracking-widest">Verificando acesso...</p>
+        </div>
+      );
+    }
+
     switch (currentPage) {
       case Page.Home:
         return <Home setPage={navigateToPage} />;
@@ -287,7 +339,15 @@ const App: React.FC = () => {
           <div className="py-24 text-center max-w-2xl mx-auto px-4 relative">
             {showSuccessToast && (
               <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-[#9A077B] text-white font-black px-10 py-5 rounded-2xl shadow-2xl tracking-widest uppercase border-4 border-[#F7E3F1] transition-all" style={{ animation: 'fade-in 0.5s ease-out' }}>
-                CADASTRO EFETUADO COM SUCESSO!
+                <div>CADASTRO EFETUADO COM SUCESSO!</div>
+                <p className="mt-3 max-w-md text-[10px] font-medium normal-case tracking-normal text-white/90">
+                  Verifique seu e-mail antes de entrar no painel caso a confirmacao de acesso esteja habilitada no Supabase.
+                </p>
+                {submissionFeedback?.processingWarning && (
+                  <p className="mt-2 max-w-md text-[10px] font-medium normal-case tracking-normal text-white/80">
+                    Analise automatica pendente: {submissionFeedback.processingWarning}
+                  </p>
+                )}
               </div>
             )}
             <h1 className="text-5xl font-black mb-6 text-[#000747] tracking-tighter uppercase">
@@ -441,13 +501,14 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tempo de Profissao</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tempo de Profissao *</label>
                   <input
                     type="text"
                     placeholder="Ex: 10 anos"
                     className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                     value={formData.experienceTime}
                     onChange={(e) => setFormData({ ...formData, experienceTime: e.target.value })}
+                    required
                   />
                 </div>
                 <div>

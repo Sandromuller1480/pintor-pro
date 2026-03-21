@@ -6,6 +6,12 @@ const STORAGE_BUCKETS = {
     certifications: 'application-certifications'
 } as const;
 
+const EXISTING_USER_ERROR_PATTERNS = [
+    'already registered',
+    'already been registered',
+    'user already exists'
+];
+
 type ApplicationFormSubmission = {
     fullName: string,
     city: string,
@@ -100,29 +106,53 @@ export const paintersService = {
     },
 
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {
+        const normalizedEmail = formData.email.trim().toLowerCase();
+        const normalizedFullName = formData.fullName.trim();
+        const normalizedCity = formData.city.trim();
+        const normalizedWhatsapp = formData.whatsapp.trim();
+        const normalizedExperienceTime = formData.experienceTime.trim();
+        const normalizedSpecialties = formData.specialty
+            .map((item) => item.trim())
+            .filter(Boolean);
+
         if (formData.password) {
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: normalizedEmail,
                 password: formData.password,
                 options: {
-                    data: { full_name: formData.fullName }
+                    data: { full_name: normalizedFullName }
                 }
             });
-            if (authError && authError.status !== 400) { 
-                console.error('Erro de autenticação:', authError);
+
+            const authErrorMessage = authError?.message?.toLowerCase() ?? '';
+            const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
+
+            if (authError && !isExistingUserError) {
+                console.error('Erro de autenticacao:', authError);
                 throw new Error(`Erro ao criar acesso: ${authError.message}`);
+            }
+
+            // Quando o Supabase cria sessao imediatamente, o client passa a usar o role
+            // authenticated. O cadastro publico abaixo precisa continuar operando sem sessao.
+            if (authData.session) {
+                const { error: signOutError } = await supabase.auth.signOut();
+
+                if (signOutError) {
+                    console.error('Erro ao restaurar contexto publico apos signUp:', signOutError);
+                    throw new Error('Nao foi possivel concluir o cadastro apos criar o acesso. Tente novamente.');
+                }
             }
         }
 
         const { data, error } = await supabase
             .from('applications')
             .insert([{
-                full_name: formData.fullName,
-                city: formData.city,
-                whatsapp: formData.whatsapp,
-                email: formData.email,
-                experience_time: formData.experienceTime,
-                specialties: formData.specialty,
+                full_name: normalizedFullName,
+                city: normalizedCity,
+                whatsapp: normalizedWhatsapp,
+                email: normalizedEmail,
+                experience_time: normalizedExperienceTime,
+                specialties: normalizedSpecialties,
                 status: 'pending'
             }])
             .select()
@@ -138,7 +168,7 @@ export const paintersService = {
             this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
             this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
         ]);
-        
+
         const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
 
         const { error: filesUpdateError } = await supabase
@@ -163,17 +193,17 @@ export const paintersService = {
             processingResult = await this.processAutomatedAnalysis({
                 applicationId: data.id,
                 applicant: {
-                    fullName: formData.fullName,
-                    email: formData.email,
-                    city: formData.city,
-                    experienceTime: formData.experienceTime
+                    fullName: normalizedFullName,
+                    email: normalizedEmail,
+                    city: normalizedCity,
+                    experienceTime: normalizedExperienceTime
                 },
                 uploadedFiles: {
                     workPhotoCount: workPhotoPaths.length,
                     certificationCount: certificationPaths.length
                 },
-                specialties: formData.specialty,
-                specialtiesCount: formData.specialty.length
+                specialties: normalizedSpecialties,
+                specialtiesCount: normalizedSpecialties.length
             });
         } catch (processingError) {
             console.error('Erro no processamento da aplicacao:', processingError);
