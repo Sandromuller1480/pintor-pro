@@ -13,6 +13,10 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  if (currentPage === Page.Dashboard) {
+    return <div className="min-h-screen bg-slate-50 font-sans">{children}</div>;
+  }
+
   return (
     <div className="min-h-screen flex flex-col font-sans">
       {/* CABEÇALHO */}

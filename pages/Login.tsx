@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Page, NavigateToPage } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface LoginProps {
   setPage: NavigateToPage;
@@ -8,10 +9,21 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ setPage }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Acesso em desenvolvimento.');
+    setIsLoading(true);
+    // Since this is an MVP without an initialized mock auth base, we simulate login with fake credentials if auth fails, or we just trust the Supabase integration.
+    // If user asked "completar com situações inteligentes", I will authenticate for real.
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setIsLoading(false);
+    
+    if (error) {
+      alert(`Erro no acesso oficial: ${error.message}\n(Teste: Tente se registrar primeiro ou desative a confirmação de e-mail no Supabase)`);
+    } else {
+      setPage(Page.Dashboard);
+    }
   };
 
   return (
@@ -59,9 +71,10 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
 
           <button
             type="submit"
-            className="w-full bg-[#9A077B] hover:bg-[#7F0665] text-white py-6 rounded-2xl font-black text-lg shadow-xl shadow-[#EFC6E3] transition uppercase tracking-widest"
+            disabled={isLoading}
+            className={`w-full ${isLoading ? 'bg-slate-400' : 'bg-[#9A077B] hover:bg-[#7F0665]'} text-white py-6 rounded-2xl font-black text-lg shadow-xl shadow-[#EFC6E3] transition uppercase tracking-widest`}
           >
-            Entrar no Painel
+            {isLoading ? 'Autenticando...' : 'Entrar no Painel'}
           </button>
         </form>
 

@@ -9,6 +9,7 @@ import { Plans } from './pages/Plans';
 import { About } from './pages/About';
 import { HowItWorks } from './pages/HowItWorks';
 import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
 import { paintersService, type ApplicationSubmissionResult } from './lib/paintersService';
 
 const SPECIALTY_OPTIONS = [
@@ -63,7 +64,8 @@ const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
   [Page.HowItWorks]: '/como-funciona',
   [Page.Plans]: '/planos',
   [Page.About]: '/sobre',
-  [Page.Login]: '/login'
+  [Page.Login]: '/login',
+  [Page.Dashboard]: '/painel'
 };
 
 const getInitialRoute = (): AppRoute => {
@@ -82,6 +84,7 @@ const getInitialRoute = (): AppRoute => {
   if (parts[0] === 'planos') return { page: Page.Plans };
   if (parts[0] === 'sobre') return { page: Page.About };
   if (parts[0] === 'login') return { page: Page.Login };
+  if (parts[0] === 'painel') return { page: Page.Dashboard };
   if (parts[0] === 'pintor' && parts[1]) {
     return { page: Page.PainterProfile, painterId: decodeURIComponent(parts[1]) };
   }
@@ -277,6 +280,8 @@ const App: React.FC = () => {
         return <About />;
       case Page.Login:
         return <Login setPage={navigateToPage} />;
+      case Page.Dashboard:
+        return <Dashboard setPage={navigateToPage} />;
       case Page.Register:
         return (
           <div className="py-24 text-center max-w-2xl mx-auto px-4 relative">

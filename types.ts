@@ -40,7 +40,8 @@ export enum Page {
   HowItWorks = 'how-it-works',
   Plans = 'plans',
   About = 'about',
-  Login = 'login'
+  Login = 'login',
+  Dashboard = 'dashboard'
 }
 
 export type PageNavigationParams = {
