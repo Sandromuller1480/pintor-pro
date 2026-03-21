@@ -1,4 +1,4 @@
-rimport React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page, NavigateToPage } from '../types';
 import { supabase } from '../lib/supabase';
 import {
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { OrcamentoModal } from '../components/OrcamentoModal';
+import { ObraModal } from '../components/ObraModal';
 
 interface DashboardProps {
   setPage: NavigateToPage;
@@ -19,6 +20,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [userName, setUserName] = useState('Pintor');
   const [isSignOut, setIsSignOut] = useState(false);
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
+  const [isObraModalOpen, setIsObraModalOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -164,7 +166,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           <h2 className="text-3xl font-black text-[#000747]">Meu Portfólio</h2>
           <p className="text-slate-500 font-medium">Gerencie suas obras e impressione clientes.</p>
         </div>
-        <button className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center">
+        <button 
+          onClick={() => setIsObraModalOpen(true)}
+          className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center"
+        >
           <Plus size={18} className="mr-2" /> Adicionar Obra
         </button>
       </div>
@@ -266,6 +271,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       <OrcamentoModal
         isOpen={isOrcamentoModalOpen}
         onClose={() => setIsOrcamentoModalOpen(false)}
+      />
+      <ObraModal
+        isOpen={isObraModalOpen}
+        onClose={() => setIsObraModalOpen(false)}
       />
     </div>
   );
