@@ -7,6 +7,13 @@ interface ObraModalProps {
   onClose: () => void;
 }
 
+const InputGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+    {children}
+  </div>
+);
+
 export const ObraModal: React.FC<ObraModalProps> = ({ isOpen, onClose }) => {
   const [titulo, setTitulo] = useState('');
   const [local, setLocal] = useState('');
@@ -19,13 +26,6 @@ export const ObraModal: React.FC<ObraModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
-
-  const InputGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
-      {children}
-    </div>
-  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

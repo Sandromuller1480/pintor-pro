@@ -8,6 +8,19 @@ interface OrcamentoModalProps {
 
 type Ambiente = { id: string, nome: string, area: string, peDireito: string, superficie: string };
 
+const InputGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
+    {children}
+  </div>
+);
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <div className="flex items-center space-x-2 mt-8 mb-6 pb-2 border-b border-slate-200">
+    <h3 className="text-lg font-black text-[#000747] uppercase tracking-wide">{title}</h3>
+  </div>
+);
+
 export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose }) => {
   const [ambientes, setAmbientes] = useState<Ambiente[]>([
     { id: Date.now().toString(), nome: '', area: '', peDireito: 'Padrão', superficie: '' }
@@ -38,19 +51,6 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose 
       setter([...array, item]);
     }
   };
-
-  const InputGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
-      {children}
-    </div>
-  );
-
-  const SectionTitle = ({ title }: { title: string }) => (
-    <div className="flex items-center space-x-2 mt-8 mb-6 pb-2 border-b border-slate-200">
-      <h3 className="text-lg font-black text-[#000747] uppercase tracking-wide">{title}</h3>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
