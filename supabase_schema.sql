@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS applications (
   category_level TEXT, -- ouro, prata, bronze
   status TEXT DEFAULT 'pending', -- pending, accepted, rejected
   analysis_notes TEXT,
+  notification_email_status TEXT DEFAULT 'pending',
+  notification_email_provider TEXT,
+  notification_email_provider_id TEXT,
+  notification_email_error TEXT,
+  notification_email_sent_at TIMESTAMP WITH TIME ZONE,
+  notification_email_last_attempt_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -63,6 +69,12 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS certification_paths TEXT[] DEF
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS work_photo_count INTEGER DEFAULT 0;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS certification_count INTEGER DEFAULT 0;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS category_level TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_status TEXT DEFAULT 'pending';
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_provider TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_provider_id TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_error TEXT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_sent_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS notification_email_last_attempt_at TIMESTAMP WITH TIME ZONE;
 
 -- Buckets para uploads do credenciamento (MVP)
 INSERT INTO storage.buckets (id, name, public)

@@ -152,6 +152,10 @@ const App: React.FC = () => {
     setIsSubmitting(true);
     try {
       const submission = await paintersService.submitApplication(formData);
+      const submissionWarning = submission.processingWarning ?? submission.processingResult?.emailWarning;
+      if (submissionWarning) {
+        console.warn('Falha ao enviar e-mail de confirmacao:', submissionWarning);
+      }
       setSubmissionFeedback({
         processingResult: submission.processingResult,
         processingWarning: submission.processingWarning

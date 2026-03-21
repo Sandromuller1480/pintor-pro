@@ -267,13 +267,15 @@ Deno.serve(async (req) => {
 
   let emailSent = false;
   let emailWarning: string | null = null;
+  let emailProviderId: string | null = null;
+  const emailAttemptedAt = new Date().toISOString();
 
   if (!resendApiKey) {
     emailWarning = 'RESEND_API_KEY or VITE_RESEND_API_KEY not configured';
     console.warn(emailWarning);
   } else {
     try {
-      await sendNotificationEmail({
+      const emailResponse = await sendNotificationEmail({
         apiKey: resendApiKey,
         to: applicantEmail,
         name: applicantName || 'Profissional',
@@ -281,10 +283,45 @@ Deno.serve(async (req) => {
         category: analysis.category,
         from: resendFromEmail
       });
+      emailProviderId =
+        emailResponse && typeof emailResponse.id === 'string'
+          ? emailResponse.id
+          : null;
       emailSent = true;
     } catch (emailError) {
       emailWarning = emailError instanceof Error ? emailError.message : 'Unknown email error';
       console.error('Erro ao enviar email:', emailError);
+    }
+  }
+
+  const notificationPayload = {
+    notification_email_status: emailSent ? 'sent' : 'failed',
+    notification_email_provider: 'resend',
+    notification_email_provider_id: emailProviderId,
+    notification_email_error: emailWarning,
+    notification_email_sent_at: emailSent ? emailAttemptedAt : null,
+    notification_email_last_attempt_at: emailAttemptedAt
+  };
+
+  const { error: notificationUpdateError } = await supabase
+    .from('applications')
+    .update(notificationPayload)
+    .eq('id', payload.applicationId);
+
+  if (notificationUpdateError) {
+    const message = notificationUpdateError.message?.toLowerCase() ?? '';
+    const isLegacySchema =
+      message.includes('notification_email_status') ||
+      message.includes('notification_email_provider') ||
+      message.includes('notification_email_error') ||
+      message.includes('notification_email_sent_at') ||
+      message.includes('notification_email_last_attempt_at') ||
+      message.includes('notification_email_provider_id');
+
+    if (isLegacySchema) {
+      console.warn('Colunas de rastreamento de email ainda nao existem em applications.');
+    } else {
+      console.error('Erro ao salvar status do email na aplicacao:', notificationUpdateError);
     }
   }
 
@@ -295,7 +332,8 @@ Deno.serve(async (req) => {
     category: analysis.category,
     analysisNotes: analysis.notes,
     emailSent,
-    emailWarning
+    emailWarning,
+    emailProviderId
   });
 });
 

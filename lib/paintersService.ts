@@ -36,6 +36,7 @@ export type ApplicationProcessingResult = {
     analysisNotes: string;
     emailSent: boolean;
     emailWarning: string | null;
+    emailProviderId?: string | null;
 };
 
 export type ApplicationSubmissionResult = {
