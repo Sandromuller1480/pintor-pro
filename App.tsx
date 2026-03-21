@@ -1,4 +1,4 @@
-﻿
+
 import React, { useEffect, useState } from 'react';
 import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 import { Layout } from './components/Layout';
@@ -104,8 +104,7 @@ const App: React.FC = () => {
     certifications: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -148,24 +147,31 @@ const App: React.FC = () => {
       return;
     }
 
-    setSubmissionFeedback(null);
     setIsSubmitting(true);
     try {
-      const submission = await paintersService.submitApplication(formData);
-      const submissionWarning = submission.processingWarning ?? submission.processingResult?.emailWarning;
-      if (submissionWarning) {
-        console.warn('Falha ao enviar e-mail de confirmacao:', submissionWarning);
-      }
-      setSubmissionFeedback({
-        processingResult: submission.processingResult,
-        processingWarning: submission.processingWarning
-      });
-      setSubmitted(true);
+      await paintersService.submitApplication(formData);
+      
+      setShowSuccessToast(true);
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        setIsSubmitting(false);
+        setFormData({
+          fullName: '',
+          gender: '',
+          city: '',
+          whatsapp: '',
+          email: '',
+          experienceTime: '',
+          specialty: [],
+          workPhotos: [],
+          certifications: []
+        });
+        navigateToPage(Page.Home);
+      }, 3000);
     } catch (error) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'Erro inesperado.';
       alert(`Erro ao enviar solicitação.\n\n${errorMessage}`);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -204,38 +210,13 @@ const App: React.FC = () => {
       case Page.About:
         return <About />;
       case Page.Register:
-        if (submitted) {
-          const emailSent = submissionFeedback?.processingResult?.emailSent ?? false;
-          const hasNotificationIssue = Boolean(
-            submissionFeedback?.processingWarning || submissionFeedback?.processingResult?.emailWarning
-          );
-
-          return (
-            <div className="py-24 text-center max-w-2xl mx-auto px-4 animate-in">
-              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-green-100">
-                <svg xmlns="http://www.w3.org/2003/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-4xl font-black mb-6 text-slate-900 tracking-tighter uppercase">Solicitação Enviada!</h1>
-              <p className="text-slate-600 text-lg mb-12 font-medium">
-                {emailSent
-                  ? <>Sua <b>Análise Técnica Automática</b> foi concluída e enviamos a confirmação por e-mail.</>
-                  : <>Recebemos sua solicitação, mas não conseguimos confirmar o envio do e-mail automático neste momento.</>}
-              </p>
-              {hasNotificationIssue && (
-                <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm font-medium text-amber-900">
-                  A confirmação por WhatsApp ainda não está disponível neste fluxo, e o e-mail automático depende da configuração do serviço de envio.
-                </div>
-              )}
-              <button onClick={() => { navigateToPage(Page.Home); setSubmitted(false); setSubmissionFeedback(null); }} className="bg-[#000747] text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#9A077B] transition uppercase tracking-widest">
-                Voltar para a Home
-              </button>
-            </div>
-          );
-        }
         return (
-          <div className="py-24 text-center max-w-2xl mx-auto px-4">
+          <div className="py-24 text-center max-w-2xl mx-auto px-4 relative">
+            {showSuccessToast && (
+              <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-[#9A077B] text-white font-black px-10 py-5 rounded-2xl shadow-2xl tracking-widest uppercase border-4 border-[#F7E3F1] transition-all" style={{ animation: 'fade-in 0.5s ease-out' }}>
+                CADASTRO EFETUADO COM SUCESSO!
+              </div>
+            )}
             <h1 className="text-5xl font-black mb-6 text-[#000747] tracking-tighter uppercase">
               Seja a Elite: <span className="text-[#9A077B]">PINTOR PRO</span>
             </h1>
