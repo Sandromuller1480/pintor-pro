@@ -19,16 +19,12 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setIsLoading(false);
     
-    // Para resolver imediatamente o bloqueio do seu teste:
-    // Se o banco apontar "credenciais inválidas" (provavelmente porque o pintor que você
-    // está digitando é antigo e não foi cadastrado no novo sistema de senhas), 
-    // nós vamos apenas ignorar o erro e pular direto para o Painel para você poder 
-    // avaliar a interface sem perder tempo!
     if (error) {
-       console.warn('Alerta Auth:', error.message);
+       alert('Erro de autenticação! Verifique e-mail e senha. ' + error.message);
+       return;
     }
     
-    // Força a entrada no Dashboard sempre.
+    // Sucesso, entra no painel
     setPage(Page.Dashboard);
   };
 
