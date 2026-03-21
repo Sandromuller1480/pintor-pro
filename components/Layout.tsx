@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState } from 'react';
 import { Page } from '../types';
 import { Logo } from './Logo';
@@ -29,7 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <button onClick={() => setPage(Page.HowItWorks)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Como Funciona</button>
               <button onClick={() => setPage(Page.Plans)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Planos</button>
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
-              <button onClick={() => setPage(Page.Register)} className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest">Área do Pintor</button>
+              <button onClick={() => setPage(Page.Login)} className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest">Área do Pintor</button>
             </nav>
 
             {/* Botão de Menu Mobile */}
@@ -47,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
             <button onClick={() => { setPage(Page.HowItWorks); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Como Funciona</button>
             <button onClick={() => { setPage(Page.Plans); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Planos</button>
-            <button onClick={() => { setPage(Page.Register); setIsMenuOpen(false); }} className="w-full bg-[#9A077B] text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4">Sou Pintor</button>
+            <button onClick={() => { setPage(Page.Login); setIsMenuOpen(false); }} className="w-full bg-[#9A077B] text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4">Sou Pintor</button>
           </div>
         )}
       </header>
