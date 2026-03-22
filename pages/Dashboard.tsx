@@ -7,6 +7,7 @@ import {
   Briefcase,
   FileText,
   Settings,
+  CalendarDays,
   Plus,
   Edit2,
   Camera,
@@ -25,7 +26,7 @@ interface DashboardProps {
   setPage: NavigateToPage;
 }
 
-type Tab = 'inicio' | 'portfolio' | 'orcamentos' | 'config';
+type Tab = 'inicio' | 'portfolio' | 'orcamentos' | 'agenda' | 'config';
 
 type CurrentPainterProfile = {
   applicationId: string;
@@ -648,6 +649,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           { id: 'inicio', label: 'Visao Geral', icon: LayoutDashboard },
           { id: 'portfolio', label: 'Meu Portfolio', icon: Briefcase },
           { id: 'orcamentos', label: 'Orcamentos', icon: FileText },
+          { id: 'agenda', label: 'Agenda', icon: CalendarDays },
           { id: 'config', label: 'Configuracoes', icon: Settings },
         ].map((item) => (
           <button
@@ -1024,6 +1026,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     </div>
   );
 
+  const renderAgenda = () => (
+    <div className="animate-in fade-in duration-500">
+      <div className="mb-8">
+        <h2 className="text-3xl font-black text-[#000747]">Agenda</h2>
+        <p className="text-slate-500 font-medium">Organize visitas, prazos e compromissos do seu atendimento.</p>
+      </div>
+
+      <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
+        <div className="max-w-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center mb-6">
+            <CalendarDays size={28} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 mb-3">Menu Agenda adicionado</h3>
+          <p className="text-slate-500 font-medium leading-relaxed mb-6">
+            Esta area ja esta pronta no painel e pode receber os proximos recursos de calendario sem afetar o restante do sistema.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Visitas</p>
+              <p className="text-sm text-slate-600 font-medium">Espaco reservado para agendamentos presenciais.</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Prazos</p>
+              <p className="text-sm text-slate-600 font-medium">Espaco reservado para acompanhar datas de obra.</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Lembretes</p>
+              <p className="text-sm text-slate-600 font-medium">Espaco reservado para compromissos e retornos.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const ChevronRightMock = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -1035,6 +1072,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     case 'inicio': content = renderInicio(); break;
     case 'portfolio': content = renderPortfolio(); break;
     case 'orcamentos': content = renderOrcamentos(); break;
+    case 'agenda': content = renderAgenda(); break;
     case 'config': content = <div className="p-10 text-center text-slate-500">Configuracoes em desenvolvimento...</div>; break;
   }
 
