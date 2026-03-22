@@ -82,8 +82,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                   className="ml-10 hidden lg:inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-[#9A077B] transition hover:bg-[#FDF3FA]"
                   title="Sair da conta do cliente"
                 >
-                  <LogOut size={16} />
                   <span>Olá {clientFirstName || 'Cliente'}</span>
+                  <LogOut size={16} />
                 </button>
               )}
             </div>
@@ -115,8 +115,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 onClick={() => { void handleClientLogout(); setIsMenuOpen(false); }}
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]"
               >
-                <LogOut size={16} />
                 <span>Olá {clientFirstName || 'Cliente'}</span>
+                <LogOut size={16} />
               </button>
             )}
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
