@@ -29,6 +29,7 @@ SELECT
   a.foto_capa AS banner,
   COALESCE(a.specialties, ARRAY[]::text[]) AS specialties,
   a.created_at,
-  a.profile_photo_path AS legacy_avatar_path
+  a.profile_photo_path AS legacy_avatar_path,
+  a.auth_user_id AS portfolio_owner_id
 FROM public.applications AS a
 WHERE a.status = 'accepted';

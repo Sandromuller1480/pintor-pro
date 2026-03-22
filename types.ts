@@ -12,6 +12,7 @@ export interface Painter {
   avatar: string;
   banner: string;
   specialties: string[];
+  portfolioOwnerId?: string;
   coordinates?: {
     lat: number;
     lng: number;
@@ -22,14 +23,13 @@ export interface PortfolioItem {
   id: string;
   painterId: string;
   title: string;
-  beforeImg: string;
-  afterImg: string;
-  paintType: string;
-  area: string;
-  duration: string;
   location: string;
-  finishType: string;
-  description: string;
+  propertyType: string;
+  paintType: string;
+  status: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  createdAt: string;
 }
 
 export enum Page {
