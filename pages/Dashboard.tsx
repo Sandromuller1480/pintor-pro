@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
 import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 
@@ -32,6 +33,7 @@ type CurrentPainterProfile = {
   email: string;
   city: string;
   uf: string;
+  whatsapp: string;
   experienceTime: string;
   specialties: string[];
   profilePhotoPath: string | null;
@@ -199,7 +201,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [mediaFeedback, setMediaFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -269,6 +273,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       email: application.email || email,
       city: application.city || '',
       uf: application.uf || '',
+      whatsapp: application.whatsapp || '',
       experienceTime: application.experience_time || '',
       specialties: application.specialties || [],
       profilePhotoPath,
@@ -402,6 +407,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     });
     setQuotesError('');
     setActiveTab('orcamentos');
+  };
+
+  const openEditProfileModal = () => {
+    if (!currentProfile?.applicationId) {
+      setProfileFeedback({
+        type: 'error',
+        message: 'Nao encontramos seu cadastro para editar o perfil.'
+      });
+      return;
+    }
+
+    setProfileFeedback(null);
+    setIsEditProfileModalOpen(true);
+  };
+
+  const handleProfileUpdated = async (formData: EditProfileFormData) => {
+    if (!currentProfile?.applicationId) {
+      throw new Error('Nao encontramos seu cadastro para salvar as alteracoes.');
+    }
+
+    const normalizedSpecialties = Array.from(
+      new Set(
+        formData.specialties
+          .map((specialty) => specialty.trim())
+          .filter(Boolean)
+      )
+    );
+
+    const { data, error } = await supabase
+      .from('applications')
+      .update({
+        full_name: formData.fullName.trim(),
+        city: formData.city.trim(),
+        uf: formData.uf.trim().toUpperCase().slice(0, 2),
+        whatsapp: formData.whatsapp.trim(),
+        experience_time: formData.experienceTime.trim(),
+        specialties: normalizedSpecialties
+      })
+      .eq('id', currentProfile.applicationId)
+      .select('full_name, city, uf, whatsapp, experience_time, specialties')
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar perfil do pintor:', error);
+      throw new Error('Nao foi possivel salvar as alteracoes do perfil agora.');
+    }
+
+    setCurrentProfile((profile) => {
+      if (!profile) {
+        return profile;
+      }
+
+      return {
+        ...profile,
+        fullName: data.full_name || profile.fullName,
+        city: data.city || '',
+        uf: data.uf || '',
+        whatsapp: data.whatsapp || '',
+        experienceTime: data.experience_time || '',
+        specialties: Array.isArray(data.specialties) ? data.specialties : []
+      };
+    });
+    setUserName((data.full_name || currentProfile.fullName).split(' ')[0]);
+    setProfileFeedback({
+      type: 'success',
+      message: 'Perfil atualizado com sucesso.'
+    });
+    setIsEditProfileModalOpen(false);
   };
 
   const openProfilePicker = () => {
@@ -700,10 +773,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                     : 'Seu perfil esta ativo e visivel para clientes em sua regiao.'}
                 </p>
               </div>
-              <button className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center hover:bg-slate-200 transition">
+              <button
+                type="button"
+                onClick={openEditProfileModal}
+                disabled={!currentProfile?.applicationId}
+                className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Edit2 size={16} className="mr-2" /> Editar Perfil
               </button>
             </div>
+
+            {profileFeedback && (
+              <div
+                className={`mt-6 rounded-2xl border px-4 py-3 text-sm font-bold ${
+                  profileFeedback.type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}
+              >
+                {profileFeedback.message}
+              </div>
+            )}
 
             {mediaFeedback && (
               <div
@@ -972,6 +1062,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         isOpen={isObraModalOpen}
         onClose={() => setIsObraModalOpen(false)}
         onSaved={handleObraSaved}
+      />
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        profile={currentProfile}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        onSave={handleProfileUpdated}
       />
     </div>
   );

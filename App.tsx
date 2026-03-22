@@ -10,29 +10,9 @@ import { About } from './pages/About';
 import { HowItWorks } from './pages/HowItWorks';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { SPECIALTY_OPTIONS } from './lib/painterProfileOptions';
 import { paintersService, type ApplicationFormSubmission, type ApplicationSubmissionResult } from './lib/paintersService';
 import { supabase } from './lib/supabase';
-
-const SPECIALTY_OPTIONS = [
-  'Preparo do reboco (Limpeza, Lixa, Selador/Fundo Preparador)',
-  'Preparo do Acartonado (Lixa e Fundo Preparador)',
-  'Massa Corrida (Aplicacao e lixamento)',
-  'Massa Acrilica (Aplicacao e lixamento)',
-  'Tintas Acrilicas',
-  'Tintas Solvente',
-  'Pinturas em Metais (Tratamento especial)',
-  'Pinturas em Madeira (Tratamento especial)',
-  'Pinturas com Efeitos',
-  'Texturas',
-  'Airless',
-  'Pistolas Industriais (Pinturas, Texturas e Efeitos)',
-  'Lixadeiras: Pequenas, medias e grande porte',
-  'Compressores de Pequenos, Medios e grande porte',
-  'Reformas (Tratamento de patologias e Superficies)',
-  'Acabamentos Finos',
-  'NR-35 (trabalho em altura)',
-  'EPIs'
-];
 
 const GENDER_OPTIONS = [
   { value: 'feminino', label: 'Feminino' },
