@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
 import { PainterCard } from '../components/PainterCard';
+import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
 import { paintersService } from '../lib/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
@@ -31,6 +32,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [imgError, setImgError] = useState(false);
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadPainters() {
@@ -72,7 +74,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
-                  onClick={() => setPage(Page.FindPainter)}
+                  onClick={() => setIsClientSignupModalOpen(true)}
                   className="bg-[#000747] text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-[#9A077B] transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em]"
                 >
                   Contratar Agora
@@ -319,6 +321,12 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
           </div>
         </div>
       </section>
+
+      <ClientSignupModal
+        isOpen={isClientSignupModalOpen}
+        onClose={() => setIsClientSignupModalOpen(false)}
+        onSuccess={() => setPage(Page.FindPainter)}
+      />
     </div>
   );
 };
