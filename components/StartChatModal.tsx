@@ -31,6 +31,18 @@ const INITIAL_FORM_DATA: FormData = {
   message: ''
 };
 
+const createThreadId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
+    return value.toString(16);
+  });
+};
+
 const normalizeInsertError = (error: unknown) => {
   const message = error instanceof Error ? error.message : 'Nao foi possivel iniciar a conversa agora.';
   const normalizedMessage = message.toLowerCase();
@@ -41,6 +53,14 @@ const normalizeInsertError = (error: unknown) => {
     normalizedMessage.includes('does not exist')
   ) {
     return 'O recurso de chat ainda nao foi configurado no banco. Rode o SQL chat_interno_schema.sql no Supabase.';
+  }
+
+  if (
+    normalizedMessage.includes('row-level security') ||
+    normalizedMessage.includes('violates row-level security') ||
+    normalizedMessage.includes('permission denied')
+  ) {
+    return 'O chat nao conseguiu salvar a conversa no banco. Confirme se o SQL chat_interno_schema.sql foi aplicado e se o perfil do pintor esta ativo/aprovado.';
   }
 
   return message;
@@ -115,9 +135,11 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
     try {
       const normalizedMessage = formData.message.trim();
+      const threadId = createThreadId();
       const threadInsert = await supabase
         .from('painter_chat_threads')
         .insert({
+          id: threadId,
           application_id: painterId,
           client_name: formData.clientName.trim(),
           client_phone: formData.clientPhone.trim(),
@@ -126,18 +148,16 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
           last_message_at: new Date().toISOString(),
           unread_for_painter: true,
           status: 'open'
-        })
-        .select('id')
-        .single();
+        });
 
-      if (threadInsert.error || !threadInsert.data) {
+      if (threadInsert.error) {
         throw threadInsert.error ?? new Error('Nao foi possivel criar a conversa.');
       }
 
       const messageInsert = await supabase
         .from('painter_chat_messages')
         .insert({
-          thread_id: threadInsert.data.id,
+          thread_id: threadId,
           sender_type: 'client',
           sender_name: formData.clientName.trim(),
           message: normalizedMessage
