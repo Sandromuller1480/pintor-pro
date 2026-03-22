@@ -3,7 +3,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Mail,
   MessageSquare,
+  Phone,
   SendHorizontal,
   User,
   X
@@ -52,6 +54,12 @@ type StoredChatSession = {
   clientName: string;
   clientPhone: string;
   clientEmail: string;
+};
+
+type CurrentClientProfile = {
+  fullName: string;
+  email: string;
+  phone: string;
 };
 
 const EMPTY_FORM: FormData = {
@@ -191,6 +199,77 @@ const formatMessageTimestamp = (value: string) => {
   }).format(parsedDate);
 };
 
+const isAnonymousUser = (user: unknown) => {
+  if (!user || typeof user !== 'object') {
+    return false;
+  }
+
+  const candidate = user as {
+    is_anonymous?: boolean;
+    app_metadata?: { provider?: string };
+  };
+
+  return candidate.is_anonymous === true || candidate.app_metadata?.provider === 'anonymous';
+};
+
+const fetchCurrentClientProfile = async (): Promise<CurrentClientProfile | null> => {
+  const sessionResult = await supabase.auth.getSession();
+
+  if (sessionResult.error) {
+    throw sessionResult.error;
+  }
+
+  const currentUser = sessionResult.data.session?.user;
+
+  if (!currentUser || isAnonymousUser(currentUser)) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('nome, email, celular')
+    .eq('auth_user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    const errorText = getErrorText(error);
+
+    if (errorText.includes('clientes') && errorText.includes('does not exist')) {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (data?.nome && data?.email && data?.celular) {
+    return {
+      fullName: data.nome,
+      email: data.email,
+      phone: data.celular
+    };
+  }
+
+  const metadataFullName =
+    typeof currentUser.user_metadata?.full_name === 'string'
+      ? currentUser.user_metadata.full_name.trim()
+      : '';
+  const metadataPhone =
+    typeof currentUser.user_metadata?.phone === 'string'
+      ? currentUser.user_metadata.phone.trim()
+      : '';
+  const metadataEmail = currentUser.email?.trim().toLowerCase() ?? '';
+
+  if (metadataFullName && metadataEmail && metadataPhone) {
+    return {
+      fullName: metadataFullName,
+      email: metadataEmail,
+      phone: metadataPhone
+    };
+  }
+
+  return null;
+};
+
 const ensureClientUser = async () => {
   const sessionResult = await supabase.auth.getSession();
 
@@ -266,6 +345,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [thread, setThread] = useState<ChatThread | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -298,6 +378,12 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
     return messages;
   }, [messages, thread]);
+
+  const hasLoggedClientProfile = Boolean(
+    currentClientProfile?.fullName &&
+    currentClientProfile?.email &&
+    currentClientProfile?.phone
+  );
 
   const applyThread = (nextThread: ChatThread | null) => {
     setThread(nextThread);
@@ -335,6 +421,8 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
           throw new Error('Nao foi possivel identificar o pintor para iniciar a conversa.');
         }
 
+        const nextClientProfile = await fetchCurrentClientProfile();
+        setCurrentClientProfile(nextClientProfile);
         await ensureClientUser();
 
         if (cancelled) {
@@ -364,9 +452,9 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
           setThread(null);
           setMessages([]);
           setFormData({
-            clientName: storedSession?.clientName ?? '',
-            clientPhone: storedSession?.clientPhone ?? '',
-            clientEmail: storedSession?.clientEmail ?? '',
+            clientName: nextClientProfile?.fullName ?? storedSession?.clientName ?? '',
+            clientPhone: nextClientProfile?.phone ?? storedSession?.clientPhone ?? '',
+            clientEmail: nextClientProfile?.email ?? storedSession?.clientEmail ?? '',
             message: ''
           });
           return;
@@ -510,11 +598,16 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       return;
     }
 
+    const normalizedClientName = currentClientProfile?.fullName?.trim() || formData.clientName.trim();
+    const normalizedClientPhone = currentClientProfile?.phone?.trim() || formData.clientPhone.trim();
+    const normalizedClientEmail = currentClientProfile?.email?.trim().toLowerCase() || formData.clientEmail.trim().toLowerCase();
+    const normalizedInitialMessage = formData.message.trim();
+
     if (
-      !formData.clientName.trim() ||
-      !formData.clientPhone.trim() ||
-      !formData.clientEmail.trim() ||
-      !formData.message.trim()
+      !normalizedClientName ||
+      !normalizedClientPhone ||
+      !normalizedClientEmail ||
+      !normalizedInitialMessage
     ) {
       setErrorMessage('Preencha nome, telefone, e-mail e sua mensagem.');
       return;
@@ -529,10 +622,10 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       const normalizedPayload = {
         applicationId: painterId,
         clientUserId: clientUser.id,
-        clientName: formData.clientName.trim(),
-        clientPhone: formData.clientPhone.trim(),
-        clientEmail: formData.clientEmail.trim().toLowerCase(),
-        message: formData.message.trim()
+        clientName: normalizedClientName,
+        clientPhone: normalizedClientPhone,
+        clientEmail: normalizedClientEmail,
+        message: normalizedInitialMessage
       };
 
       let threadId: string | null = null;
@@ -794,52 +887,78 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
             </div>
           ) : (
             <form onSubmit={(event) => void handleStart(event)} className="space-y-5">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Nome completo
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              {hasLoggedClientProfile ? (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                    Cliente logado
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                      <User className="h-4 w-4 text-emerald-600" />
+                      <span className="font-bold">{currentClientProfile?.fullName}</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                        <Mail className="h-4 w-4 text-emerald-600" />
+                        <span className="truncate font-medium">{currentClientProfile?.email}</span>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                        <Phone className="h-4 w-4 text-emerald-600" />
+                        <span className="font-medium">{currentClientProfile?.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Nome completo
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={formData.clientName}
+                        onChange={(event) => setFormData((current) => ({ ...current, clientName: event.target.value }))}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Seu nome"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      WhatsApp
+                    </label>
                     <input
-                      type="text"
-                      value={formData.clientName}
-                      onChange={(event) => setFormData((current) => ({ ...current, clientName: event.target.value }))}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                      placeholder="Seu nome"
+                      type="tel"
+                      value={formData.clientPhone}
+                      onChange={(event) => setFormData((current) => ({ ...current, clientPhone: event.target.value }))}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                      placeholder="(11) 99999-9999"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.clientEmail}
+                      onChange={(event) => setFormData((current) => ({ ...current, clientEmail: event.target.value }))}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                      placeholder="voce@email.com"
                       required
                     />
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.clientPhone}
-                    onChange={(event) => setFormData((current) => ({ ...current, clientPhone: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    E-mail
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.clientEmail}
-                    onChange={(event) => setFormData((current) => ({ ...current, clientEmail: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                    placeholder="voce@email.com"
-                    required
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Mensagem inicial
