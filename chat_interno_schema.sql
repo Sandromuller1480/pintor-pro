@@ -34,6 +34,71 @@ CREATE INDEX IF NOT EXISTS idx_painter_chat_messages_thread_id
 ALTER TABLE public.painter_chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.painter_chat_messages ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.start_painter_chat(
+  p_application_id UUID,
+  p_client_name TEXT,
+  p_client_phone TEXT,
+  p_client_email TEXT,
+  p_initial_message TEXT
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_thread_id UUID := uuid_generate_v4();
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.applications AS a
+    WHERE a.id = p_application_id
+      AND a.status = 'accepted'
+  ) THEN
+    RAISE EXCEPTION 'Pintor indisponivel para chat.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  INSERT INTO public.painter_chat_threads (
+    id,
+    application_id,
+    client_name,
+    client_phone,
+    client_email,
+    status,
+    unread_for_painter,
+    last_message_preview,
+    last_message_at
+  )
+  VALUES (
+    v_thread_id,
+    p_application_id,
+    TRIM(p_client_name),
+    TRIM(p_client_phone),
+    LOWER(TRIM(p_client_email)),
+    'open',
+    true,
+    LEFT(TRIM(p_initial_message), 180),
+    timezone('utc'::text, now())
+  );
+
+  INSERT INTO public.painter_chat_messages (
+    thread_id,
+    sender_type,
+    sender_name,
+    message
+  )
+  VALUES (
+    v_thread_id,
+    'client',
+    TRIM(p_client_name),
+    TRIM(p_initial_message)
+  );
+
+  RETURN v_thread_id;
+END;
+$$;
+
 DROP POLICY IF EXISTS "Public can create chat threads for accepted painters" ON public.painter_chat_threads;
 CREATE POLICY "Public can create chat threads for accepted painters"
 ON public.painter_chat_threads FOR INSERT
@@ -127,3 +192,4 @@ GRANT INSERT ON public.painter_chat_threads TO anon, authenticated;
 GRANT SELECT, UPDATE ON public.painter_chat_threads TO authenticated;
 GRANT INSERT ON public.painter_chat_messages TO anon, authenticated;
 GRANT SELECT, INSERT ON public.painter_chat_messages TO authenticated;
+GRANT EXECUTE ON FUNCTION public.start_painter_chat(UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;

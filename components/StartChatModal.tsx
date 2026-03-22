@@ -31,39 +31,72 @@ const INITIAL_FORM_DATA: FormData = {
   message: ''
 };
 
-const createThreadId = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+const getErrorDetails = (error: unknown) => {
+  if (!error || typeof error !== 'object') {
+    return {
+      message: '',
+      code: '',
+      details: '',
+      hint: ''
+    };
   }
 
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
-    const randomValue = Math.floor(Math.random() * 16);
-    const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
-    return value.toString(16);
-  });
+  const candidate = error as {
+    message?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+  };
+
+  return {
+    message: candidate.message ?? '',
+    code: candidate.code ?? '',
+    details: candidate.details ?? '',
+    hint: candidate.hint ?? ''
+  };
 };
 
 const normalizeInsertError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : 'Nao foi possivel iniciar a conversa agora.';
-  const normalizedMessage = message.toLowerCase();
+  const fallbackMessage = error instanceof Error ? error.message : 'Nao foi possivel iniciar a conversa agora.';
+  const errorDetails = getErrorDetails(error);
+  const combinedMessage = [
+    fallbackMessage,
+    errorDetails.message,
+    errorDetails.details,
+    errorDetails.hint,
+    errorDetails.code
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 
   if (
-    normalizedMessage.includes('painter_chat_threads') ||
-    normalizedMessage.includes('painter_chat_messages') ||
-    normalizedMessage.includes('does not exist')
+    combinedMessage.includes('start_painter_chat') ||
+    combinedMessage.includes('painter_chat_threads') ||
+    combinedMessage.includes('painter_chat_messages') ||
+    combinedMessage.includes('does not exist') ||
+    combinedMessage.includes('function public.start_painter_chat')
   ) {
     return 'O recurso de chat ainda nao foi configurado no banco. Rode o SQL chat_interno_schema.sql no Supabase.';
   }
 
   if (
-    normalizedMessage.includes('row-level security') ||
-    normalizedMessage.includes('violates row-level security') ||
-    normalizedMessage.includes('permission denied')
+    combinedMessage.includes('row-level security') ||
+    combinedMessage.includes('violates row-level security') ||
+    combinedMessage.includes('permission denied')
   ) {
     return 'O chat nao conseguiu salvar a conversa no banco. Confirme se o SQL chat_interno_schema.sql foi aplicado e se o perfil do pintor esta ativo/aprovado.';
   }
 
-  return message;
+  if (
+    combinedMessage.includes('pintor indisponivel para chat') ||
+    combinedMessage.includes('perfil indisponivel para chat') ||
+    combinedMessage.includes('nao foi possivel identificar o pintor')
+  ) {
+    return 'Este perfil ainda nao esta habilitado para receber mensagens no chat.';
+  }
+
+  return errorDetails.message || fallbackMessage;
 };
 
 export const StartChatModal: React.FC<StartChatModalProps> = ({
@@ -135,36 +168,16 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
     try {
       const normalizedMessage = formData.message.trim();
-      const threadId = createThreadId();
-      const threadInsert = await supabase
-        .from('painter_chat_threads')
-        .insert({
-          id: threadId,
-          application_id: painterId,
-          client_name: formData.clientName.trim(),
-          client_phone: formData.clientPhone.trim(),
-          client_email: formData.clientEmail.trim().toLowerCase(),
-          last_message_preview: normalizedMessage.slice(0, 180),
-          last_message_at: new Date().toISOString(),
-          unread_for_painter: true,
-          status: 'open'
-        });
+      const startChatResult = await supabase.rpc('start_painter_chat', {
+        p_application_id: painterId,
+        p_client_name: formData.clientName.trim(),
+        p_client_phone: formData.clientPhone.trim(),
+        p_client_email: formData.clientEmail.trim().toLowerCase(),
+        p_initial_message: normalizedMessage
+      });
 
-      if (threadInsert.error) {
-        throw threadInsert.error ?? new Error('Nao foi possivel criar a conversa.');
-      }
-
-      const messageInsert = await supabase
-        .from('painter_chat_messages')
-        .insert({
-          thread_id: threadId,
-          sender_type: 'client',
-          sender_name: formData.clientName.trim(),
-          message: normalizedMessage
-        });
-
-      if (messageInsert.error) {
-        throw messageInsert.error;
+      if (startChatResult.error) {
+        throw startChatResult.error;
       }
 
       setSuccessMessage(`Conversa iniciada com ${painterName}. Sua mensagem foi enviada.`);

@@ -1,6 +1,7 @@
 
 export interface Painter {
   id: string;
+  applicationId?: string;
   name: string;
   location: string;
   rating: number;

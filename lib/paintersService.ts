@@ -92,8 +92,11 @@ function isMissingPublicDirectoryError(error: { message?: string } | null) {
 }
 
 function mapPainterRowToPainter(item: any): Painter {
+    const isPublicDirectoryRow = 'portfolio_owner_id' in item || 'legacy_avatar_path' in item || 'experience_time' in item;
+
     return {
         id: item.id,
+        applicationId: isPublicDirectoryRow ? item.id : undefined,
         name: item.name,
         location: item.location,
         rating: Number(item.rating ?? 0),

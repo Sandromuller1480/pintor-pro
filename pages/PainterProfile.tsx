@@ -107,7 +107,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
     const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
     const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
-    const canScheduleVisit = Boolean(painter && isUuid(painter.id));
+    const publicApplicationId = painter?.applicationId;
+    const canScheduleVisit = Boolean(publicApplicationId && isUuid(publicApplicationId));
     const canStartChat = canScheduleVisit;
 
     useEffect(() => {
@@ -605,14 +606,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
             </div>
             <ScheduleVisitModal
                 isOpen={isScheduleVisitModalOpen}
-                painterId={canScheduleVisit ? painter.id : null}
+                painterId={canScheduleVisit ? publicApplicationId ?? null : null}
                 painterName={painter.name}
                 painterLocation={painter.location}
                 onClose={() => setIsScheduleVisitModalOpen(false)}
             />
             <StartChatModal
                 isOpen={isChatModalOpen}
-                painterId={canStartChat ? painter.id : null}
+                painterId={canStartChat ? publicApplicationId ?? null : null}
                 painterName={painter.name}
                 painterLocation={painter.location}
                 onClose={() => setIsChatModalOpen(false)}
