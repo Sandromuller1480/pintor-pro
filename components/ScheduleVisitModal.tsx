@@ -157,7 +157,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onClick={() => {
         if (!isSubmitting) {
           onClose();
@@ -165,12 +165,12 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       }}
     >
       <div
-        className="w-full max-w-2xl rounded-[32px] bg-white border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden"
+        className="w-full max-w-2xl my-4 sm:my-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[92vh] rounded-[32px] bg-white border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-4">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-4 shrink-0">
           <div>
-            <h3 className="text-2xl font-black text-[#000747]">Agendar Visita</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-[#000747]">Agendar Visita</h3>
             <p className="text-sm text-slate-500 font-medium">
               Envie uma solicitacao de visita para {painterName}{painterLocation ? ` em ${painterLocation}` : ''}.
             </p>
@@ -186,7 +186,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           </button>
         </div>
 
-        <div className="px-6 py-6">
+        <div className="px-5 sm:px-6 py-5 sm:py-6 overflow-y-auto">
           {isSuccess ? (
             <div className="py-8 text-center">
               <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
@@ -317,19 +317,19 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-black hover:bg-[#000747] transition flex items-center disabled:cursor-not-allowed disabled:opacity-70"
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-slate-900 text-white font-black hover:bg-[#000747] transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting ? (
                     <Loader2 size={18} className="mr-2 animate-spin" />
