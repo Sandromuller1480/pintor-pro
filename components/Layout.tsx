@@ -64,8 +64,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <div className="flex items-center cursor-pointer" onClick={() => setPage(Page.Home)}>
               <Logo className="h-16" color="#000000" />
               {currentClientProfile && (
-                <span className="ml-4 hidden lg:block text-[10px] font-black uppercase tracking-[0.18em] text-[#9A077B]">
-                  Cliente logado{clientFirstName ? `: ${clientFirstName}` : ''}
+                <span className="ml-10 hidden lg:block text-sm font-black text-[#9A077B]">
+                  Ola {clientFirstName || 'Cliente'}
                 </span>
               )}
             </div>
@@ -92,8 +92,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
             {currentClientProfile && (
-              <div className="rounded-2xl bg-[#FDF3FA] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#9A077B]">
-                Cliente logado{clientFirstName ? `: ${clientFirstName}` : ''}
+              <div className="rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]">
+                Ola {clientFirstName || 'Cliente'}
               </div>
             )}
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
