@@ -19,7 +19,9 @@ import {
   Star,
   Clock,
   Loader2,
-  X
+  X,
+  ArrowLeft,
+  SendHorizontal
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
@@ -79,6 +81,15 @@ type SavedChatThread = {
   unread_for_painter: boolean;
   last_message_preview: string | null;
   last_message_at: string;
+  created_at: string;
+};
+
+type SavedChatMessage = {
+  id: string;
+  thread_id: string;
+  sender_type: 'client' | 'painter';
+  sender_name: string;
+  message: string;
   created_at: string;
 };
 
@@ -210,6 +221,18 @@ const buildPainterMediaPath = (folder: 'foto-perfil' | 'foto-capa', userId: stri
   return `${folder}/${userId}/${baseName}-${Date.now()}.${extension || 'jpg'}`;
 };
 
+const createUuid = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
+    return value.toString(16);
+  });
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
@@ -239,10 +262,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isChatInboxOpen, setIsChatInboxOpen] = useState(false);
+  const [selectedChatThreadId, setSelectedChatThreadId] = useState<string | null>(null);
+  const [activeChatMessages, setActiveChatMessages] = useState<SavedChatMessage[]>([]);
+  const [isLoadingActiveChatMessages, setIsLoadingActiveChatMessages] = useState(false);
+  const [activeChatError, setActiveChatError] = useState('');
+  const [chatReplyDraft, setChatReplyDraft] = useState('');
+  const [chatReplyError, setChatReplyError] = useState('');
+  const [isSendingChatReply, setIsSendingChatReply] = useState(false);
   const [mediaFeedback, setMediaFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
 
   const fetchPortfolioItems = async (userId: string) => {
@@ -302,9 +333,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     return (data ?? []) as SavedChatThread[];
   };
 
+  const fetchChatMessages = async (threadId: string) => {
+    const { data, error } = await supabase
+      .from('painter_chat_messages')
+      .select('id, thread_id, sender_type, sender_name, message, created_at')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as SavedChatMessage[];
+  };
+
   const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
   const unreadChatCount = chatThreads.filter((thread) => thread.unread_for_painter).length;
   const hasUnreadChats = unreadChatCount > 0;
+  const selectedChatThread = selectedChatThreadId
+    ? chatThreads.find((thread) => thread.id === selectedChatThreadId) ?? null
+    : null;
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
     if (!email) return null;
@@ -623,8 +671,205 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     };
   }, [isChatInboxOpen]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadActiveChatMessages = async (silent = false) => {
+      if (!isChatInboxOpen || !selectedChatThreadId) {
+        if (isMounted) {
+          setActiveChatMessages([]);
+          setActiveChatError('');
+          setIsLoadingActiveChatMessages(false);
+        }
+        return;
+      }
+
+      if (!silent) {
+        setIsLoadingActiveChatMessages(true);
+      }
+
+      try {
+        const data = await fetchChatMessages(selectedChatThreadId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setActiveChatMessages(data);
+        setActiveChatError('');
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao carregar mensagens da conversa:', error);
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        setActiveChatMessages([]);
+        setActiveChatError(
+          message.includes('painter_chat_messages') || message.includes('does not exist')
+            ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+            : 'Nao foi possivel carregar as mensagens dessa conversa agora.'
+        );
+      } finally {
+        if (isMounted && !silent) {
+          setIsLoadingActiveChatMessages(false);
+        }
+      }
+    };
+
+    void loadActiveChatMessages();
+
+    if (!isChatInboxOpen || !selectedChatThreadId) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadActiveChatMessages(true);
+    }, 12000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [isChatInboxOpen, selectedChatThreadId]);
+
+  useEffect(() => {
+    if (!selectedChatThreadId || !chatThreads.some((thread) => thread.id === selectedChatThreadId)) {
+      setSelectedChatThreadId(null);
+      setActiveChatMessages([]);
+      setChatReplyDraft('');
+      setChatReplyError('');
+    }
+  }, [chatThreads, selectedChatThreadId]);
+
+  useEffect(() => {
+    if (!selectedChatThreadId || activeChatMessages.length === 0) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+  }, [selectedChatThreadId, activeChatMessages]);
+
   const toggleChatInbox = () => {
-    setIsChatInboxOpen((currentValue) => !currentValue);
+    setIsChatInboxOpen((currentValue) => {
+      const nextValue = !currentValue;
+
+      if (!nextValue) {
+        setSelectedChatThreadId(null);
+        setActiveChatMessages([]);
+        setActiveChatError('');
+        setChatReplyDraft('');
+        setChatReplyError('');
+      }
+
+      return nextValue;
+    });
+  };
+
+  const handleOpenChatThread = (threadId: string) => {
+    setSelectedChatThreadId(threadId);
+    setActiveChatError('');
+    setChatReplyError('');
+  };
+
+  const handleBackToChatList = () => {
+    setSelectedChatThreadId(null);
+    setActiveChatMessages([]);
+    setActiveChatError('');
+    setChatReplyDraft('');
+    setChatReplyError('');
+  };
+
+  const handleSendChatReply = async () => {
+    if (!selectedChatThreadId || !selectedChatThread || !currentProfile) {
+      setChatReplyError('Nao foi possivel identificar a conversa para responder.');
+      return;
+    }
+
+    const normalizedReply = chatReplyDraft.trim();
+
+    if (!normalizedReply) {
+      setChatReplyError('Digite uma mensagem para responder ao cliente.');
+      return;
+    }
+
+    setIsSendingChatReply(true);
+    setChatReplyError('');
+
+    const replyMessageId = createUuid();
+    const nowIso = new Date().toISOString();
+    const nextMessage: SavedChatMessage = {
+      id: replyMessageId,
+      thread_id: selectedChatThreadId,
+      sender_type: 'painter',
+      sender_name: currentProfile.fullName || userName,
+      message: normalizedReply,
+      created_at: nowIso
+    };
+
+    try {
+      const messageInsert = await supabase
+        .from('painter_chat_messages')
+        .insert({
+          id: replyMessageId,
+          thread_id: selectedChatThreadId,
+          sender_type: 'painter',
+          sender_name: currentProfile.fullName || userName,
+          message: normalizedReply
+        });
+
+      if (messageInsert.error) {
+        throw messageInsert.error;
+      }
+
+      const threadUpdate = await supabase
+        .from('painter_chat_threads')
+        .update({
+          last_message_preview: normalizedReply.slice(0, 180),
+          last_message_at: nowIso,
+          unread_for_painter: false,
+          status: 'open'
+        })
+        .eq('id', selectedChatThreadId);
+
+      if (threadUpdate.error) {
+        console.error('Erro ao atualizar resumo da conversa:', threadUpdate.error);
+      }
+
+      setActiveChatMessages((currentMessages) => [...currentMessages, nextMessage]);
+      setChatThreads((currentThreads) => {
+        const reorderedThreads = currentThreads.map((thread) => (
+          thread.id === selectedChatThreadId
+            ? {
+                ...thread,
+                unread_for_painter: false,
+                status: 'open',
+                last_message_preview: normalizedReply.slice(0, 180),
+                last_message_at: nowIso
+              }
+            : thread
+        ));
+
+        return reorderedThreads.sort((firstThread, secondThread) => {
+          return new Date(secondThread.last_message_at).getTime() - new Date(firstThread.last_message_at).getTime();
+        });
+      });
+      setChatReplyDraft('');
+    } catch (error) {
+      console.error('Erro ao responder conversa do chat:', error);
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      setChatReplyError(
+        message.includes('row-level security') || message.includes('permission denied')
+          ? 'Sua conta nao conseguiu salvar a resposta no chat. Confirme se o SQL chat_interno_schema.sql foi aplicado e se este cadastro esta vinculado ao usuario autenticado.'
+          : 'Nao foi possivel enviar sua resposta agora.'
+      );
+    } finally {
+      setIsSendingChatReply(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -1391,20 +1636,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         }}
       >
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#9A077B]/10 text-[#9A077B]">
+          <div className="flex items-center gap-3 min-w-0">
+            {selectedChatThread && (
+              <button
+                type="button"
+                onClick={handleBackToChatList}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+                aria-label="Voltar para a lista de conversas"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#9A077B]/10 text-[#9A077B]">
               <MessageSquare size={20} />
             </div>
-            <div>
-              <h3 className="text-base font-black text-slate-900">Chat interno</h3>
-              <p className="text-xs font-medium text-slate-500">
-                Conversas iniciadas pelos clientes
+            <div className="min-w-0">
+              <h3 className="truncate text-base font-black text-slate-900">
+                {selectedChatThread ? selectedChatThread.client_name : 'Chat interno'}
+              </h3>
+              <p className="truncate text-xs font-medium text-slate-500">
+                {selectedChatThread ? 'Conversa ativa com o cliente' : 'Conversas iniciadas pelos clientes'}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setIsChatInboxOpen(false)}
+            onClick={toggleChatInbox}
             className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
             aria-label="Fechar chat"
           >
@@ -1419,7 +1676,97 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
             </div>
           )}
 
-          {isLoadingChats ? (
+          {selectedChatThread ? (
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm font-black text-slate-900">{selectedChatThread.client_name}</p>
+                <p className="text-xs font-medium text-slate-500">{selectedChatThread.client_phone}</p>
+                <p className="truncate text-xs text-slate-400">{selectedChatThread.client_email}</p>
+              </div>
+
+              {activeChatError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                  {activeChatError}
+                </div>
+              )}
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-3">
+                {isLoadingActiveChatMessages ? (
+                  <div className="p-6 text-center text-sm font-bold text-slate-500">
+                    Carregando mensagens...
+                  </div>
+                ) : activeChatMessages.length === 0 ? (
+                  <div className="p-6 text-center text-sm font-medium text-slate-500">
+                    Nenhuma mensagem nesta conversa ainda.
+                  </div>
+                ) : (
+                  <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
+                    {activeChatMessages.map((message) => {
+                      const isPainterMessage = message.sender_type === 'painter';
+
+                      return (
+                        <div
+                          key={message.id}
+                          className={`flex ${isPainterMessage ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
+                              isPainterMessage
+                                ? 'bg-[#9A077B] text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            <p className={`mb-1 text-[11px] font-black ${isPainterMessage ? 'text-white/80' : 'text-slate-400'}`}>
+                              {isPainterMessage ? 'Voce' : message.sender_name}
+                            </p>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.message}</p>
+                            <p className={`mt-2 text-[10px] font-bold ${isPainterMessage ? 'text-white/70' : 'text-slate-400'}`}>
+                              {new Intl.DateTimeFormat('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }).format(new Date(message.created_at))}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={chatMessagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Responder cliente
+                </label>
+                <textarea
+                  value={chatReplyDraft}
+                  onChange={(event) => setChatReplyDraft(event.target.value)}
+                  rows={4}
+                  placeholder="Digite sua resposta para continuar a conversa..."
+                  className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                />
+                {chatReplyError && (
+                  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {chatReplyError}
+                  </div>
+                )}
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void handleSendChatReply()}
+                    disabled={isSendingChatReply}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#9A077B] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#EFC6E3] transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSendingChatReply ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={16} />}
+                    {isSendingChatReply ? 'Enviando...' : 'Enviar resposta'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : isLoadingChats ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
               Carregando conversas...
             </div>
@@ -1433,7 +1780,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           ) : (
             <div className="space-y-3">
               {chatThreads.map((thread) => (
-                <div key={thread.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => handleOpenChatThread(thread.id)}
+                  className="w-full rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#9A077B]/30 hover:shadow-md"
+                >
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h4 className="truncate text-sm font-black text-slate-900">{thread.client_name}</h4>
@@ -1459,7 +1811,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                       {thread.last_message_preview || 'Sem mensagem visivel.'}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
