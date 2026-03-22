@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Page, NavigateToPage } from '../types';
 import { supabase } from '../lib/supabase';
 import {
@@ -242,6 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const portalTarget = typeof document !== 'undefined' ? document.body : null;
 
   const fetchPortfolioItems = async (userId: string) => {
     const { data, error } = await supabase
@@ -1381,7 +1383,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
 
     return (
-      <div className="fixed bottom-24 right-4 sm:bottom-28 sm:right-7 z-40 w-[calc(100vw-2rem)] max-w-[390px] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] overflow-hidden">
+      <div
+        className="fixed z-40 w-[calc(100vw-2rem)] max-w-[390px] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] overflow-hidden"
+        style={{
+          right: 'max(1rem, env(safe-area-inset-right))',
+          bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 5.5rem)'
+        }}
+      >
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#9A077B]/10 text-[#9A077B]">
@@ -1490,29 +1498,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         {content}
       </main>
 
-      {renderChatInboxCard()}
-
-      {currentProfile?.applicationId && (
-        <button
-          type="button"
-          onClick={toggleChatInbox}
-          className={`fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-30 relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition-all ${
-            hasUnreadChats
-              ? 'border-[#9A077B]/30 bg-gradient-to-br from-[#9A077B] to-[#000747] text-white hover:shadow-[0_22px_55px_rgba(154,7,123,0.28)]'
-              : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.14)]'
-          }`}
-          aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
-        >
-          <MessageSquare size={24} />
-          {hasUnreadChats && (
-            <>
-              <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/10" />
-              <span className="absolute -top-1 -right-1 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-slate-900 shadow-sm">
-                {unreadChatCount > 9 ? '9+' : unreadChatCount}
-              </span>
-            </>
-          )}
-        </button>
+      {portalTarget && currentProfile?.applicationId && createPortal(
+        <>
+          {renderChatInboxCard()}
+          <button
+            type="button"
+            onClick={toggleChatInbox}
+            className={`fixed z-50 relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition-all ${
+              hasUnreadChats
+                ? 'border-[#9A077B]/30 bg-gradient-to-br from-[#9A077B] to-[#000747] text-white hover:shadow-[0_22px_55px_rgba(154,7,123,0.28)]'
+                : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.14)]'
+            }`}
+            style={{
+              right: 'max(1rem, env(safe-area-inset-right))',
+              bottom: 'max(1rem, env(safe-area-inset-bottom))'
+            }}
+            aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
+          >
+            <MessageSquare size={24} />
+            {hasUnreadChats && (
+              <>
+                <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/10" />
+                <span className="absolute -top-1 -right-1 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-slate-900 shadow-sm">
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </span>
+              </>
+            )}
+          </button>
+        </>,
+        portalTarget
       )}
 
       <OrcamentoModal
