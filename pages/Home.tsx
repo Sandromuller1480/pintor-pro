@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
 import { PainterCard } from '../components/PainterCard';
+import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
 import { getCurrentClientProfile } from '../lib/clientSignupService';
@@ -33,6 +34,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [imgError, setImgError] = useState(false);
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
   const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
 
@@ -61,7 +63,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
       setIsCheckingClientAccess(false);
     }
 
-    setIsClientSignupModalOpen(true);
+    setIsClientLoginModalOpen(true);
   };
 
   return (
@@ -343,6 +345,13 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
           </div>
         </div>
       </section>
+
+      <ClientLoginModal
+        isOpen={isClientLoginModalOpen}
+        onClose={() => setIsClientLoginModalOpen(false)}
+        onSuccess={() => setPage(Page.FindPainter)}
+        onShowSignup={() => setIsClientSignupModalOpen(true)}
+      />
 
       <ClientSignupModal
         isOpen={isClientSignupModalOpen}

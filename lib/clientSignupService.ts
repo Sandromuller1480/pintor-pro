@@ -31,6 +31,11 @@ export type ClientSignupResult = {
   requiresEmailConfirmation: boolean;
 };
 
+export type ClientLoginSubmission = {
+  email: string;
+  password: string;
+};
+
 export type CurrentClientProfile = {
   id: string;
   authUserId: string;
@@ -205,5 +210,60 @@ export const clientSignupService = {
       clientId,
       requiresEmailConfirmation: !authData.session
     };
+  },
+
+  async loginClient(payload: ClientLoginSubmission): Promise<CurrentClientProfile> {
+    const normalizedEmail = payload.email.trim().toLowerCase();
+
+    const currentSessionResult = await supabase.auth.getSession();
+
+    if (currentSessionResult.error) {
+      throw currentSessionResult.error;
+    }
+
+    if (isAnonymousSessionUser(currentSessionResult.data.session?.user)) {
+      const signOutResult = await supabase.auth.signOut();
+
+      if (signOutResult.error) {
+        throw signOutResult.error;
+      }
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: payload.password
+    });
+
+    if (signInError) {
+      const normalizedMessage = signInError.message.toLowerCase();
+
+      if (normalizedMessage.includes('email not confirmed')) {
+        throw new Error('Seu e-mail ainda nao foi confirmado. Abra a mensagem enviada pela plataforma e tente novamente.');
+      }
+
+      if (normalizedMessage.includes('invalid login credentials')) {
+        throw new Error('E-mail ou senha invalidos.');
+      }
+
+      if (normalizedMessage.includes('too many requests')) {
+        throw new Error('Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.');
+      }
+
+      throw new Error(`Nao foi possivel fazer login agora: ${signInError.message}`);
+    }
+
+    const currentClientProfile = await getCurrentClientProfile();
+
+    if (!currentClientProfile) {
+      const signOutResult = await supabase.auth.signOut();
+
+      if (signOutResult.error) {
+        console.error('Erro ao encerrar sessao nao-cliente apos login:', signOutResult.error);
+      }
+
+      throw new Error('Esta conta nao possui cadastro de cliente. Crie seu cadastro de cliente para continuar.');
+    }
+
+    return currentClientProfile;
   }
 };
