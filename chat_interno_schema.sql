@@ -34,6 +34,36 @@ CREATE INDEX IF NOT EXISTS idx_painter_chat_messages_thread_id
 ALTER TABLE public.painter_chat_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.painter_chat_messages ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_publication
+    WHERE pubname = 'supabase_realtime'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = 'painter_chat_threads'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.painter_chat_threads;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = 'painter_chat_messages'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.painter_chat_messages;
+    END IF;
+  END IF;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION public.start_painter_chat(
   p_application_id UUID,
   p_client_name TEXT,

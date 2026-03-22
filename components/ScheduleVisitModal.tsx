@@ -165,7 +165,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       }}
     >
       <div
-        className="w-full max-w-2xl my-4 sm:my-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[92vh] rounded-[32px] bg-white border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
+        className="w-full max-w-2xl my-4 sm:my-6 max-h-[calc(100vh-2rem)] sm:max-h-[85vh] rounded-[32px] bg-white border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-4 shrink-0">

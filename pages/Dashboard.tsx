@@ -233,6 +233,12 @@ const createUuid = () => {
   });
 };
 
+const ChevronRightMock = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+  </svg>
+);
+
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<Tab>('inicio');
   const [userName, setUserName] = useState('Pintor');
@@ -347,6 +353,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     return (data ?? []) as SavedChatMessage[];
   };
 
+  const normalizeChatThreadsError = (error: unknown) => {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+    return message.includes('painter_chat_threads') || message.includes('does not exist')
+      ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+      : 'Nao foi possivel carregar as conversas do chat agora.';
+  };
+
+  const normalizeChatMessagesError = (error: unknown) => {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+    return message.includes('painter_chat_messages') || message.includes('does not exist')
+      ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+      : 'Nao foi possivel carregar as mensagens dessa conversa agora.';
+  };
+
   const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
   const unreadChatCount = chatThreads.filter((thread) => thread.unread_for_painter).length;
   const hasUnreadChats = unreadChatCount > 0;
@@ -374,6 +396,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         return activeChatMessages;
       })()
     : activeChatMessages;
+
+  const loadChatThreads = async (applicationId: string, silent = false) => {
+    if (!silent) {
+      setIsLoadingChats(true);
+    }
+
+    try {
+      const data = await fetchChatThreads(applicationId);
+      setChatThreads(data);
+      setChatsError('');
+    } catch (error) {
+      console.error('Erro ao carregar conversas do chat:', error);
+      setChatThreads([]);
+      setChatsError(normalizeChatThreadsError(error));
+    } finally {
+      if (!silent) {
+        setIsLoadingChats(false);
+      }
+    }
+  };
+
+  const loadChatMessages = async (threadId: string, silent = false) => {
+    if (!silent) {
+      setIsLoadingActiveChatMessages(true);
+    }
+
+    try {
+      const data = await fetchChatMessages(threadId);
+      setActiveChatMessages(data);
+      setActiveChatError('');
+    } catch (error) {
+      console.error('Erro ao carregar mensagens da conversa:', error);
+      setActiveChatMessages([]);
+      setActiveChatError(normalizeChatMessagesError(error));
+    } finally {
+      if (!silent) {
+        setIsLoadingActiveChatMessages(false);
+      }
+    }
+  };
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
     if (!email) return null;
@@ -563,65 +625,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadChatThreads = async (silent = false) => {
-      if (!currentProfile?.applicationId) {
-        if (isMounted) {
-          setChatThreads([]);
-          setChatsError('');
-          setIsLoadingChats(false);
-        }
-        return;
-      }
+    if (!currentProfile?.applicationId) {
+      setChatThreads([]);
+      setChatsError('');
+      setIsLoadingChats(false);
+      return () => {
+        isMounted = false;
+      };
+    }
 
-      if (!silent) {
-        setIsLoadingChats(true);
-      }
-
-      try {
-        const data = await fetchChatThreads(currentProfile.applicationId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setChatThreads(data);
-        setChatsError('');
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        console.error('Erro ao carregar conversas do chat:', error);
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
-        setChatThreads([]);
-        setChatsError(
-          message.includes('painter_chat_threads') || message.includes('does not exist')
-            ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-            : 'Nao foi possivel carregar as conversas do chat agora.'
-        );
-      } finally {
-        if (isMounted && !silent) {
-          setIsLoadingChats(false);
-        }
-      }
-    };
-
-    void loadChatThreads();
+    void loadChatThreads(currentProfile.applicationId);
 
     const handleWindowFocus = () => {
-      void loadChatThreads(true);
+      if (currentProfile?.applicationId) {
+        void loadChatThreads(currentProfile.applicationId, true);
+      }
     };
-
-    const intervalId = window.setInterval(() => {
-      void loadChatThreads(true);
-    }, 15000);
 
     window.addEventListener('focus', handleWindowFocus);
 
+    const threadsChannel = supabase
+      .channel(`painter-chat-threads-${currentProfile.applicationId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'painter_chat_threads',
+        filter: `application_id=eq.${currentProfile.applicationId}`
+      }, () => {
+        if (!isMounted || !currentProfile?.applicationId) {
+          return;
+        }
+
+        void loadChatThreads(currentProfile.applicationId, true);
+      })
+      .subscribe();
+
     return () => {
       isMounted = false;
-      window.clearInterval(intervalId);
       window.removeEventListener('focus', handleWindowFocus);
+      void supabase.removeChannel(threadsChannel);
     };
   }, [currentProfile?.applicationId]);
 
@@ -695,64 +737,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadActiveChatMessages = async (silent = false) => {
-      if (!isChatInboxOpen || !selectedChatThreadId) {
-        if (isMounted) {
-          setActiveChatMessages([]);
-          setActiveChatError('');
-          setIsLoadingActiveChatMessages(false);
-        }
-        return;
-      }
-
-      if (!silent) {
-        setIsLoadingActiveChatMessages(true);
-      }
-
-      try {
-        const data = await fetchChatMessages(selectedChatThreadId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setActiveChatMessages(data);
-        setActiveChatError('');
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        console.error('Erro ao carregar mensagens da conversa:', error);
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
-        setActiveChatMessages([]);
-        setActiveChatError(
-          message.includes('painter_chat_messages') || message.includes('does not exist')
-            ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-            : 'Nao foi possivel carregar as mensagens dessa conversa agora.'
-        );
-      } finally {
-        if (isMounted && !silent) {
-          setIsLoadingActiveChatMessages(false);
-        }
-      }
-    };
-
-    void loadActiveChatMessages();
-
     if (!isChatInboxOpen || !selectedChatThreadId) {
+      setActiveChatMessages([]);
+      setActiveChatError('');
+      setIsLoadingActiveChatMessages(false);
       return () => {
         isMounted = false;
       };
     }
 
-    const intervalId = window.setInterval(() => {
-      void loadActiveChatMessages(true);
-    }, 12000);
+    void loadChatMessages(selectedChatThreadId);
+
+    const messagesChannel = supabase
+      .channel(`painter-chat-messages-${selectedChatThreadId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'painter_chat_messages',
+        filter: `thread_id=eq.${selectedChatThreadId}`
+      }, () => {
+        if (!isMounted) {
+          return;
+        }
+
+        void loadChatMessages(selectedChatThreadId, true);
+      })
+      .subscribe();
 
     return () => {
       isMounted = false;
-      window.clearInterval(intervalId);
+      void supabase.removeChannel(messagesChannel);
     };
   }, [isChatInboxOpen, selectedChatThreadId]);
 
@@ -1841,11 +1855,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     );
   };
 
-  const ChevronRightMock = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
-      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-    </svg>
-  );
 
   let content;
   switch (activeTab) {
