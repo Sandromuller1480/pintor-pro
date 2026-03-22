@@ -8,6 +8,7 @@ import {
   FileText,
   Settings,
   CalendarDays,
+  BellRing,
   Plus,
   Edit2,
   Camera,
@@ -733,19 +734,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           { id: 'orcamentos', label: 'Orcamentos', icon: FileText },
           { id: 'agenda', label: 'Agenda', icon: CalendarDays },
           { id: 'config', label: 'Configuracoes', icon: Settings },
-        ].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id as Tab)}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-bold text-sm ${activeTab === item.id
-              ? 'bg-[#9A077B]/10 text-[#9A077B]'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            <item.icon size={20} className={activeTab === item.id ? 'text-[#9A077B]' : 'text-slate-400'} />
-            <span>{item.label}</span>
-          </button>
-        ))}
+        ].map((item) => {
+          const isActive = activeTab === item.id;
+          const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
+          const showAgendaAlert = item.id === 'agenda' && pendingVisitCount > 0;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as Tab)}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition font-bold text-sm ${
+                isActive
+                  ? 'bg-[#9A077B]/10 text-[#9A077B]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <span className="flex items-center space-x-3">
+                <item.icon size={20} className={isActive ? 'text-[#9A077B]' : 'text-slate-400'} />
+                <span>{item.label}</span>
+              </span>
+              {showAgendaAlert && (
+                <span
+                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black shadow-sm ${
+                    isActive
+                      ? 'bg-[#9A077B] text-white'
+                      : 'bg-amber-100 text-amber-700'
+                  }`}
+                  title={`${pendingVisitCount} novo(s) agendamento(s)`}
+                >
+                  <BellRing size={11} className="animate-pulse" />
+                  <span>{pendingVisitCount}</span>
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="p-4 border-t border-slate-100">
