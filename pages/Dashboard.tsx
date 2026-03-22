@@ -1386,8 +1386,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       <div
         className="fixed z-40 w-[calc(100vw-2rem)] max-w-[390px] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] overflow-hidden"
         style={{
-          right: 'max(1rem, env(safe-area-inset-right))',
-          bottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 5.5rem)'
+          right: '24px',
+          bottom: '96px'
         }}
       >
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
@@ -1510,8 +1510,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                 : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.14)]'
             }`}
             style={{
-              right: 'max(1rem, env(safe-area-inset-right))',
-              bottom: 'max(1rem, env(safe-area-inset-bottom))'
+              right: '24px',
+              bottom: '24px'
             }}
             aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
           >
