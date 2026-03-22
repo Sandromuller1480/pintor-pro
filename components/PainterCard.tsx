@@ -12,7 +12,7 @@ export const PainterCard: React.FC<PainterCardProps> = ({ painter, onClick }) =>
   const hasReviews = painter.reviewsCount > 0 && painter.rating > 0;
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 group flex flex-col h-full">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-[0_10px_28px_rgba(15,23,42,0.06)] hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)] transition-all duration-300 border border-slate-100 group flex flex-col h-full">
       <div className="relative h-40 overflow-hidden">
         <img src={painter.banner} alt={painter.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
         <div className="absolute top-4 left-4 flex gap-2">
