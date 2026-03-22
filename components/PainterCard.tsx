@@ -53,18 +53,6 @@ export const PainterCard: React.FC<PainterCardProps> = ({ painter, onClick }) =>
           <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" /> {painter.location}
         </p>
         
-        <p className="text-slate-600 text-sm line-clamp-2 mb-4 leading-relaxed">
-          {painter.description}
-        </p>
-
-        <div className="flex flex-wrap gap-2 mb-6">
-          {painter.specialties.map(s => (
-            <span key={s} className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-[10px] font-semibold">
-              {s}
-            </span>
-          ))}
-        </div>
-
         <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
           <div className="flex items-center text-xs text-slate-400">
             <Zap className="w-3 h-3 mr-1 text-[#9A077B]" />
