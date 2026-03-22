@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
 
 type StartChatModalProps = {
   isOpen: boolean;
@@ -54,12 +55,6 @@ type StoredChatSession = {
   clientName: string;
   clientPhone: string;
   clientEmail: string;
-};
-
-type CurrentClientProfile = {
-  fullName: string;
-  email: string;
-  phone: string;
 };
 
 const EMPTY_FORM: FormData = {
@@ -197,77 +192,6 @@ const formatMessageTimestamp = (value: string) => {
     hour: '2-digit',
     minute: '2-digit'
   }).format(parsedDate);
-};
-
-const isAnonymousUser = (user: unknown) => {
-  if (!user || typeof user !== 'object') {
-    return false;
-  }
-
-  const candidate = user as {
-    is_anonymous?: boolean;
-    app_metadata?: { provider?: string };
-  };
-
-  return candidate.is_anonymous === true || candidate.app_metadata?.provider === 'anonymous';
-};
-
-const fetchCurrentClientProfile = async (): Promise<CurrentClientProfile | null> => {
-  const sessionResult = await supabase.auth.getSession();
-
-  if (sessionResult.error) {
-    throw sessionResult.error;
-  }
-
-  const currentUser = sessionResult.data.session?.user;
-
-  if (!currentUser || isAnonymousUser(currentUser)) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('clientes')
-    .select('nome, email, celular')
-    .eq('auth_user_id', currentUser.id)
-    .maybeSingle();
-
-  if (error) {
-    const errorText = getErrorText(error);
-
-    if (errorText.includes('clientes') && errorText.includes('does not exist')) {
-      return null;
-    }
-
-    throw error;
-  }
-
-  if (data?.nome && data?.email && data?.celular) {
-    return {
-      fullName: data.nome,
-      email: data.email,
-      phone: data.celular
-    };
-  }
-
-  const metadataFullName =
-    typeof currentUser.user_metadata?.full_name === 'string'
-      ? currentUser.user_metadata.full_name.trim()
-      : '';
-  const metadataPhone =
-    typeof currentUser.user_metadata?.phone === 'string'
-      ? currentUser.user_metadata.phone.trim()
-      : '';
-  const metadataEmail = currentUser.email?.trim().toLowerCase() ?? '';
-
-  if (metadataFullName && metadataEmail && metadataPhone) {
-    return {
-      fullName: metadataFullName,
-      email: metadataEmail,
-      phone: metadataPhone
-    };
-  }
-
-  return null;
 };
 
 const ensureClientUser = async () => {
@@ -421,7 +345,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
           throw new Error('Nao foi possivel identificar o pintor para iniciar a conversa.');
         }
 
-        const nextClientProfile = await fetchCurrentClientProfile();
+        const nextClientProfile = await getCurrentClientProfile();
         setCurrentClientProfile(nextClientProfile);
         await ensureClientUser();
 

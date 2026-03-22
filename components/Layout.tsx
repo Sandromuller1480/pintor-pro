@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
 import { Logo } from './Logo';
+import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
+import { supabase } from '../lib/supabase';
 import { Menu, X, ChevronRight, Instagram, Facebook, Linkedin } from 'lucide-react';
 
 interface LayoutProps {
@@ -12,10 +14,46 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncCurrentClient = async () => {
+      try {
+        const profile = await getCurrentClientProfile();
+
+        if (isMounted) {
+          setCurrentClientProfile(profile);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar cliente logado no cabecalho:', error);
+
+        if (isMounted) {
+          setCurrentClientProfile(null);
+        }
+      }
+    };
+
+    void syncCurrentClient();
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(() => {
+      void syncCurrentClient();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (currentPage === Page.Dashboard) {
     return <div className="min-h-screen bg-slate-50 font-sans">{children}</div>;
   }
+
+  const clientFirstName = currentClientProfile?.fullName.trim().split(/\s+/)[0] ?? '';
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
@@ -25,6 +63,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
           <div className="flex justify-between items-center h-24">
             <div className="flex items-center cursor-pointer" onClick={() => setPage(Page.Home)}>
               <Logo className="h-16" color="#000000" />
+              {currentClientProfile && (
+                <span className="ml-4 hidden lg:block text-[10px] font-black uppercase tracking-[0.18em] text-[#9A077B]">
+                  Cliente logado{clientFirstName ? `: ${clientFirstName}` : ''}
+                </span>
+              )}
             </div>
 
             {/* Navegação Desktop */}
@@ -48,6 +91,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         {/* Menu Mobile */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
+            {currentClientProfile && (
+              <div className="rounded-2xl bg-[#FDF3FA] px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-[#9A077B]">
+                Cliente logado{clientFirstName ? `: ${clientFirstName}` : ''}
+              </div>
+            )}
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
             <button onClick={() => { setPage(Page.HowItWorks); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Como Funciona</button>
             <button onClick={() => { setPage(Page.Plans); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Planos</button>

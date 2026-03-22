@@ -5,6 +5,7 @@ import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
 import { PainterCard } from '../components/PainterCard';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
+import { getCurrentClientProfile } from '../lib/clientSignupService';
 import { paintersService } from '../lib/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
 import {
@@ -33,6 +34,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
+  const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
 
   useEffect(() => {
     async function loadPainters() {
@@ -42,6 +44,25 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
     }
     loadPainters();
   }, []);
+
+  const handleHireNowClick = async () => {
+    setIsCheckingClientAccess(true);
+
+    try {
+      const currentClientProfile = await getCurrentClientProfile();
+
+      if (currentClientProfile) {
+        setPage(Page.FindPainter);
+        return;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar cliente logado na home:', error);
+    } finally {
+      setIsCheckingClientAccess(false);
+    }
+
+    setIsClientSignupModalOpen(true);
+  };
 
   return (
     <div className="overflow-x-hidden">
@@ -74,10 +95,11 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
-                  onClick={() => setIsClientSignupModalOpen(true)}
-                  className="bg-[#000747] text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-[#9A077B] transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em]"
+                  onClick={() => void handleHireNowClick()}
+                  disabled={isCheckingClientAccess}
+                  className="bg-[#000747] text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-[#9A077B] transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Contratar Agora
+                  {isCheckingClientAccess ? 'Verificando...' : 'Contratar Agora'}
                 </button>
                 <button
                   onClick={() => setPage(Page.Register)}

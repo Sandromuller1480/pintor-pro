@@ -31,7 +31,15 @@ export type ClientSignupResult = {
   requiresEmailConfirmation: boolean;
 };
 
-const isAnonymousSession = (user: unknown) => {
+export type CurrentClientProfile = {
+  id: string;
+  authUserId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
+export const isAnonymousSessionUser = (user: unknown) => {
   if (!user || typeof user !== 'object') {
     return false;
   }
@@ -42,6 +50,74 @@ const isAnonymousSession = (user: unknown) => {
   };
 
   return candidate.is_anonymous === true || candidate.app_metadata?.provider === 'anonymous';
+};
+
+const isMissingClientesTableError = (message: string) => (
+  message.includes('relation') && message.includes('clientes')
+) || (
+  message.includes('clientes') && message.includes('does not exist')
+);
+
+export const getCurrentClientProfile = async (): Promise<CurrentClientProfile | null> => {
+  const sessionResult = await supabase.auth.getSession();
+
+  if (sessionResult.error) {
+    throw sessionResult.error;
+  }
+
+  const currentUser = sessionResult.data.session?.user;
+
+  if (!currentUser || isAnonymousSessionUser(currentUser)) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('id, auth_user_id, nome, email, celular')
+    .eq('auth_user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    const normalizedMessage = error.message.toLowerCase();
+
+    if (isMissingClientesTableError(normalizedMessage)) {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (data?.id && data?.auth_user_id && data?.nome && data?.email && data?.celular) {
+    return {
+      id: data.id,
+      authUserId: data.auth_user_id,
+      fullName: data.nome,
+      email: data.email,
+      phone: data.celular
+    };
+  }
+
+  const metadataFullName =
+    typeof currentUser.user_metadata?.full_name === 'string'
+      ? currentUser.user_metadata.full_name.trim()
+      : '';
+  const metadataPhone =
+    typeof currentUser.user_metadata?.phone === 'string'
+      ? currentUser.user_metadata.phone.trim()
+      : '';
+  const metadataEmail = currentUser.email?.trim().toLowerCase() ?? '';
+
+  if (metadataFullName && metadataEmail && metadataPhone) {
+    return {
+      id: '',
+      authUserId: currentUser.id,
+      fullName: metadataFullName,
+      email: metadataEmail,
+      phone: metadataPhone
+    };
+  }
+
+  return null;
 };
 
 export const clientSignupService = {
@@ -56,7 +132,7 @@ export const clientSignupService = {
       throw currentSessionResult.error;
     }
 
-    if (isAnonymousSession(currentSessionResult.data.session?.user)) {
+    if (isAnonymousSessionUser(currentSessionResult.data.session?.user)) {
       const signOutResult = await supabase.auth.signOut();
 
       if (signOutResult.error) {
@@ -70,7 +146,8 @@ export const clientSignupService = {
       options: {
         data: {
           full_name: normalizedFullName,
-          user_type: 'client'
+          user_type: 'client',
+          phone: normalizedPhone
         }
       }
     });
