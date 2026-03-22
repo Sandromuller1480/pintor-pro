@@ -31,6 +31,18 @@ const INITIAL_FORM_DATA: FormData = {
   message: ''
 };
 
+const createThreadId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
+    return value.toString(16);
+  });
+};
+
 const getErrorDetails = (error: unknown) => {
   if (!error || typeof error !== 'object') {
     return {
@@ -54,6 +66,25 @@ const getErrorDetails = (error: unknown) => {
     details: candidate.details ?? '',
     hint: candidate.hint ?? ''
   };
+};
+
+const isMissingChatRpcError = (error: unknown) => {
+  const errorDetails = getErrorDetails(error);
+  const combinedMessage = [
+    errorDetails.message,
+    errorDetails.details,
+    errorDetails.hint,
+    errorDetails.code
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    combinedMessage.includes('start_painter_chat') ||
+    combinedMessage.includes('function public.start_painter_chat') ||
+    errorDetails.code === 'PGRST202'
+  );
 };
 
 const normalizeInsertError = (error: unknown) => {
@@ -97,6 +128,48 @@ const normalizeInsertError = (error: unknown) => {
   }
 
   return errorDetails.message || fallbackMessage;
+};
+
+const startChatWithDirectInsert = async (payload: {
+  applicationId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  message: string;
+}) => {
+  const threadId = createThreadId();
+  const nowIso = new Date().toISOString();
+
+  const threadInsert = await supabase
+    .from('painter_chat_threads')
+    .insert({
+      id: threadId,
+      application_id: payload.applicationId,
+      client_name: payload.clientName,
+      client_phone: payload.clientPhone,
+      client_email: payload.clientEmail,
+      last_message_preview: payload.message.slice(0, 180),
+      last_message_at: nowIso,
+      unread_for_painter: true,
+      status: 'open'
+    });
+
+  if (threadInsert.error) {
+    throw threadInsert.error;
+  }
+
+  const messageInsert = await supabase
+    .from('painter_chat_messages')
+    .insert({
+      thread_id: threadId,
+      sender_type: 'client',
+      sender_name: payload.clientName,
+      message: payload.message
+    });
+
+  if (messageInsert.error) {
+    throw messageInsert.error;
+  }
 };
 
 export const StartChatModal: React.FC<StartChatModalProps> = ({
@@ -168,16 +241,28 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
     try {
       const normalizedMessage = formData.message.trim();
+      const payload = {
+        applicationId: painterId,
+        clientName: formData.clientName.trim(),
+        clientPhone: formData.clientPhone.trim(),
+        clientEmail: formData.clientEmail.trim().toLowerCase(),
+        message: normalizedMessage
+      };
+
       const startChatResult = await supabase.rpc('start_painter_chat', {
-        p_application_id: painterId,
-        p_client_name: formData.clientName.trim(),
-        p_client_phone: formData.clientPhone.trim(),
-        p_client_email: formData.clientEmail.trim().toLowerCase(),
-        p_initial_message: normalizedMessage
+        p_application_id: payload.applicationId,
+        p_client_name: payload.clientName,
+        p_client_phone: payload.clientPhone,
+        p_client_email: payload.clientEmail,
+        p_initial_message: payload.message
       });
 
       if (startChatResult.error) {
-        throw startChatResult.error;
+        if (isMissingChatRpcError(startChatResult.error)) {
+          await startChatWithDirectInsert(payload);
+        } else {
+          throw startChatResult.error;
+        }
       }
 
       setSuccessMessage(`Conversa iniciada com ${painterName}. Sua mensagem foi enviada.`);
