@@ -17,7 +17,8 @@ import {
   Users,
   Star,
   Clock,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
@@ -236,11 +237,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isChatInboxOpen, setIsChatInboxOpen] = useState(false);
   const [mediaFeedback, setMediaFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
-  const chatRefreshTimeoutRef = useRef<number | null>(null);
 
   const fetchPortfolioItems = async (userId: string) => {
     const { data, error } = await supabase
@@ -585,8 +586,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
+    setIsChatInboxOpen(false);
+  };
 
-    if (tab !== 'orcamentos') {
+  useEffect(() => {
+    if (!isChatInboxOpen) {
       return;
     }
 
@@ -594,27 +598,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       .filter((thread) => thread.unread_for_painter)
       .map((thread) => thread.id);
 
-    if (chatRefreshTimeoutRef.current) {
-      window.clearTimeout(chatRefreshTimeoutRef.current);
-    }
-
-    chatRefreshTimeoutRef.current = window.setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      chatRefreshTimeoutRef.current = null;
-    }, 50);
-
     if (unreadThreadIds.length > 0) {
       void markChatThreadsAsRead(unreadThreadIds);
     }
-  };
+  }, [isChatInboxOpen, chatThreads]);
 
   useEffect(() => {
-    return () => {
-      if (chatRefreshTimeoutRef.current) {
-        window.clearTimeout(chatRefreshTimeoutRef.current);
+    if (!isChatInboxOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsChatInboxOpen(false);
       }
     };
-  }, []);
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isChatInboxOpen]);
+
+  const toggleChatInbox = () => {
+    setIsChatInboxOpen((currentValue) => !currentValue);
+  };
 
   const handleLogout = async () => {
     setIsSignOut(true);
@@ -1235,67 +1244,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         </div>
       )}
 
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-11 h-11 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center">
-            <MessageSquare size={20} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900">Conversas do Chat</h3>
-            <p className="text-sm text-slate-500 font-medium">Mensagens iniciadas pelos clientes a partir do seu perfil publico.</p>
-          </div>
-        </div>
-
-        {chatsError && (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
-            {chatsError}
-          </div>
-        )}
-
-        {isLoadingChats ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center text-slate-500 font-bold">
-            Carregando conversas...
-          </div>
-        ) : chatThreads.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
-            <h4 className="text-lg font-black text-slate-900 mb-2">Nenhuma conversa recebida ainda</h4>
-            <p className="text-slate-500 font-medium">Quando um cliente clicar em "Chamar no Chat", a conversa aparecera aqui.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            {chatThreads.map((thread) => (
-              <div key={thread.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h4 className="text-lg font-black text-slate-900">{thread.client_name}</h4>
-                    <p className="text-sm text-slate-500 font-medium">{thread.client_phone}</p>
-                    <p className="text-sm text-slate-400">{thread.client_email}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {thread.unread_for_painter && (
-                      <span className="px-3 py-1 rounded-full bg-[#9A077B]/10 text-[#9A077B] text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                        <BellRing size={11} />
-                        Nova
-                      </span>
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {formatShortDate(thread.last_message_at)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Ultima mensagem</p>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {thread.last_message_preview || 'Sem mensagem visivel.'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {isLoadingQuotes ? (
         <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center text-slate-500 font-bold">
           Carregando orcamentos...
@@ -1427,6 +1375,91 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     </div>
   );
 
+  const renderChatInboxCard = () => {
+    if (!currentProfile?.applicationId || !isChatInboxOpen) {
+      return null;
+    }
+
+    return (
+      <div className="fixed bottom-24 right-4 sm:bottom-28 sm:right-7 z-40 w-[calc(100vw-2rem)] max-w-[390px] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] overflow-hidden">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#9A077B]/10 text-[#9A077B]">
+              <MessageSquare size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900">Chat interno</h3>
+              <p className="text-xs font-medium text-slate-500">
+                Conversas iniciadas pelos clientes
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsChatInboxOpen(false)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+            aria-label="Fechar chat"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="max-h-[65vh] overflow-y-auto p-4">
+          {chatsError && (
+            <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {chatsError}
+            </div>
+          )}
+
+          {isLoadingChats ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
+              Carregando conversas...
+            </div>
+          ) : chatThreads.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+              <h4 className="mb-2 text-base font-black text-slate-900">Nenhuma conversa recebida ainda</h4>
+              <p className="text-sm font-medium text-slate-500">
+                Quando um cliente clicar em "Chamar no Chat", a conversa aparecera aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {chatThreads.map((thread) => (
+                <div key={thread.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h4 className="truncate text-sm font-black text-slate-900">{thread.client_name}</h4>
+                      <p className="truncate text-xs font-medium text-slate-500">{thread.client_phone}</p>
+                      <p className="truncate text-xs text-slate-400">{thread.client_email}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {thread.unread_for_painter && (
+                        <span className="flex items-center gap-1 rounded-full bg-[#9A077B]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#9A077B]">
+                          <BellRing size={11} />
+                          Nova
+                        </span>
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        {formatShortDate(thread.last_message_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Ultima mensagem</p>
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      {thread.last_message_preview || 'Sem mensagem visivel.'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const ChevronRightMock = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -1457,45 +1490,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         {content}
       </main>
 
+      {renderChatInboxCard()}
+
       {currentProfile?.applicationId && (
         <button
           type="button"
-          onClick={() => handleTabChange('orcamentos')}
-          className={`fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-30 relative overflow-hidden rounded-[24px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition-all ${
+          onClick={toggleChatInbox}
+          className={`fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-30 relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition-all ${
             hasUnreadChats
               ? 'border-[#9A077B]/30 bg-gradient-to-br from-[#9A077B] to-[#000747] text-white hover:shadow-[0_22px_55px_rgba(154,7,123,0.28)]'
               : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.14)]'
           }`}
           aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
         >
-          <div className="flex items-center gap-3 pr-2">
-            <div
-              className={`relative flex h-12 w-12 items-center justify-center rounded-2xl ${
-                hasUnreadChats
-                  ? 'bg-white/15 text-white'
-                  : 'bg-[#9A077B]/10 text-[#9A077B]'
-              }`}
-            >
-              <MessageSquare size={22} />
-              {hasUnreadChats && (
-                <span className="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-slate-900 shadow-sm">
-                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
-                </span>
-              )}
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-black leading-tight">
-                {hasUnreadChats ? 'Nova mensagem' : 'Chat interno'}
-              </p>
-              <p className={`text-xs font-medium ${hasUnreadChats ? 'text-white/80' : 'text-slate-500'}`}>
-                {hasUnreadChats
-                  ? `${unreadChatCount} conversa(s) aguardando leitura`
-                  : 'Abrir conversas do painel'}
-              </p>
-            </div>
-          </div>
+          <MessageSquare size={24} />
           {hasUnreadChats && (
-            <span className="pointer-events-none absolute inset-0 rounded-[24px] ring-1 ring-white/10" />
+            <>
+              <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/10" />
+              <span className="absolute -top-1 -right-1 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-slate-900 shadow-sm">
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </span>
+            </>
           )}
         </button>
       )}
