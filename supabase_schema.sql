@@ -1,5 +1,5 @@
 ﻿
--- ExtensÃ£o para UUIDs (necessÃ¡ria para uuid_generate_v4)
+-- Extensao para UUIDs (necessaria para uuid_generate_v4)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Tabela para os pintores (Existente)
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS painters (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Nova Tabela para SolicitaÃ§Ãµes de Credenciamento
+-- Nova tabela para solicitacoes de credenciamento
 CREATE TABLE IF NOT EXISTS applications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   full_name TEXT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS applications (
   city TEXT NOT NULL,
   uf TEXT,
   whatsapp TEXT NOT NULL,
-  email TEXT NOT NULL, -- Adicionado para notificaÃ§Ãµes
+  email TEXT NOT NULL, -- Adicionado para notificacoes
   experience_time TEXT,
   specialties TEXT[] DEFAULT ARRAY[]::TEXT[],
   work_photo_paths TEXT[] DEFAULT ARRAY[]::TEXT[],
@@ -83,7 +83,7 @@ USING (
   auth_user_id = auth.uid()
   OR lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
 );
--- Compatibilidade para bancos jÃ¡ criados anteriormente
+-- Compatibilidade para bancos ja criados anteriormente
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS experience_time TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS gender TEXT;
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS cep TEXT;
@@ -149,8 +149,8 @@ WITH CHECK (bucket_id = 'application-certifications');
 -- Inserir dados iniciais (opcional)
 INSERT INTO painters (name, location, rating, reviews_count, description, verified, top_rated, response_time, avatar, banner, specialties, lat, lng)
 VALUES 
-('Roberto Silva', 'SÃ£o Paulo - SP', 4.9, 124, 'Especialista em pintura imobiliÃ¡ria de alto padrÃ£o e texturas decorativas. 15 anos de experiÃªncia.', true, true, 'menos de 1 hora', 'https://picsum.photos/seed/rob/200/200', 'https://picsum.photos/seed/rob_banner/800/300', ARRAY['Laca', 'Cimento Queimado', 'Pintura EpÃ³xi'], -23.5505, -46.6333),
-('Maria Fernanda', 'Curitiba - PR', 5.0, 89, 'Especialista em restauraÃ§Ã£o de fachadas e acabamentos finos. Certificada pelas melhores marcas.', true, true, '15 minutos', 'https://picsum.photos/seed/mari/200/200', 'https://picsum.photos/seed/mari_banner/800/300', ARRAY['Acabamentos Finos', 'Verniz', 'Pintura Airless'], -25.4290, -49.2671);
+('Roberto Silva', 'Sao Paulo - SP', 4.9, 124, 'Especialista em pintura imobiliaria de alto padrao e texturas decorativas. 15 anos de experiencia.', true, true, 'menos de 1 hora', 'https://picsum.photos/seed/rob/200/200', 'https://picsum.photos/seed/rob_banner/800/300', ARRAY['Laca', 'Cimento Queimado', 'Pintura Epoxi'], -23.5505, -46.6333),
+('Maria Fernanda', 'Curitiba - PR', 5.0, 89, 'Especialista em restauracao de fachadas e acabamentos finos. Certificada pelas melhores marcas.', true, true, '15 minutos', 'https://picsum.photos/seed/mari/200/200', 'https://picsum.photos/seed/mari_banner/800/300', ARRAY['Acabamentos Finos', 'Verniz', 'Pintura Airless'], -25.4290, -49.2671);
 
 -- ===========================================
 -- Billing: assinatura recorrente (Stripe)

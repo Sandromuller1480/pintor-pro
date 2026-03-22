@@ -17,7 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
-import { OrcamentoModal } from '../components/OrcamentoModal';
+import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 
 interface DashboardProps {
@@ -48,6 +48,22 @@ type DashboardMetrics = {
   portfolioCount: number;
   quoteCount: number;
   pendingQuoteCount: number;
+};
+
+const QUOTE_STATUS_LABELS: Record<string, string> = {
+  novo: 'Novo',
+  respondido: 'Respondido',
+  em_negociacao: 'Em Negociacao',
+  fechado: 'Fechado',
+  recusado: 'Recusado'
+};
+
+const QUOTE_STATUS_STYLES: Record<string, string> = {
+  novo: 'bg-emerald-100 text-emerald-700',
+  respondido: 'bg-blue-100 text-blue-700',
+  em_negociacao: 'bg-amber-100 text-amber-700',
+  fechado: 'bg-slate-200 text-slate-700',
+  recusado: 'bg-red-100 text-red-700'
 };
 
 const DEFAULT_COVER_IMAGE = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop';
@@ -174,8 +190,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isSignOut, setIsSignOut] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
+  const [quoteItems, setQuoteItems] = useState<SavedOrcamento[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
   const [portfolioError, setPortfolioError] = useState('');
+  const [quotesError, setQuotesError] = useState('');
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -198,32 +217,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     return (data ?? []) as SavedObra[];
   };
 
-  const fetchQuoteMetrics = async (userId: string): Promise<DashboardMetrics> => {
-    const [totalResult, pendingResult] = await Promise.all([
-      supabase
-        .from('orcamentos')
-        .select('id', { count: 'exact', head: true })
-        .eq('pintor_id', userId),
-      supabase
-        .from('orcamentos')
-        .select('id', { count: 'exact', head: true })
-        .eq('pintor_id', userId)
-        .eq('status', 'novo')
-    ]);
+  const fetchQuoteItems = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('orcamentos')
+      .select('id, cliente_nome, cliente_telefone, cliente_email, cliente_tipo, imovel_cidade_estado, imovel_tipo, pintura_tipo_servico, prazo_urgencia, status, created_at')
+      .eq('pintor_id', userId)
+      .order('created_at', { ascending: false });
 
-    if (totalResult.error) {
-      throw totalResult.error;
+    if (error) {
+      throw error;
     }
 
-    if (pendingResult.error) {
-      throw pendingResult.error;
-    }
-
-    return {
-      portfolioCount: 0,
-      quoteCount: totalResult.count ?? 0,
-      pendingQuoteCount: pendingResult.count ?? 0
-    };
+    return (data ?? []) as SavedOrcamento[];
   };
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
@@ -302,7 +307,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
       const [portfolioResult, quotesResult, profileResult] = await Promise.allSettled([
         fetchPortfolioItems(data.user.id),
-        fetchQuoteMetrics(data.user.id),
+        fetchQuoteItems(data.user.id),
         fetchCurrentPainterProfile(normalizedEmail)
       ]);
 
@@ -318,18 +323,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       }
 
       if (quotesResult.status === 'fulfilled') {
-        setMetrics((currentMetrics) => ({
-          ...currentMetrics,
-          quoteCount: quotesResult.value.quoteCount,
-          pendingQuoteCount: quotesResult.value.pendingQuoteCount
-        }));
+        setQuoteItems(quotesResult.value);
+        setQuotesError('');
       } else {
-        console.error('Erro ao carregar metricas de orcamentos:', quotesResult.reason);
-        setMetrics((currentMetrics) => ({
-          ...currentMetrics,
-          quoteCount: 0,
-          pendingQuoteCount: 0
-        }));
+        console.error('Erro ao carregar lista de orcamentos:', quotesResult.reason);
+        setQuoteItems([]);
+        setQuotesError('Nao foi possivel carregar seus orcamentos agora.');
       }
 
       if (profileResult.status === 'fulfilled' && profileResult.value) {
@@ -344,10 +343,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       }
 
       setIsLoadingPortfolio(false);
+      setIsLoadingQuotes(false);
       setIsCheckingAccess(false);
     };
 
     setIsLoadingPortfolio(true);
+    setIsLoadingQuotes(true);
     void loadDashboard();
 
     return () => {
@@ -356,11 +357,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   }, [setPage]);
 
   useEffect(() => {
-    setMetrics((currentMetrics) => ({
-      ...currentMetrics,
-      portfolioCount: portfolioItems.length
-    }));
-  }, [portfolioItems]);
+    setMetrics({
+      portfolioCount: portfolioItems.length,
+      quoteCount: quoteItems.length,
+      pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length
+    });
+  }, [portfolioItems, quoteItems]);
 
   const handleLogout = async () => {
     setIsSignOut(true);
@@ -389,6 +391,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     });
     setPortfolioError('');
     setActiveTab('portfolio');
+  };
+
+  const handleOrcamentoSaved = (orcamento: SavedOrcamento) => {
+    setQuoteItems((currentItems) => {
+      const nextItems = [orcamento, ...currentItems.filter((item) => item.id !== orcamento.id)];
+      return nextItems.sort((firstItem, secondItem) => {
+        return new Date(secondItem.created_at).getTime() - new Date(firstItem.created_at).getTime();
+      });
+    });
+    setQuotesError('');
+    setActiveTab('orcamentos');
   };
 
   const openProfilePicker = () => {
@@ -857,37 +870,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         </button>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden text-left">
-        <div className="grid grid-cols-12 gap-4 p-6 bg-slate-50 border-b border-slate-200 text-xs font-black uppercase tracking-widest text-slate-500">
-          <div className="col-span-3">Cliente</div>
-          <div className="col-span-4">Servico Solicitado</div>
-          <div className="col-span-2">Data</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-1 text-center">Acao</div>
+      {quotesError && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+          {quotesError}
         </div>
+      )}
 
-        <div className="divide-y divide-slate-100">
-          {[
-            { client: 'Carlos Mendonca', serv: 'Pintura interna 120m2 (Massa Corrida)', data: 'Hoje, 09:30', status: 'Novo', color: 'bg-emerald-100 text-emerald-700' },
-            { client: 'Aline Freitas', serv: 'Renovacao Fachada Comercial', data: 'Ontem', status: 'Respondido', color: 'bg-blue-100 text-blue-700' },
-            { client: 'Cond. Vila Nova', serv: 'Revitalizacao de Grades e Portoes', data: '12/03/2026', status: 'Em Negociacao', color: 'bg-amber-100 text-amber-700' },
-          ].map((orc, index) => (
-            <div key={index} className="grid grid-cols-12 gap-4 p-6 items-center hover:bg-slate-50 transition cursor-pointer">
-              <div className="col-span-3 font-bold text-slate-900">{orc.client}</div>
-              <div className="col-span-4 text-slate-600 font-medium truncate pr-4">{orc.serv}</div>
-              <div className="col-span-2 text-slate-500 text-sm">{orc.data}</div>
-              <div className="col-span-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${orc.color}`}>
-                  {orc.status}
-                </span>
-              </div>
-              <div className="col-span-1 text-center">
-                <button className="text-[#9A077B] hover:text-[#000747] font-bold p-2"><ChevronRightMock /></button>
-              </div>
-            </div>
-          ))}
+      {isLoadingQuotes ? (
+        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center text-slate-500 font-bold">
+          Carregando orcamentos...
         </div>
-      </div>
+      ) : quoteItems.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center">
+          <h3 className="text-xl font-black text-slate-900 mb-2">Nenhum orcamento salvo ainda</h3>
+          <p className="text-slate-500 font-medium">Crie seu primeiro orcamento e ele aparecera aqui automaticamente.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden text-left">
+          <div className="grid grid-cols-12 gap-4 p-6 bg-slate-50 border-b border-slate-200 text-xs font-black uppercase tracking-widest text-slate-500">
+            <div className="col-span-3">Cliente</div>
+            <div className="col-span-4">Servico Solicitado</div>
+            <div className="col-span-2">Data</div>
+            <div className="col-span-2">Status</div>
+            <div className="col-span-1 text-center">Acao</div>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {quoteItems.map((orcamento) => {
+              const serviceLabel =
+                orcamento.pintura_tipo_servico ||
+                orcamento.imovel_tipo ||
+                'Servico nao informado';
+              const statusStyle = QUOTE_STATUS_STYLES[orcamento.status] ?? 'bg-slate-100 text-slate-700';
+              const statusLabel = QUOTE_STATUS_LABELS[orcamento.status] ?? orcamento.status;
+
+              return (
+                <div key={orcamento.id} className="grid grid-cols-12 gap-4 p-6 items-center hover:bg-slate-50 transition">
+                  <div className="col-span-3">
+                    <div className="font-bold text-slate-900">{orcamento.cliente_nome}</div>
+                    <div className="text-xs text-slate-500 mt-1">{orcamento.cliente_telefone}</div>
+                  </div>
+                  <div className="col-span-4 text-slate-600 font-medium pr-4">
+                    <div className="truncate">{serviceLabel}</div>
+                    <div className="text-xs text-slate-400 mt-1 truncate">{orcamento.imovel_cidade_estado || 'Local nao informado'}</div>
+                  </div>
+                  <div className="col-span-2 text-slate-500 text-sm">{formatShortDate(orcamento.created_at)}</div>
+                  <div className="col-span-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${statusStyle}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-center">
+                    <button type="button" className="text-[#9A077B] hover:text-[#000747] font-bold p-2">
+                      <ChevronRightMock />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -923,6 +966,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       <OrcamentoModal
         isOpen={isOrcamentoModalOpen}
         onClose={() => setIsOrcamentoModalOpen(false)}
+        onSaved={handleOrcamentoSaved}
       />
       <ObraModal
         isOpen={isObraModalOpen}

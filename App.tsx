@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -127,6 +127,8 @@ const App: React.FC = () => {
   const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [profilePreviewUrl, setProfilePreviewUrl] = useState('');
+  const successTimeoutRef = useRef<number | null>(null);
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -197,6 +199,28 @@ const App: React.FC = () => {
     }
   }, [route.page, isAuthReady, isAuthenticated]);
 
+  useEffect(() => {
+    if (!formData.profilePhoto) {
+      setProfilePreviewUrl('');
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(formData.profilePhoto);
+    setProfilePreviewUrl(nextPreviewUrl);
+
+    return () => {
+      URL.revokeObjectURL(nextPreviewUrl);
+    };
+  }, [formData.profilePhoto]);
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        window.clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSubmit = async () => {
     if (
       !formData.fullName ||
@@ -248,11 +272,15 @@ const App: React.FC = () => {
       });
       
       setShowSuccessToast(true);
-      setTimeout(() => {
+      if (successTimeoutRef.current) {
+        window.clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = window.setTimeout(() => {
         setShowSuccessToast(false);
         setIsSubmitting(false);
         setSubmissionFeedback(null);
         setFormData(INITIAL_FORM_DATA);
+        successTimeoutRef.current = null;
         navigateToPage(Page.Login);
       }, 3000);
     } catch (error) {
@@ -365,7 +393,7 @@ const App: React.FC = () => {
                   <div className="col-span-1 border border-slate-200 rounded-2xl p-6 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden group">
                     {formData.profilePhoto ? (
                       <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg mb-2 relative">
-                        <img src={URL.createObjectURL(formData.profilePhoto)} alt="Perfil" className="w-full h-full object-cover" />
+                        <img src={profilePreviewUrl} alt="Perfil" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-inner mb-2">
