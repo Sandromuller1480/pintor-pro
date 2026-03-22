@@ -53,6 +53,19 @@ type DashboardMetrics = {
   pendingQuoteCount: number;
 };
 
+type SavedVisitRequest = {
+  id: string;
+  client_name: string;
+  client_phone: string;
+  client_email: string;
+  preferred_date: string;
+  preferred_time: string;
+  location: string;
+  notes: string | null;
+  status: string;
+  created_at: string;
+};
+
 const QUOTE_STATUS_LABELS: Record<string, string> = {
   novo: 'Novo',
   respondido: 'Respondido',
@@ -194,10 +207,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
   const [quoteItems, setQuoteItems] = useState<SavedOrcamento[]>([]);
+  const [visitItems, setVisitItems] = useState<SavedVisitRequest[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
+  const [isLoadingVisits, setIsLoadingVisits] = useState(false);
   const [portfolioError, setPortfolioError] = useState('');
   const [quotesError, setQuotesError] = useState('');
+  const [visitsError, setVisitsError] = useState('');
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -234,6 +250,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
 
     return (data ?? []) as SavedOrcamento[];
+  };
+
+  const fetchVisitItems = async (applicationId: string) => {
+    const { data, error } = await supabase
+      .from('painter_visit_requests')
+      .select('id, client_name, client_phone, client_email, preferred_date, preferred_time, location, notes, status, created_at')
+      .eq('application_id', applicationId)
+      .order('preferred_date', { ascending: true })
+      .order('preferred_time', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as SavedVisitRequest[];
   };
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
@@ -369,6 +400,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length
     });
   }, [portfolioItems, quoteItems]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadVisitItems = async () => {
+      if (!currentProfile?.applicationId) {
+        if (isMounted) {
+          setVisitItems([]);
+          setVisitsError('');
+          setIsLoadingVisits(false);
+        }
+        return;
+      }
+
+      setIsLoadingVisits(true);
+
+      try {
+        const data = await fetchVisitItems(currentProfile.applicationId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setVisitItems(data);
+        setVisitsError('');
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao carregar agenda de visitas:', error);
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        setVisitItems([]);
+        setVisitsError(
+          message.includes('painter_visit_requests') || message.includes('does not exist')
+            ? 'A tabela de visitas ainda nao foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
+            : 'Nao foi possivel carregar sua agenda de visitas agora.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingVisits(false);
+        }
+      }
+    };
+
+    void loadVisitItems();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProfile?.applicationId]);
 
   const handleLogout = async () => {
     setIsSignOut(true);
@@ -1033,31 +1115,69 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         <p className="text-slate-500 font-medium">Organize visitas, prazos e compromissos do seu atendimento.</p>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
-        <div className="max-w-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center mb-6">
-            <CalendarDays size={28} />
-          </div>
-          <h3 className="text-2xl font-black text-slate-900 mb-3">Menu Agenda adicionado</h3>
-          <p className="text-slate-500 font-medium leading-relaxed mb-6">
-            Esta area ja esta pronta no painel e pode receber os proximos recursos de calendario sem afetar o restante do sistema.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Visitas</p>
-              <p className="text-sm text-slate-600 font-medium">Espaco reservado para agendamentos presenciais.</p>
+      {visitsError && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+          {visitsError}
+        </div>
+      )}
+
+      {isLoadingVisits ? (
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10 text-center text-slate-500 font-bold">
+          Carregando agenda...
+        </div>
+      ) : visitItems.length === 0 ? (
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
+          <div className="max-w-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center mb-6">
+              <CalendarDays size={28} />
             </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Prazos</p>
-              <p className="text-sm text-slate-600 font-medium">Espaco reservado para acompanhar datas de obra.</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Lembretes</p>
-              <p className="text-sm text-slate-600 font-medium">Espaco reservado para compromissos e retornos.</p>
-            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-3">Nenhuma visita agendada ainda</h3>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              Quando um cliente solicitar uma visita pelo seu perfil publico, o pedido aparecera aqui.
+            </p>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {visitItems.map((visit) => (
+            <div key={visit.id} className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-6">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{visit.client_name}</h3>
+                  <p className="text-sm text-slate-500 font-medium">{visit.client_phone}</p>
+                  <p className="text-sm text-slate-400">{visit.client_email}</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider">
+                  {visit.status === 'pending' ? 'Pendente' : visit.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Data</p>
+                  <p className="font-bold text-slate-800">{formatShortDate(visit.preferred_date)}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Horario</p>
+                  <p className="font-bold text-slate-800">{visit.preferred_time.slice(0, 5)}</p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Local</p>
+                <p className="text-sm text-slate-600 font-medium">{visit.location}</p>
+              </div>
+
+              {visit.notes && (
+                <div className="pt-4 border-t border-slate-100">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Observacoes</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{visit.notes}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 

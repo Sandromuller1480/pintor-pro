@@ -1,6 +1,7 @@
 ﻿
 import React, { useEffect, useState } from 'react';
 import { MOCK_PAINTERS } from '../constants';
+import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
 import { paintersService } from '../lib/paintersService';
 import { supabase } from '../lib/supabase';
 import { NavigateToPage, Page, Painter, PortfolioItem, PainterReview } from '../types';
@@ -20,6 +21,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const [reviewItems, setReviewItems] = useState<PainterReview[]>([]);
     const [reviewsLoading, setReviewsLoading] = useState(true);
     const [reviewsError, setReviewsError] = useState('');
+    const [isScheduleVisitModalOpen, setIsScheduleVisitModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
 
     const formatPortfolioDate = (value: string) => {
@@ -103,6 +105,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
     const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
     const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
+    const canScheduleVisit = Boolean(painter && isUuid(painter.id));
 
     useEffect(() => {
         let cancelled = false;
@@ -562,7 +565,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     <button className="w-full bg-[#9A077B] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#7F0665] transition shadow-xl shadow-[#EFC6E3] flex items-center justify-center">
                                         <MessageSquare className="w-5 h-5 mr-2" /> Chamar no Chat
                                     </button>
-                                    <button className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-[#000747] transition flex items-center justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsScheduleVisitModalOpen(true)}
+                                        disabled={!canScheduleVisit}
+                                        className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-[#000747] transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
                                         <Calendar className="w-5 h-5 mr-2" /> Agendar Visita
                                     </button>
                                 </div>
@@ -587,6 +595,13 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                     </aside>
                 </div>
             </div>
+            <ScheduleVisitModal
+                isOpen={isScheduleVisitModalOpen}
+                painterId={canScheduleVisit ? painter.id : null}
+                painterName={painter.name}
+                painterLocation={painter.location}
+                onClose={() => setIsScheduleVisitModalOpen(false)}
+            />
         </div>
     );
 };
