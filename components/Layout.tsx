@@ -4,7 +4,7 @@ import { Page } from '../types';
 import { Logo } from './Logo';
 import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
 import { supabase } from '../lib/supabase';
-import { Menu, X, ChevronRight, Instagram, Facebook, Linkedin } from 'lucide-react';
+import { Menu, X, ChevronRight, Instagram, Facebook, Linkedin, LogOut } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -55,6 +55,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   const clientFirstName = currentClientProfile?.fullName.trim().split(/\s+/)[0] ?? '';
 
+  const handleClientLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('Erro ao encerrar sessao do cliente:', error);
+      return;
+    }
+
+    setCurrentClientProfile(null);
+    setPage(Page.Home);
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans">
       {/* CABEÇALHO */}
@@ -64,9 +76,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <div className="flex items-center cursor-pointer" onClick={() => setPage(Page.Home)}>
               <Logo className="h-16" color="#000000" />
               {currentClientProfile && (
-                <span className="ml-10 hidden lg:block text-sm font-black text-[#9A077B]">
-                  Olá {clientFirstName || 'Cliente'}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => void handleClientLogout()}
+                  className="ml-10 hidden lg:inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-[#9A077B] transition hover:bg-[#FDF3FA]"
+                  title="Sair da conta do cliente"
+                >
+                  <LogOut size={16} />
+                  <span>Olá {clientFirstName || 'Cliente'}</span>
+                </button>
               )}
             </div>
 
@@ -92,9 +110,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
             {currentClientProfile && (
-              <div className="rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]">
-                Olá {clientFirstName || 'Cliente'}
-              </div>
+              <button
+                type="button"
+                onClick={() => { void handleClientLogout(); setIsMenuOpen(false); }}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]"
+              >
+                <LogOut size={16} />
+                <span>Olá {clientFirstName || 'Cliente'}</span>
+              </button>
             )}
             <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
             <button onClick={() => { setPage(Page.HowItWorks); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Como Funciona</button>
