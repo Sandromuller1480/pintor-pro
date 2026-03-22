@@ -10,6 +10,7 @@ const PUBLIC_PAINTER_DIRECTORY_VIEW = 'painter_directory_public';
 const PUBLIC_PAINTER_MEDIA_BUCKET = 'painters-media';
 const DEFAULT_PAINTER_AVATAR = 'https://i.pravatar.cc/200?u=pintor-pro';
 const DEFAULT_PAINTER_BANNER = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop';
+const LEGACY_PROFILE_PHOTO_EXPIRES_IN = 60 * 60;
 
 const EXISTING_USER_ERROR_PATTERNS = [
     'already registered',
@@ -110,6 +111,41 @@ function mapPainterRowToPainter(item: any): Painter {
     };
 }
 
+async function getLegacyProfilePhotoUrl(path: string | null | undefined) {
+    if (!path) {
+        return null;
+    }
+
+    if (isAbsoluteUrl(path)) {
+        return path;
+    }
+
+    const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKETS.workPhotos)
+        .createSignedUrl(path, LEGACY_PROFILE_PHOTO_EXPIRES_IN);
+
+    if (error) {
+        console.error('Erro ao gerar URL da foto de perfil legada:', error);
+        return null;
+    }
+
+    return data.signedUrl;
+}
+
+async function enrichPainterRowWithMedia(item: any): Promise<Painter> {
+    const painter = mapPainterRowToPainter(item);
+
+    if (!item.avatar && item.legacy_avatar_path) {
+        const legacyAvatarUrl = await getLegacyProfilePhotoUrl(item.legacy_avatar_path);
+
+        if (legacyAvatarUrl) {
+            painter.avatar = legacyAvatarUrl;
+        }
+    }
+
+    return painter;
+}
+
 export const paintersService = {
     async getAll() {
         const publicDirectoryResult = await supabase
@@ -118,7 +154,7 @@ export const paintersService = {
             .order('created_at', { ascending: false });
 
         if (!publicDirectoryResult.error && (publicDirectoryResult.data?.length ?? 0) > 0) {
-            return publicDirectoryResult.data.map(mapPainterRowToPainter) as Painter[];
+            return Promise.all(publicDirectoryResult.data.map(enrichPainterRowWithMedia));
         }
 
         if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
@@ -135,7 +171,7 @@ export const paintersService = {
             return [];
         }
 
-        return data.map(mapPainterRowToPainter) as Painter[];
+        return Promise.all(data.map(enrichPainterRowWithMedia));
     },
 
     async getById(id: string) {
@@ -146,7 +182,7 @@ export const paintersService = {
             .maybeSingle();
 
         if (!publicDirectoryResult.error && publicDirectoryResult.data) {
-            return mapPainterRowToPainter(publicDirectoryResult.data);
+            return enrichPainterRowWithMedia(publicDirectoryResult.data);
         }
 
         if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
@@ -164,7 +200,7 @@ export const paintersService = {
             return null;
         }
 
-        return mapPainterRowToPainter(data);
+        return enrichPainterRowWithMedia(data);
     },
 
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {

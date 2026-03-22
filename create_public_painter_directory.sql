@@ -33,8 +33,24 @@ SELECT
   a.foto_perfil AS avatar,
   a.foto_capa AS banner,
   COALESCE(a.specialties, ARRAY[]::text[]) AS specialties,
-  a.created_at
+  a.created_at,
+  a.profile_photo_path AS legacy_avatar_path
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 
 GRANT SELECT ON public.painter_directory_public TO anon, authenticated;
+
+DROP POLICY IF EXISTS "Public can read approved application profile photos" ON storage.objects;
+CREATE POLICY "Public can read approved application profile photos"
+ON storage.objects FOR SELECT
+TO anon, authenticated
+USING (
+  bucket_id = 'application-work-photos'
+  AND (storage.foldername(name))[2] = 'profile-photo'
+  AND EXISTS (
+    SELECT 1
+    FROM public.applications AS a
+    WHERE a.id::text = (storage.foldername(name))[1]
+      AND a.status = 'accepted'
+  )
+);
