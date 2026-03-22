@@ -9,6 +9,7 @@ import {
   Settings,
   CalendarDays,
   BellRing,
+  MessageSquare,
   Plus,
   Edit2,
   Camera,
@@ -64,6 +65,18 @@ type SavedVisitRequest = {
   location: string;
   notes: string | null;
   status: string;
+  created_at: string;
+};
+
+type SavedChatThread = {
+  id: string;
+  client_name: string;
+  client_phone: string;
+  client_email: string;
+  status: string;
+  unread_for_painter: boolean;
+  last_message_preview: string | null;
+  last_message_at: string;
   created_at: string;
 };
 
@@ -209,12 +222,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
   const [quoteItems, setQuoteItems] = useState<SavedOrcamento[]>([]);
   const [visitItems, setVisitItems] = useState<SavedVisitRequest[]>([]);
+  const [chatThreads, setChatThreads] = useState<SavedChatThread[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
   const [isLoadingVisits, setIsLoadingVisits] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const [portfolioError, setPortfolioError] = useState('');
   const [quotesError, setQuotesError] = useState('');
   const [visitsError, setVisitsError] = useState('');
+  const [chatsError, setChatsError] = useState('');
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -266,6 +282,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
 
     return (data ?? []) as SavedVisitRequest[];
+  };
+
+  const fetchChatThreads = async (applicationId: string) => {
+    const { data, error } = await supabase
+      .from('painter_chat_threads')
+      .select('id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
+      .eq('application_id', applicationId)
+      .order('last_message_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as SavedChatThread[];
   };
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
@@ -447,6 +477,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     };
 
     void loadVisitItems();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProfile?.applicationId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadChatThreads = async () => {
+      if (!currentProfile?.applicationId) {
+        if (isMounted) {
+          setChatThreads([]);
+          setChatsError('');
+          setIsLoadingChats(false);
+        }
+        return;
+      }
+
+      setIsLoadingChats(true);
+
+      try {
+        const data = await fetchChatThreads(currentProfile.applicationId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setChatThreads(data);
+        setChatsError('');
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao carregar conversas do chat:', error);
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        setChatThreads([]);
+        setChatsError(
+          message.includes('painter_chat_threads') || message.includes('does not exist')
+            ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+            : 'Nao foi possivel carregar as conversas do chat agora.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingChats(false);
+        }
+      }
+    };
+
+    void loadChatThreads();
 
     return () => {
       isMounted = false;
@@ -1072,6 +1153,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           {quotesError}
         </div>
       )}
+
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-11 h-11 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center">
+            <MessageSquare size={20} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900">Conversas do Chat</h3>
+            <p className="text-sm text-slate-500 font-medium">Mensagens iniciadas pelos clientes a partir do seu perfil publico.</p>
+          </div>
+        </div>
+
+        {chatsError && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+            {chatsError}
+          </div>
+        )}
+
+        {isLoadingChats ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center text-slate-500 font-bold">
+            Carregando conversas...
+          </div>
+        ) : chatThreads.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
+            <h4 className="text-lg font-black text-slate-900 mb-2">Nenhuma conversa recebida ainda</h4>
+            <p className="text-slate-500 font-medium">Quando um cliente clicar em "Chamar no Chat", a conversa aparecera aqui.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {chatThreads.map((thread) => (
+              <div key={thread.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h4 className="text-lg font-black text-slate-900">{thread.client_name}</h4>
+                    <p className="text-sm text-slate-500 font-medium">{thread.client_phone}</p>
+                    <p className="text-sm text-slate-400">{thread.client_email}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {thread.unread_for_painter && (
+                      <span className="px-3 py-1 rounded-full bg-[#9A077B]/10 text-[#9A077B] text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <BellRing size={11} />
+                        Nova
+                      </span>
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      {formatShortDate(thread.last_message_at)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Ultima mensagem</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {thread.last_message_preview || 'Sem mensagem visivel.'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {isLoadingQuotes ? (
         <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center text-slate-500 font-bold">
