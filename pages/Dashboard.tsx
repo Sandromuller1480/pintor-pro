@@ -240,6 +240,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const chatRefreshTimeoutRef = useRef<number | null>(null);
 
   const fetchPortfolioItems = async (userId: string) => {
     const { data, error } = await supabase
@@ -297,6 +298,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     return (data ?? []) as SavedChatThread[];
   };
+
+  const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
+  const unreadChatCount = chatThreads.filter((thread) => thread.unread_for_painter).length;
+  const hasUnreadChats = unreadChatCount > 0;
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
     if (!email) return null;
@@ -486,7 +491,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadChatThreads = async () => {
+    const loadChatThreads = async (silent = false) => {
       if (!currentProfile?.applicationId) {
         if (isMounted) {
           setChatThreads([]);
@@ -496,7 +501,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         return;
       }
 
-      setIsLoadingChats(true);
+      if (!silent) {
+        setIsLoadingChats(true);
+      }
 
       try {
         const data = await fetchChatThreads(currentProfile.applicationId);
@@ -521,7 +528,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
             : 'Nao foi possivel carregar as conversas do chat agora.'
         );
       } finally {
-        if (isMounted) {
+        if (isMounted && !silent) {
           setIsLoadingChats(false);
         }
       }
@@ -529,10 +536,85 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     void loadChatThreads();
 
+    const handleWindowFocus = () => {
+      void loadChatThreads(true);
+    };
+
+    const intervalId = window.setInterval(() => {
+      void loadChatThreads(true);
+    }, 15000);
+
+    window.addEventListener('focus', handleWindowFocus);
+
     return () => {
       isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, [currentProfile?.applicationId]);
+
+  const markChatThreadsAsRead = async (threadIds: string[]) => {
+    if (threadIds.length === 0) {
+      return;
+    }
+
+    setChatThreads((currentThreads) =>
+      currentThreads.map((thread) => (
+        threadIds.includes(thread.id)
+          ? { ...thread, unread_for_painter: false }
+          : thread
+      ))
+    );
+
+    const { error } = await supabase
+      .from('painter_chat_threads')
+      .update({ unread_for_painter: false })
+      .in('id', threadIds);
+
+    if (error) {
+      console.error('Erro ao marcar conversas como lidas:', error);
+      setChatThreads((currentThreads) =>
+        currentThreads.map((thread) => (
+          threadIds.includes(thread.id)
+            ? { ...thread, unread_for_painter: true }
+            : thread
+        ))
+      );
+    }
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+
+    if (tab !== 'orcamentos') {
+      return;
+    }
+
+    const unreadThreadIds = chatThreads
+      .filter((thread) => thread.unread_for_painter)
+      .map((thread) => thread.id);
+
+    if (chatRefreshTimeoutRef.current) {
+      window.clearTimeout(chatRefreshTimeoutRef.current);
+    }
+
+    chatRefreshTimeoutRef.current = window.setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      chatRefreshTimeoutRef.current = null;
+    }, 50);
+
+    if (unreadThreadIds.length > 0) {
+      void markChatThreadsAsRead(unreadThreadIds);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (chatRefreshTimeoutRef.current) {
+        window.clearTimeout(chatRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleLogout = async () => {
     setIsSignOut(true);
@@ -817,13 +899,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           { id: 'config', label: 'Configuracoes', icon: Settings },
         ].map((item) => {
           const isActive = activeTab === item.id;
-          const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
           const showAgendaAlert = item.id === 'agenda' && pendingVisitCount > 0;
 
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as Tab)}
+              onClick={() => handleTabChange(item.id as Tab)}
               className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition font-bold text-sm ${
                 isActive
                   ? 'bg-[#9A077B]/10 text-[#9A077B]'
@@ -1375,6 +1456,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       <main className="ml-64 flex-1 p-10 max-w-7xl relative">
         {content}
       </main>
+
+      {currentProfile?.applicationId && (
+        <button
+          type="button"
+          onClick={() => handleTabChange('orcamentos')}
+          className={`fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-30 relative overflow-hidden rounded-[24px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition-all ${
+            hasUnreadChats
+              ? 'border-[#9A077B]/30 bg-gradient-to-br from-[#9A077B] to-[#000747] text-white hover:shadow-[0_22px_55px_rgba(154,7,123,0.28)]'
+              : 'border-slate-200 bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.14)]'
+          }`}
+          aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
+        >
+          <div className="flex items-center gap-3 pr-2">
+            <div
+              className={`relative flex h-12 w-12 items-center justify-center rounded-2xl ${
+                hasUnreadChats
+                  ? 'bg-white/15 text-white'
+                  : 'bg-[#9A077B]/10 text-[#9A077B]'
+              }`}
+            >
+              <MessageSquare size={22} />
+              {hasUnreadChats && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-slate-900 shadow-sm">
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </span>
+              )}
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-black leading-tight">
+                {hasUnreadChats ? 'Nova mensagem' : 'Chat interno'}
+              </p>
+              <p className={`text-xs font-medium ${hasUnreadChats ? 'text-white/80' : 'text-slate-500'}`}>
+                {hasUnreadChats
+                  ? `${unreadChatCount} conversa(s) aguardando leitura`
+                  : 'Abrir conversas do painel'}
+              </p>
+            </div>
+          </div>
+          {hasUnreadChats && (
+            <span className="pointer-events-none absolute inset-0 rounded-[24px] ring-1 ring-white/10" />
+          )}
+        </button>
+      )}
 
       <OrcamentoModal
         isOpen={isOrcamentoModalOpen}
