@@ -35,7 +35,10 @@ SELECT
   COALESCE(a.specialties, ARRAY[]::text[]) AS specialties,
   a.created_at,
   a.profile_photo_path AS legacy_avatar_path,
-  a.auth_user_id AS portfolio_owner_id
+  a.auth_user_id AS portfolio_owner_id,
+  a.experience_time,
+  a.category_level,
+  a.subscription_plan
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

@@ -105,7 +105,11 @@ function mapPainterRowToPainter(item: any): Painter {
         avatar: getPublicPainterMediaUrl(item.avatar, DEFAULT_PAINTER_AVATAR),
         banner: getPublicPainterMediaUrl(item.banner, DEFAULT_PAINTER_BANNER),
         specialties: Array.isArray(item.specialties) ? item.specialties : [],
+        experienceTime: item.experience_time ?? undefined,
+        categoryLevel: item.category_level ?? undefined,
+        subscriptionPlan: item.subscription_plan ?? undefined,
         portfolioOwnerId: item.portfolio_owner_id ?? item.auth_user_id ?? undefined,
+        createdAt: item.created_at ?? undefined,
         coordinates: item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }
             : undefined

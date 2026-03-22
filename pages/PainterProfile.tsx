@@ -33,6 +33,34 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         }).format(parsedDate);
     };
 
+    const getPlanLabel = (currentPainter: Painter) => {
+        const subscriptionPlan = currentPainter.subscriptionPlan?.toLowerCase();
+        const categoryLevel = currentPainter.categoryLevel?.toLowerCase();
+
+        if (subscriptionPlan === 'pro') return 'PINTOR PRO';
+        if (subscriptionPlan === 'silver') return 'Elite Silver';
+        if (subscriptionPlan === 'bronze') return 'Bronze';
+        if (categoryLevel === 'ouro') return 'Categoria Ouro';
+        if (categoryLevel === 'prata') return 'Categoria Prata';
+        if (categoryLevel === 'bronze') return 'Categoria Bronze';
+
+        return 'Perfil ativo';
+    };
+
+    const buildAboutSummary = (currentPainter: Painter, publishedWorks: number) => {
+        const summaryParts = [currentPainter.description || 'Perfil profissional ativo na PINTOR PRO.'];
+
+        if (currentPainter.location) {
+            summaryParts.push(`Atende principalmente em ${currentPainter.location}.`);
+        }
+
+        if (publishedWorks > 0) {
+            summaryParts.push(`Ja publicou ${publishedWorks} obra(s) no portfolio publico.`);
+        }
+
+        return summaryParts.join(' ');
+    };
+
     const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
     useEffect(() => {
@@ -297,37 +325,55 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                         {activeTab === 'about' && (
                             <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100 space-y-8">
                                 <div className="prose prose-slate max-w-none">
-                                    <h3 className="text-2xl font-black mb-4">A excelência em cada demão</h3>
+                                    <h3 className="text-2xl font-black mb-4">Sobre {painter.name}</h3>
                                     <p className="text-slate-600 leading-relaxed text-lg">
-                                        Atuo no mercado há mais de 15 anos, com foco em projetos residenciais de luxo e ambientes corporativos que exigem rigor técnico e acabamento impecável. Meu compromisso é transformar espaços através da cor e da proteção, utilizando sempre os melhores materiais do mercado.
+                                        {buildAboutSummary(painter, portfolioItems.length)}
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                     <div className="p-4 bg-slate-50 rounded-2xl">
                                         <div className="text-xs font-bold text-slate-400 uppercase mb-1">Experiência</div>
-                                        <div className="font-black text-slate-800">15 Anos</div>
+                                        <div className="font-black text-slate-800">{painter.experienceTime || 'Nao informado'}</div>
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Equipe</div>
-                                        <div className="font-black text-slate-800">5 Pessoas</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Especialidades</div>
+                                        <div className="font-black text-slate-800">{painter.specialties.length || 0}</div>
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Obras</div>
-                                        <div className="font-black text-slate-800">+200</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Obras Publicas</div>
+                                        <div className="font-black text-slate-800">{portfolioLoading ? '...' : portfolioItems.length}</div>
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Garantia</div>
-                                        <div className="font-black text-slate-800">12 Meses</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Plano</div>
+                                        <div className="font-black text-slate-800">{getPlanLabel(painter)}</div>
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 className="font-bold mb-4 flex items-center"><CheckCircle className="w-5 h-5 mr-2 text-[#9A077B]" /> Certificações</h4>
-                                    <div className="flex flex-wrap gap-3">
-                                        {['Pintor Airless Certificado', 'NR-35 (Trabalho em Altura)', 'Especialista em Texturas Coral', 'Suvinil Master Pro'].map(c => (
-                                            <span key={c} className="bg-[#FDF3FA] text-[#7F0665] px-4 py-2 rounded-full text-xs font-bold">{c}</span>
-                                        ))}
-                                    </div>
+                                    <h4 className="font-bold mb-4 flex items-center">
+                                        <CheckCircle className="w-5 h-5 mr-2 text-[#9A077B]" />
+                                        Especialidades informadas
+                                    </h4>
+                                    {painter.specialties.length > 0 ? (
+                                        <div className="flex flex-wrap gap-3">
+                                            {painter.specialties.map((specialty) => (
+                                                <span key={specialty} className="bg-[#FDF3FA] text-[#7F0665] px-4 py-2 rounded-full text-xs font-bold">
+                                                    {specialty}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-500 text-sm">
+                                            Este pintor ainda nao informou especialidades publicas no cadastro.
+                                        </p>
+                                    )}
                                 </div>
+                                {painter.createdAt && (
+                                    <div className="pt-2 border-t border-slate-100">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                                            Perfil publicado em {formatPortfolioDate(painter.createdAt)}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

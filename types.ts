@@ -12,7 +12,11 @@ export interface Painter {
   avatar: string;
   banner: string;
   specialties: string[];
+  experienceTime?: string;
+  categoryLevel?: string;
+  subscriptionPlan?: string;
   portfolioOwnerId?: string;
+  createdAt?: string;
   coordinates?: {
     lat: number;
     lng: number;
