@@ -353,6 +353,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const selectedChatThread = selectedChatThreadId
     ? chatThreads.find((thread) => thread.id === selectedChatThreadId) ?? null
     : null;
+  const activeChatDisplayMessages = selectedChatThread
+    ? (() => {
+        const hasClientMessage = activeChatMessages.some((message) => message.sender_type === 'client');
+
+        if (!hasClientMessage && selectedChatThread.last_message_preview) {
+          return [
+            {
+              id: `synthetic-${selectedChatThread.id}`,
+              thread_id: selectedChatThread.id,
+              sender_type: 'client' as const,
+              sender_name: selectedChatThread.client_name,
+              message: selectedChatThread.last_message_preview,
+              created_at: selectedChatThread.created_at
+            },
+            ...activeChatMessages
+          ];
+        }
+
+        return activeChatMessages;
+      })()
+    : activeChatMessages;
 
   const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
     if (!email) return null;
@@ -745,14 +766,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   }, [chatThreads, selectedChatThreadId]);
 
   useEffect(() => {
-    if (!selectedChatThreadId || activeChatMessages.length === 0) {
+    if (!selectedChatThreadId || activeChatDisplayMessages.length === 0) {
       return;
     }
 
     window.requestAnimationFrame(() => {
       chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     });
-  }, [selectedChatThreadId, activeChatMessages]);
+  }, [selectedChatThreadId, activeChatDisplayMessages]);
 
   const toggleChatInbox = () => {
     setIsChatInboxOpen((currentValue) => {
@@ -1695,13 +1716,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                   <div className="p-6 text-center text-sm font-bold text-slate-500">
                     Carregando mensagens...
                   </div>
-                ) : activeChatMessages.length === 0 ? (
+                ) : activeChatDisplayMessages.length === 0 ? (
                   <div className="p-6 text-center text-sm font-medium text-slate-500">
                     Nenhuma mensagem nesta conversa ainda.
                   </div>
                 ) : (
                   <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
-                    {activeChatMessages.map((message) => {
+                    {activeChatDisplayMessages.map((message) => {
                       const isPainterMessage = message.sender_type === 'painter';
 
                       return (

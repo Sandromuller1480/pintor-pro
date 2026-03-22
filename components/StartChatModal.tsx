@@ -87,6 +87,25 @@ const isMissingChatRpcError = (error: unknown) => {
   );
 };
 
+const isChatPolicyError = (error: unknown) => {
+  const errorDetails = getErrorDetails(error);
+  const combinedMessage = [
+    errorDetails.message,
+    errorDetails.details,
+    errorDetails.hint,
+    errorDetails.code
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    combinedMessage.includes('row-level security') ||
+    combinedMessage.includes('violates row-level security') ||
+    combinedMessage.includes('permission denied')
+  );
+};
+
 const normalizeInsertError = (error: unknown) => {
   const fallbackMessage = error instanceof Error ? error.message : 'Nao foi possivel iniciar a conversa agora.';
   const errorDetails = getErrorDetails(error);
@@ -168,8 +187,15 @@ const startChatWithDirectInsert = async (payload: {
     });
 
   if (messageInsert.error) {
+    if (isChatPolicyError(messageInsert.error)) {
+      console.warn('Primeira mensagem do chat bloqueada pela policy. Mantendo thread com preview como fallback.', messageInsert.error);
+      return { threadId, partial: true };
+    }
+
     throw messageInsert.error;
   }
+
+  return { threadId, partial: false };
 };
 
 export const StartChatModal: React.FC<StartChatModalProps> = ({
@@ -248,6 +274,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
         clientEmail: formData.clientEmail.trim().toLowerCase(),
         message: normalizedMessage
       };
+      let fallbackPartialSuccess = false;
 
       const startChatResult = await supabase.rpc('start_painter_chat', {
         p_application_id: payload.applicationId,
@@ -259,13 +286,18 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
       if (startChatResult.error) {
         if (isMissingChatRpcError(startChatResult.error)) {
-          await startChatWithDirectInsert(payload);
+          const fallbackResult = await startChatWithDirectInsert(payload);
+          fallbackPartialSuccess = fallbackResult.partial;
         } else {
           throw startChatResult.error;
         }
       }
 
-      setSuccessMessage(`Conversa iniciada com ${painterName}. Sua mensagem foi enviada.`);
+      setSuccessMessage(
+        fallbackPartialSuccess
+          ? `Conversa iniciada com ${painterName}. O pintor ja pode ver seu contato no painel.`
+          : `Conversa iniciada com ${painterName}. Sua mensagem foi enviada.`
+      );
     } catch (error) {
       console.error('Erro ao iniciar conversa no chat:', error);
       setErrorMessage(normalizeInsertError(error));
