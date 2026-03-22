@@ -1,10 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
+import { ClientLoginModal } from './ClientLoginModal';
+import { ClientSignupModal } from './ClientSignupModal';
 import { Logo } from './Logo';
 import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
 import { supabase } from '../lib/supabase';
-import { Menu, X, ChevronRight, Instagram, Facebook, Linkedin, LogOut } from 'lucide-react';
+import { Menu, X, Instagram, Facebook, Linkedin, LogOut, LogIn } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,8 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
+  const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
+  const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -67,37 +70,74 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
     setPage(Page.Home);
   };
 
+  const handleClientLoginSuccess = () => {
+    setIsClientLoginModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* CABEÇALHO */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-24">
             <div className="flex items-center cursor-pointer" onClick={() => setPage(Page.Home)}>
               <Logo className="h-16" color="#000000" />
-              {currentClientProfile && (
+              {currentClientProfile ? (
                 <button
                   type="button"
-                  onClick={() => void handleClientLogout()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleClientLogout();
+                  }}
                   className="ml-10 hidden lg:inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-[#9A077B] transition hover:bg-[#FDF3FA]"
                   title="Sair da conta do cliente"
                 >
                   <span>Olá {clientFirstName || 'Cliente'}</span>
                   <LogOut size={16} />
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsClientLoginModalOpen(true);
+                  }}
+                  className="ml-10 hidden lg:inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-[#9A077B] transition hover:bg-[#FDF3FA]"
+                  title="Entrar como cliente"
+                >
+                  <span>Login Cliente</span>
+                  <LogIn size={16} />
+                </button>
               )}
             </div>
 
-            {/* Navegação Desktop */}
             <nav className="hidden md:flex space-x-8 items-center">
-              <button onClick={() => setPage(Page.FindPainter)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Encontrar Pintor</button>
-              <button onClick={() => setPage(Page.HowItWorks)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Como Funciona</button>
-              <button onClick={() => setPage(Page.Plans)} className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}>Planos</button>
+              <button
+                onClick={() => setPage(Page.FindPainter)}
+                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+              >
+                Encontrar Pintor
+              </button>
+              <button
+                onClick={() => setPage(Page.HowItWorks)}
+                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+              >
+                Como Funciona
+              </button>
+              <button
+                onClick={() => setPage(Page.Plans)}
+                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+              >
+                Planos
+              </button>
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
-              <button onClick={() => setPage(Page.Login)} className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest">Área do Pintor</button>
+              <button
+                onClick={() => setPage(Page.Login)}
+                className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest"
+              >
+                Área do Pintor
+              </button>
             </nav>
 
-            {/* Botão de Menu Mobile */}
             <div className="md:hidden flex items-center">
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600 p-2">
                 {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -106,33 +146,91 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
           </div>
         </div>
 
-        {/* Menu Mobile */}
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top duration-300">
-            {currentClientProfile && (
+            {currentClientProfile ? (
               <button
                 type="button"
-                onClick={() => { void handleClientLogout(); setIsMenuOpen(false); }}
+                onClick={() => {
+                  void handleClientLogout();
+                  setIsMenuOpen(false);
+                }}
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]"
               >
                 <span>Olá {clientFirstName || 'Cliente'}</span>
                 <LogOut size={16} />
               </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsClientLoginModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]"
+              >
+                <span>Login Cliente</span>
+                <LogIn size={16} />
+              </button>
             )}
-            <button onClick={() => { setPage(Page.FindPainter); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Encontrar Pintor</button>
-            <button onClick={() => { setPage(Page.HowItWorks); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Como Funciona</button>
-            <button onClick={() => { setPage(Page.Plans); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight">Planos</button>
-            <button onClick={() => { setPage(Page.Login); setIsMenuOpen(false); }} className="w-full bg-[#9A077B] text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4">Sou Pintor</button>
+
+            <button
+              onClick={() => {
+                setPage(Page.FindPainter);
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+            >
+              Encontrar Pintor
+            </button>
+            <button
+              onClick={() => {
+                setPage(Page.HowItWorks);
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+            >
+              Como Funciona
+            </button>
+            <button
+              onClick={() => {
+                setPage(Page.Plans);
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+            >
+              Planos
+            </button>
+            <button
+              onClick={() => {
+                setPage(Page.Login);
+                setIsMenuOpen(false);
+              }}
+              className="w-full bg-[#9A077B] text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4"
+            >
+              Sou Pintor
+            </button>
           </div>
         )}
       </header>
 
-      {/* CONTEÚDO */}
       <main className="flex-grow">
         {children}
       </main>
 
-      {/* RODAPÉ */}
+      <ClientLoginModal
+        isOpen={isClientLoginModalOpen}
+        onClose={() => setIsClientLoginModalOpen(false)}
+        onSuccess={handleClientLoginSuccess}
+        onShowSignup={() => setIsClientSignupModalOpen(true)}
+      />
+
+      <ClientSignupModal
+        isOpen={isClientSignupModalOpen}
+        onClose={() => setIsClientSignupModalOpen(false)}
+        onSuccess={() => setIsClientSignupModalOpen(false)}
+      />
+
       <footer className="bg-[#0f172a] text-white pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
@@ -149,7 +247,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             </div>
 
             <div>
-              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4"> Marketplace</h4>
+              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Marketplace</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
                 <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-[#C93EA6] transition">Encontrar Profissionais</button></li>
                 <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
@@ -191,4 +289,3 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
     </div>
   );
 };
-
