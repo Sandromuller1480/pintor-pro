@@ -6,6 +6,11 @@ const STORAGE_BUCKETS = {
     certifications: 'application-certifications'
 } as const;
 
+const PUBLIC_PAINTER_DIRECTORY_VIEW = 'painter_directory_public';
+const PUBLIC_PAINTER_MEDIA_BUCKET = 'painters-media';
+const DEFAULT_PAINTER_AVATAR = 'https://i.pravatar.cc/200?u=pintor-pro';
+const DEFAULT_PAINTER_BANNER = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop';
+
 const EXISTING_USER_ERROR_PATTERNS = [
     'already registered',
     'already been registered',
@@ -58,8 +63,68 @@ export type ApplicationSubmissionResult = {
     processingWarning: string | null;
 };
 
+function isAbsoluteUrl(value: string | null | undefined) {
+    return typeof value === 'string' && /^https?:\/\//i.test(value);
+}
+
+function getPublicPainterMediaUrl(path: string | null | undefined, fallback: string) {
+    if (!path) {
+        return fallback;
+    }
+
+    if (isAbsoluteUrl(path)) {
+        return path;
+    }
+
+    const {
+        data: { publicUrl }
+    } = supabase.storage.from(PUBLIC_PAINTER_MEDIA_BUCKET).getPublicUrl(path);
+
+    return publicUrl || fallback;
+}
+
+function isMissingPublicDirectoryError(error: { message?: string } | null) {
+    const message = error?.message?.toLowerCase() ?? '';
+    return message.includes('does not exist')
+        || message.includes('schema cache')
+        || message.includes('could not find the table');
+}
+
+function mapPainterRowToPainter(item: any): Painter {
+    return {
+        id: item.id,
+        name: item.name,
+        location: item.location,
+        rating: Number(item.rating ?? 0),
+        reviewsCount: Number(item.reviews_count ?? 0),
+        description: item.description || 'Perfil profissional ativo na PINTOR PRO.',
+        verified: Boolean(item.verified),
+        topRated: Boolean(item.top_rated),
+        responseTime: item.response_time || 'sob consulta',
+        avatar: getPublicPainterMediaUrl(item.avatar, DEFAULT_PAINTER_AVATAR),
+        banner: getPublicPainterMediaUrl(item.banner, DEFAULT_PAINTER_BANNER),
+        specialties: Array.isArray(item.specialties) ? item.specialties : [],
+        coordinates: item.lat != null && item.lng != null
+            ? { lat: item.lat, lng: item.lng }
+            : undefined
+    };
+}
+
 export const paintersService = {
     async getAll() {
+        const publicDirectoryResult = await supabase
+            .from(PUBLIC_PAINTER_DIRECTORY_VIEW)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (!publicDirectoryResult.error && (publicDirectoryResult.data?.length ?? 0) > 0) {
+            return publicDirectoryResult.data.map(mapPainterRowToPainter) as Painter[];
+        }
+
+        if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
+            console.error('Erro ao buscar diretorio publico de pintores:', publicDirectoryResult.error);
+        }
+
         const { data, error } = await supabase
             .from('painters')
             .select('*')
@@ -70,24 +135,24 @@ export const paintersService = {
             return [];
         }
 
-        return data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            location: item.location,
-            rating: item.rating,
-            reviewsCount: item.reviews_count,
-            description: item.description,
-            verified: item.verified,
-            topRated: item.top_rated,
-            responseTime: item.response_time,
-            avatar: item.avatar,
-            banner: item.banner,
-            specialties: item.specialties,
-            coordinates: { lat: item.lat, lng: item.lng }
-        })) as Painter[];
+        return data.map(mapPainterRowToPainter) as Painter[];
     },
 
     async getById(id: string) {
+        const publicDirectoryResult = await supabase
+            .from(PUBLIC_PAINTER_DIRECTORY_VIEW)
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (!publicDirectoryResult.error && publicDirectoryResult.data) {
+            return mapPainterRowToPainter(publicDirectoryResult.data);
+        }
+
+        if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
+            console.error('Erro ao buscar pintor no diretorio publico:', publicDirectoryResult.error);
+        }
+
         const { data, error } = await supabase
             .from('painters')
             .select('*')
@@ -99,13 +164,7 @@ export const paintersService = {
             return null;
         }
 
-        return {
-            ...data,
-            reviewsCount: data.reviews_count,
-            topRated: data.top_rated,
-            responseTime: data.response_time,
-            coordinates: { lat: data.lat, lng: data.lng }
-        } as Painter;
+        return mapPainterRowToPainter(data);
     },
 
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {

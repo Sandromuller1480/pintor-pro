@@ -1,7 +1,6 @@
-﻿
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PainterCard } from '../components/PainterCard';
-import { Search, MapPin, Filter, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Search, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { paintersService } from '../lib/paintersService';
 
@@ -11,36 +10,105 @@ interface FindPainterProps {
 
 export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationTerm, setLocationTerm] = useState('');
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [onlyTopRated, setOnlyTopRated] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadPainters() {
       setLoading(true);
-      const data = await paintersService.getAll();
-      setPainters(data);
-      setLoading(false);
+      setErrorMessage('');
+
+      try {
+        const data = await paintersService.getAll();
+
+        if (!isMounted) return;
+
+        setPainters(data);
+      } catch (error) {
+        console.error('Erro ao carregar vitrine de pintores:', error);
+        if (!isMounted) return;
+        setPainters([]);
+        setErrorMessage('Nao foi possivel carregar os pintores agora.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
-    loadPainters();
+
+    void loadPainters();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const filteredPainters = painters.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.specialties?.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const availableSpecialties = useMemo(() => {
+    return Array.from(
+      new Set<string>(
+        painters.flatMap((painter) => painter.specialties ?? [])
+      )
+    )
+      .sort((firstItem, secondItem) => firstItem.localeCompare(secondItem, 'pt-BR'))
+      .slice(0, 10);
+  }, [painters]);
+
+  const filteredPainters = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const normalizedLocationTerm = locationTerm.trim().toLowerCase();
+
+    return painters.filter((painter) => {
+      const matchesSearch = !normalizedSearchTerm ||
+        painter.name.toLowerCase().includes(normalizedSearchTerm) ||
+        painter.description.toLowerCase().includes(normalizedSearchTerm) ||
+        painter.specialties.some((specialty) => specialty.toLowerCase().includes(normalizedSearchTerm));
+
+      const matchesLocation = !normalizedLocationTerm ||
+        painter.location.toLowerCase().includes(normalizedLocationTerm);
+
+      const matchesSpecialties = selectedSpecialties.length === 0 ||
+        selectedSpecialties.every((specialty) => painter.specialties.includes(specialty));
+
+      const matchesVerified = !onlyVerified || painter.verified;
+      const matchesTopRated = !onlyTopRated || painter.topRated;
+
+      return matchesSearch && matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated;
+    });
+  }, [locationTerm, onlyTopRated, onlyVerified, painters, searchTerm, selectedSpecialties]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setLocationTerm('');
+    setSelectedSpecialties([]);
+    setOnlyVerified(false);
+    setOnlyTopRated(false);
+  };
+
+  const toggleSpecialty = (specialty: string) => {
+    setSelectedSpecialties((currentSpecialties) =>
+      currentSpecialties.includes(specialty)
+        ? currentSpecialties.filter((item) => item !== specialty)
+        : [...currentSpecialties, specialty]
+    );
+  };
 
   return (
     <div className="bg-slate-50 min-h-screen pt-12 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Área de Busca do Cabeçalho */}
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-5 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Qual tipo de pintura você precisa?"
+                placeholder="Qual tipo de pintura voce precisa?"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -50,8 +118,10 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Cidade ou CEP"
+                placeholder="Cidade ou regiao"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
+                value={locationTerm}
+                onChange={(e) => setLocationTerm(e.target.value)}
               />
             </div>
             <div className="md:col-span-3">
@@ -63,49 +133,54 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Barra Lateral de Filtros */}
           <aside className="lg:w-72 space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold flex items-center"><SlidersHorizontal className="w-4 h-4 mr-2" /> Filtros</h3>
-                <button className="text-xs text-[#9A077B] font-bold hover:underline" onClick={() => setSearchTerm('')}>Limpar</button>
+                <button className="text-xs text-[#9A077B] font-bold hover:underline" onClick={clearFilters}>Limpar</button>
               </div>
 
               <div className="space-y-6">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Especialidade</h4>
                   <div className="space-y-2">
-                    {['Laca', 'Cimento Queimado', 'Airless', 'Epóxi', 'Fachadas', 'Residencial'].map(s => (
-                      <label key={s} className="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
-                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{s}</span>
+                    {availableSpecialties.length > 0 ? availableSpecialties.map((specialty) => (
+                      <label key={specialty} className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={selectedSpecialties.includes(specialty)}
+                          onChange={() => toggleSpecialty(specialty)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                        />
+                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{specialty}</span>
                       </label>
-                    ))}
+                    )) : (
+                      <p className="text-sm text-slate-400">Nenhuma especialidade disponivel.</p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confiança</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confianca</h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                      <input
+                        type="checkbox"
+                        checked={onlyVerified}
+                        onChange={(e) => setOnlyVerified(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                      />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Verificado</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                      <input
+                        type="checkbox"
+                        checked={onlyTopRated}
+                        onChange={(e) => setOnlyTopRated(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                      />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
                     </label>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Avaliação Mínima</h4>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map(n => (
-                      <button key={n} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs font-bold hover:border-[#9A077B] hover:text-[#9A077B] transition">
-                        {n}+
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -114,7 +189,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             <div className="bg-[#9A077B] rounded-2xl p-6 text-white relative overflow-hidden">
               <div className="relative z-10">
                 <h4 className="font-bold mb-2">Quer aparecer aqui?</h4>
-                <p className="text-xs text-[#F7E3F1] mb-4 leading-relaxed">Milhares de clientes buscam pintores qualificados todos os dias.</p>
+                <p className="text-xs text-[#F7E3F1] mb-4 leading-relaxed">Profissionais aprovados aparecem na vitrine da PINTOR PRO e recebem contatos mais qualificados.</p>
                 <button onClick={() => setPage(Page.Register)} className="w-full bg-white text-[#9A077B] py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition">
                   Cadastrar Perfil
                 </button>
@@ -123,33 +198,31 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             </div>
           </aside>
 
-          {/* Lista de Resultados */}
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <p className="text-slate-500 font-medium">{filteredPainters.length} pintores encontrados</p>
-              <div className="flex items-center gap-2 text-sm font-bold cursor-pointer hover:text-[#9A077B] transition">
-                <span>Ordenar por: <span className="text-[#9A077B]">Relevância</span></span>
+              <div className="flex items-center gap-2 text-sm font-bold cursor-default text-slate-500">
+                <span>Ordenar por: <span className="text-[#9A077B]">Mais recentes</span></span>
                 <ChevronDown className="w-4 h-4" />
               </div>
             </div>
 
+            {errorMessage && (
+              <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {loading ? (
-                <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando Elite...</div>
+                <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando pintores...</div>
               ) : filteredPainters.length > 0 ? (
-                filteredPainters.map(painter => (
+                filteredPainters.map((painter) => (
                   <PainterCard key={painter.id} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
                 ))
               ) : (
-                <div className="col-span-full py-20 text-center text-slate-400 font-medium">Nenhum pintor encontrado com esse termo.</div>
+                <div className="col-span-full py-20 text-center text-slate-400 font-medium">Nenhum pintor encontrado com os filtros atuais.</div>
               )}
-            </div>
-
-            {/* Paginação */}
-            <div className="mt-12 flex justify-center gap-2">
-              <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-400 hover:border-[#9A077B] hover:text-[#9A077B] transition">1</button>
-              <button className="w-10 h-10 rounded-xl bg-[#9A077B] text-white flex items-center justify-center font-bold shadow-lg shadow-[#EFC6E3]">2</button>
-              <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-400 hover:border-[#9A077B] hover:text-[#9A077B] transition">3</button>
             </div>
           </div>
         </div>
@@ -157,4 +230,3 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     </div>
   );
 };
-
