@@ -1,12 +1,15 @@
 ﻿
 import React, { useEffect, useState } from 'react';
 import { MOCK_PAINTERS } from '../constants';
+import { ClientLoginModal } from '../components/ClientLoginModal';
+import { ClientSignupModal } from '../components/ClientSignupModal';
 import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
 import { StartChatModal } from '../components/StartChatModal';
+import { getCurrentClientProfile } from '../lib/clientSignupService';
 import { paintersService } from '../lib/paintersService';
 import { supabase } from '../lib/supabase';
 import { NavigateToPage, Page, Painter, PortfolioItem, PainterReview } from '../types';
-import { Shield, Star, MapPin, CheckCircle, Zap, Calendar, MessageSquare, ArrowRight, Camera, Share2, Heart, Info } from 'lucide-react';
+import { Shield, Star, MapPin, CheckCircle, Zap, Calendar, MessageSquare, ArrowRight, Camera, Share2, Heart, Info, Loader2 } from 'lucide-react';
 
 interface PainterProfileProps {
     painterId?: string;
@@ -14,6 +17,7 @@ interface PainterProfileProps {
 }
 
 export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPage }) => {
+    const [checkingClientAction, setCheckingClientAction] = useState<'chat' | 'visit' | null>(null);
     const [painter, setPainter] = useState<Painter | null>(null);
     const [loading, setLoading] = useState(true);
     const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -24,6 +28,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const [reviewsError, setReviewsError] = useState('');
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isScheduleVisitModalOpen, setIsScheduleVisitModalOpen] = useState(false);
+    const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
+    const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
+    const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | null>(null);
     const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
 
     const formatPortfolioDate = (value: string) => {
@@ -110,6 +117,81 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const publicApplicationId = painter?.applicationId;
     const canScheduleVisit = Boolean(publicApplicationId && isUuid(publicApplicationId));
     const canStartChat = canScheduleVisit;
+
+    const openProtectedClientAction = (action: 'chat' | 'visit') => {
+        if (action === 'chat') {
+            if (!canStartChat) {
+                return;
+            }
+
+            setIsChatModalOpen(true);
+            return;
+        }
+
+        if (!canScheduleVisit) {
+            return;
+        }
+
+        setIsScheduleVisitModalOpen(true);
+    };
+
+    const handleCloseClientLogin = () => {
+        setIsClientLoginModalOpen(false);
+        setPendingClientAction(null);
+    };
+
+    const handleCloseClientSignup = () => {
+        setIsClientSignupModalOpen(false);
+        setPendingClientAction(null);
+    };
+
+    const handleShowClientSignup = () => {
+        setIsClientLoginModalOpen(false);
+        setIsClientSignupModalOpen(true);
+    };
+
+    const handleClientSignupSuccess = () => {
+        setIsClientSignupModalOpen(false);
+        setIsClientLoginModalOpen(true);
+    };
+
+    const handleClientLoginSuccess = () => {
+        setIsClientLoginModalOpen(false);
+
+        if (!pendingClientAction) {
+            return;
+        }
+
+        const actionToOpen = pendingClientAction;
+        setPendingClientAction(null);
+        openProtectedClientAction(actionToOpen);
+    };
+
+    const handleProtectedClientAction = async (action: 'chat' | 'visit') => {
+        if ((action === 'chat' && !canStartChat) || (action === 'visit' && !canScheduleVisit)) {
+            return;
+        }
+
+        setCheckingClientAction(action);
+
+        try {
+            const currentClientProfile = await getCurrentClientProfile();
+
+            if (currentClientProfile) {
+                openProtectedClientAction(action);
+                return;
+            }
+
+            setPendingClientAction(action);
+            setIsClientLoginModalOpen(true);
+        } catch (error) {
+            console.error('Erro ao verificar acesso do cliente para acao protegida:', error);
+            setPendingClientAction(action);
+            setIsClientLoginModalOpen(true);
+        } finally {
+            setCheckingClientAction(null);
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -568,19 +650,35 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                 <div className="space-y-3">
                                     <button
                                         type="button"
-                                        onClick={() => setIsChatModalOpen(true)}
-                                        disabled={!canStartChat}
+                                        onClick={() => void handleProtectedClientAction('chat')}
+                                        disabled={!canStartChat || checkingClientAction !== null}
                                         className="w-full bg-[#9A077B] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#7F0665] transition shadow-xl shadow-[#EFC6E3] flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        <MessageSquare className="w-5 h-5 mr-2" /> Chamar no Chat
+                                        {checkingClientAction === 'chat' ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verificando acesso...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MessageSquare className="w-5 h-5 mr-2" /> Chamar no Chat
+                                            </>
+                                        )}
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setIsScheduleVisitModalOpen(true)}
-                                        disabled={!canScheduleVisit}
+                                        onClick={() => void handleProtectedClientAction('visit')}
+                                        disabled={!canScheduleVisit || checkingClientAction !== null}
                                         className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-[#000747] transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        <Calendar className="w-5 h-5 mr-2" /> Agendar Visita
+                                        {checkingClientAction === 'visit' ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verificando acesso...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Calendar className="w-5 h-5 mr-2" /> Agendar Visita
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                                 <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold flex items-center justify-center">
@@ -617,6 +715,17 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                 painterName={painter.name}
                 painterLocation={painter.location}
                 onClose={() => setIsChatModalOpen(false)}
+            />
+            <ClientLoginModal
+                isOpen={isClientLoginModalOpen}
+                onClose={handleCloseClientLogin}
+                onSuccess={handleClientLoginSuccess}
+                onShowSignup={handleShowClientSignup}
+            />
+            <ClientSignupModal
+                isOpen={isClientSignupModalOpen}
+                onClose={handleCloseClientSignup}
+                onSuccess={handleClientSignupSuccess}
             />
         </div>
     );
