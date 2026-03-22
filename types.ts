@@ -36,6 +36,16 @@ export interface PortfolioItem {
   createdAt: string;
 }
 
+export interface PainterReview {
+  id: string;
+  applicationId: string;
+  clientName: string;
+  clientAvatarUrl: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 export enum Page {
   Home = 'home',
   FindPainter = 'find-painter',

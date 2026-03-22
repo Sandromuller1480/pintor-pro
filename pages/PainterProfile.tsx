@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { MOCK_PAINTERS } from '../constants';
 import { paintersService } from '../lib/paintersService';
 import { supabase } from '../lib/supabase';
-import { NavigateToPage, Page, Painter, PortfolioItem } from '../types';
+import { NavigateToPage, Page, Painter, PortfolioItem, PainterReview } from '../types';
 import { Shield, Star, MapPin, CheckCircle, Zap, Calendar, MessageSquare, ArrowRight, Camera, Share2, Heart, Info } from 'lucide-react';
 
 interface PainterProfileProps {
@@ -17,6 +17,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
     const [portfolioLoading, setPortfolioLoading] = useState(true);
     const [portfolioError, setPortfolioError] = useState('');
+    const [reviewItems, setReviewItems] = useState<PainterReview[]>([]);
+    const [reviewsLoading, setReviewsLoading] = useState(true);
+    const [reviewsError, setReviewsError] = useState('');
     const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
 
     const formatPortfolioDate = (value: string) => {
@@ -47,6 +50,43 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         return 'Perfil ativo';
     };
 
+    const formatReviewAge = (value: string) => {
+        const parsedDate = new Date(value);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            return value;
+        }
+
+        const now = new Date();
+        const diffMs = now.getTime() - parsedDate.getTime();
+        const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+        if (diffDays === 0) return 'Hoje';
+        if (diffDays === 1) return 'Ha 1 dia';
+        if (diffDays < 30) return `Ha ${diffDays} dias`;
+
+        const diffMonths = Math.floor(diffDays / 30);
+        if (diffMonths === 1) return 'Ha 1 mes';
+        if (diffMonths < 12) return `Ha ${diffMonths} meses`;
+
+        const diffYears = Math.floor(diffMonths / 12);
+        return diffYears === 1 ? 'Ha 1 ano' : `Ha ${diffYears} anos`;
+    };
+
+    const getReviewInitials = (clientName: string) => {
+        const parts = clientName
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2);
+
+        if (parts.length === 0) {
+            return 'CL';
+        }
+
+        return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
+    };
+
     const buildAboutSummary = (currentPainter: Painter, publishedWorks: number) => {
         const summaryParts = [currentPainter.description || 'Perfil profissional ativo na PINTOR PRO.'];
 
@@ -62,6 +102,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     };
 
     const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
 
     useEffect(() => {
         let cancelled = false;
@@ -165,6 +206,62 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         };
     }, [loading, painter]);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadReviews() {
+            if (loading) {
+                return;
+            }
+
+            setReviewsLoading(true);
+            setReviewsError('');
+
+            if (!painter || !isUuid(painter.id)) {
+                if (!cancelled) {
+                    setReviewItems([]);
+                    setReviewsLoading(false);
+                }
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('painter_reviews')
+                .select('id, application_id, client_name, client_avatar_url, rating, comment, created_at')
+                .eq('application_id', painter.id)
+                .order('created_at', { ascending: false });
+
+            if (cancelled) {
+                return;
+            }
+
+            if (error) {
+                console.error('Erro ao carregar avaliacoes publicas do pintor:', error);
+                setReviewItems([]);
+                setReviewsError('Nao foi possivel carregar as avaliacoes deste pintor agora.');
+                setReviewsLoading(false);
+                return;
+            }
+
+            setReviewItems((data ?? []).map((item: any) => ({
+                id: item.id,
+                applicationId: item.application_id,
+                clientName: item.client_name,
+                clientAvatarUrl: item.client_avatar_url ?? null,
+                rating: Number(item.rating ?? 0),
+                comment: item.comment,
+                createdAt: item.created_at
+            })));
+            setReviewsLoading(false);
+        }
+
+        void loadReviews();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [loading, painter]);
+
     if (loading) {
         return (
             <div className="bg-slate-50 min-h-screen flex items-center justify-center px-4">
@@ -209,7 +306,17 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                                     {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
                                 </div>
                                 <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
-                                    <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> {painter.rating} ({painter.reviewsCount} avaliações)</span>
+                                    {hasRealReviews ? (
+                                        <span className="flex items-center gap-1">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                            {painter.rating.toFixed(1)} ({painter.reviewsCount} avaliacoes)
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1">
+                                            <Star className="w-4 h-4 text-white/70" />
+                                            Sem avaliacoes ainda
+                                        </span>
+                                    )}
                                     <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {painter.location}</span>
                                 </div>
                             </div>
@@ -378,23 +485,57 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                         )}
 
                         {activeTab === 'reviews' && (
-                            <div className="space-y-6">
-                                {[1, 2, 3].map(id => (
-                                    <div key={id} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex items-center gap-4">
-                                                <img src={`https://picsum.photos/seed/user${id}/100/100`} alt="User" className="w-12 h-12 rounded-xl object-cover" />
-                                                <div>
-                                                    <h4 className="font-bold">Cliente {id}</h4>
-                                                    <span className="text-xs text-slate-400">Há 2 meses</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex text-yellow-400"><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /><Star className="fill-current w-4 h-4" /></div>
-                                        </div>
-                                        <p className="text-slate-600 leading-relaxed italic">"Trabalho excepcional. Pontualidade britânica e um acabamento que nunca vi igual. Recomendo muito o Roberto para quem busca perfeição."</p>
+                            <>
+                                {reviewsError && (
+                                    <div className="mb-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-sm font-bold text-red-700">
+                                        {reviewsError}
                                     </div>
-                                ))}
-                            </div>
+                                )}
+
+                                {reviewsLoading ? (
+                                    <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm text-center text-slate-400 font-bold uppercase tracking-widest">
+                                        Carregando avaliacoes...
+                                    </div>
+                                ) : reviewItems.length === 0 ? (
+                                    <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm text-center">
+                                        <h3 className="text-xl font-black text-slate-900 mb-3">Nenhuma avaliacao publicada ainda</h3>
+                                        <p className="text-slate-500">
+                                            Este pintor ainda nao recebeu avaliacoes publicas na plataforma.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {reviewItems.map((review) => (
+                                            <div key={review.id} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
+                                                <div className="flex justify-between items-start mb-4 gap-4">
+                                                    <div className="flex items-center gap-4">
+                                                        {review.clientAvatarUrl ? (
+                                                            <img src={review.clientAvatarUrl} alt={review.clientName} className="w-12 h-12 rounded-xl object-cover" />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 font-black flex items-center justify-center">
+                                                                {getReviewInitials(review.clientName)}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <h4 className="font-bold">{review.clientName}</h4>
+                                                            <span className="text-xs text-slate-400">{formatReviewAge(review.createdAt)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex text-yellow-400 shrink-0">
+                                                        {Array.from({ length: 5 }, (_, index) => (
+                                                            <Star
+                                                                key={`${review.id}-star-${index}`}
+                                                                className={`w-4 h-4 ${index < review.rating ? 'fill-current' : 'text-slate-200'}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <p className="text-slate-600 leading-relaxed italic">"{review.comment}"</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
