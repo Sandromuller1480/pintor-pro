@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PainterCard } from '../components/PainterCard';
 import { Search, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { NavigateToPage, Page, Painter } from '../types';
-import { paintersService } from '../lib/paintersService';
+import { paintersService } from '../lib/services/paintersService';
 
 interface FindPainterProps {
   setPage: NavigateToPage;

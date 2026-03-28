@@ -3,7 +3,7 @@ import { Page } from '../types';
 import { ClientLoginModal } from './ClientLoginModal';
 import { ClientSignupModal } from './ClientSignupModal';
 import { Logo } from './Logo';
-import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
+import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { supabase } from '../lib/supabase';
 import { Menu, X, Instagram, Facebook, Linkedin, LogOut, LogIn } from 'lucide-react';
 

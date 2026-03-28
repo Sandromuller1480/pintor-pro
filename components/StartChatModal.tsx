@@ -11,7 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/clientSignupService';
+import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
 
 type StartChatModalProps = {
   isOpen: boolean;

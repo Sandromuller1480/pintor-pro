@@ -1,246 +1,46 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Page, NavigateToPage } from '../types';
+import { MessageSquare } from 'lucide-react';
+import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
+import { ObraModal, type SavedObra } from '../components/ObraModal';
+import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
 import { supabase } from '../lib/supabase';
 import {
-  LogOut,
-  LayoutDashboard,
-  Briefcase,
-  FileText,
-  Settings,
-  CalendarDays,
-  BellRing,
-  MessageSquare,
-  Plus,
-  Edit2,
-  Camera,
-  TrendingUp,
-  Users,
-  Star,
-  Clock,
-  Loader2,
-  X,
-  ArrowLeft,
-  SendHorizontal
-} from 'lucide-react';
-import { Logo } from '../components/Logo';
-import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
-import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
-import { ObraModal, type SavedObra } from '../components/ObraModal';
+  buildVisitErrorMessage,
+  fetchChatMessages,
+  fetchChatThreads,
+  fetchCurrentPainterProfile,
+  fetchPortfolioItems,
+  fetchQuoteItems,
+  fetchVisitItems,
+  normalizeChatMessagesError,
+  normalizeChatThreadsError,
+  uploadPainterMedia
+} from '../features/dashboard/api';
+import { DashboardAgendaTab } from '../features/dashboard/components/DashboardAgendaTab';
+import { DashboardChatInbox } from '../features/dashboard/components/DashboardChatInbox';
+import { DashboardOverviewTab } from '../features/dashboard/components/DashboardOverviewTab';
+import { DashboardPortfolioTab } from '../features/dashboard/components/DashboardPortfolioTab';
+import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQuotesTab';
+import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
+import {
+  CurrentPainterProfile,
+  DashboardMetrics,
+  DashboardTab,
+  FeedbackMessage,
+  SavedChatMessage,
+  SavedChatThread,
+  SavedVisitRequest
+} from '../features/dashboard/types';
+import { createUuid } from '../features/dashboard/utils';
+import { NavigateToPage, Page } from '../types';
 
 interface DashboardProps {
   setPage: NavigateToPage;
 }
 
-type Tab = 'inicio' | 'portfolio' | 'orcamentos' | 'agenda' | 'config';
-
-type CurrentPainterProfile = {
-  applicationId: string;
-  fullName: string;
-  email: string;
-  city: string;
-  uf: string;
-  whatsapp: string;
-  experienceTime: string;
-  specialties: string[];
-  profilePhotoPath: string | null;
-  profilePhotoUrl: string | null;
-  coverPhotoPath: string | null;
-  coverPhotoUrl: string | null;
-  applicationStatus: string | null;
-  categoryLevel: string | null;
-  subscriptionPlan: string | null;
-  subscriptionStatus: string | null;
-};
-
-type DashboardMetrics = {
-  portfolioCount: number;
-  quoteCount: number;
-  pendingQuoteCount: number;
-};
-
-type SavedVisitRequest = {
-  id: string;
-  client_name: string;
-  client_phone: string;
-  client_email: string;
-  preferred_date: string;
-  preferred_time: string;
-  location: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-};
-
-type SavedChatThread = {
-  id: string;
-  client_name: string;
-  client_phone: string;
-  client_email: string;
-  status: string;
-  unread_for_painter: boolean;
-  last_message_preview: string | null;
-  last_message_at: string;
-  created_at: string;
-};
-
-type SavedChatMessage = {
-  id: string;
-  thread_id: string;
-  sender_type: 'client' | 'painter';
-  sender_name: string;
-  message: string;
-  created_at: string;
-};
-
-const QUOTE_STATUS_LABELS: Record<string, string> = {
-  novo: 'Novo',
-  respondido: 'Respondido',
-  em_negociacao: 'Em Negociacao',
-  fechado: 'Fechado',
-  recusado: 'Recusado'
-};
-
-const QUOTE_STATUS_STYLES: Record<string, string> = {
-  novo: 'bg-emerald-100 text-emerald-700',
-  respondido: 'bg-blue-100 text-blue-700',
-  em_negociacao: 'bg-amber-100 text-amber-700',
-  fechado: 'bg-slate-200 text-slate-700',
-  recusado: 'bg-red-100 text-red-700'
-};
-
-const DEFAULT_COVER_IMAGE = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop';
-const DEFAULT_PROFILE_IMAGE = 'https://i.pravatar.cc/150?u=dashboard-profile';
-const PAINTER_MEDIA_BUCKET = 'painters-media';
-const LEGACY_PROFILE_BUCKET = 'application-work-photos';
-
-const PLAN_LABELS: Record<string, string> = {
-  bronze: 'Bronze',
-  silver: 'Elite Silver',
-  pro: 'PINTOR PRO'
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  bronze: 'Bronze',
-  prata: 'Prata',
-  ouro: 'Ouro'
-};
-
-const APPLICATION_STATUS_LABELS: Record<string, string> = {
-  pending: 'Em analise',
-  accepted: 'Ativo',
-  rejected: 'Reprovado'
-};
-
-const getPlanLabel = (profile: CurrentPainterProfile | null) => {
-  if (profile?.subscriptionPlan && PLAN_LABELS[profile.subscriptionPlan]) {
-    return PLAN_LABELS[profile.subscriptionPlan];
-  }
-
-  if (profile?.categoryLevel && CATEGORY_LABELS[profile.categoryLevel]) {
-    return `Categoria ${CATEGORY_LABELS[profile.categoryLevel]}`;
-  }
-
-  return 'Sem plano';
-};
-
-const getApplicationStatusLabel = (status: string | null | undefined) => {
-  if (!status) return 'Sem status';
-  return APPLICATION_STATUS_LABELS[status] ?? status;
-};
-
-const formatShortDate = (value: string) => {
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(parsedDate);
-};
-
-const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
-
-const getPublicMediaUrl = (path: string | null | undefined) => {
-  if (!path) {
-    return null;
-  }
-
-  if (isAbsoluteUrl(path)) {
-    return path;
-  }
-
-  const {
-    data: { publicUrl }
-  } = supabase.storage.from(PAINTER_MEDIA_BUCKET).getPublicUrl(path);
-
-  return publicUrl;
-};
-
-const getSignedLegacyMediaUrl = async (path: string | null | undefined) => {
-  if (!path) {
-    return null;
-  }
-
-  if (isAbsoluteUrl(path)) {
-    return path;
-  }
-
-  const { data, error } = await supabase.storage
-    .from(LEGACY_PROFILE_BUCKET)
-    .createSignedUrl(path, 60 * 60);
-
-  if (error) {
-    console.error('Erro ao gerar URL assinada da foto antiga:', error);
-    return null;
-  }
-
-  return data.signedUrl;
-};
-
-const sanitizeFileName = (fileName: string) => {
-  const cleanedName = fileName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return cleanedName || 'imagem';
-};
-
-const buildPainterMediaPath = (folder: 'foto-perfil' | 'foto-capa', userId: string, file: File) => {
-  const nameParts = file.name.split('.');
-  const extension = nameParts.length > 1 ? nameParts.pop()?.toLowerCase() : 'jpg';
-  const baseName = sanitizeFileName(nameParts.join('.'));
-
-  return `${folder}/${userId}/${baseName}-${Date.now()}.${extension || 'jpg'}`;
-};
-
-const createUuid = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
-    const randomValue = Math.floor(Math.random() * 16);
-    const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
-    return value.toString(16);
-  });
-};
-
-const ChevronRightMock = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
-    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-  </svg>
-);
-
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('inicio');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
   const [userName, setUserName] = useState('Pintor');
   const [currentProfile, setCurrentProfile] = useState<CurrentPainterProfile | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -275,99 +75,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [chatReplyDraft, setChatReplyDraft] = useState('');
   const [chatReplyError, setChatReplyError] = useState('');
   const [isSendingChatReply, setIsSendingChatReply] = useState(false);
-  const [mediaFeedback, setMediaFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [mediaFeedback, setMediaFeedback] = useState<FeedbackMessage | null>(null);
+  const [profileFeedback, setProfileFeedback] = useState<FeedbackMessage | null>(null);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
-
-  const fetchPortfolioItems = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('obras')
-      .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
-      .eq('pintor_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as SavedObra[];
-  };
-
-  const fetchQuoteItems = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('orcamentos')
-      .select('id, cliente_nome, cliente_telefone, cliente_email, cliente_tipo, imovel_cidade_estado, imovel_tipo, pintura_tipo_servico, prazo_urgencia, status, created_at')
-      .eq('pintor_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as SavedOrcamento[];
-  };
-
-  const fetchVisitItems = async (applicationId: string) => {
-    const { data, error } = await supabase
-      .from('painter_visit_requests')
-      .select('id, client_name, client_phone, client_email, preferred_date, preferred_time, location, notes, status, created_at')
-      .eq('application_id', applicationId)
-      .order('preferred_date', { ascending: true })
-      .order('preferred_time', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as SavedVisitRequest[];
-  };
-
-  const fetchChatThreads = async (applicationId: string) => {
-    const { data, error } = await supabase
-      .from('painter_chat_threads')
-      .select('id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
-      .eq('application_id', applicationId)
-      .order('last_message_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as SavedChatThread[];
-  };
-
-  const fetchChatMessages = async (threadId: string) => {
-    const { data, error } = await supabase
-      .from('painter_chat_messages')
-      .select('id, thread_id, sender_type, sender_name, message, created_at')
-      .eq('thread_id', threadId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as SavedChatMessage[];
-  };
-
-  const normalizeChatThreadsError = (error: unknown) => {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-
-    return message.includes('painter_chat_threads') || message.includes('does not exist')
-      ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-      : 'Nao foi possivel carregar as conversas do chat agora.';
-  };
-
-  const normalizeChatMessagesError = (error: unknown) => {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-
-    return message.includes('painter_chat_messages') || message.includes('does not exist')
-      ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-      : 'Nao foi possivel carregar as mensagens dessa conversa agora.';
-  };
 
   const pendingVisitCount = visitItems.filter((visit) => visit.status === 'pending').length;
   const unreadChatCount = chatThreads.filter((thread) => thread.unread_for_painter).length;
@@ -437,58 +150,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
-  const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
-    if (!email) return null;
-
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
-      .ilike('email', email)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (error) {
-      throw error;
-    }
-
-    const application = (data?.[0] ?? null) as any;
-
-    if (!application) {
-      return null;
-    }
-
-    const publicProfilePhotoPath = application.foto_perfil || null;
-    const publicCoverPhotoPath = application.foto_capa || null;
-    const legacyProfilePhotoPath =
-      application.profile_photo_path ||
-      application.work_photo_paths?.find((path: string) => path.includes('/profile-photo/')) ||
-      application.work_photo_paths?.[0] ||
-      null;
-
-    const profilePhotoPath = publicProfilePhotoPath || legacyProfilePhotoPath;
-    const profilePhotoUrl =
-      getPublicMediaUrl(publicProfilePhotoPath) || await getSignedLegacyMediaUrl(legacyProfilePhotoPath);
-
-    return {
-      applicationId: application.id,
-      fullName: application.full_name || email.split('@')[0],
-      email: application.email || email,
-      city: application.city || '',
-      uf: application.uf || '',
-      whatsapp: application.whatsapp || '',
-      experienceTime: application.experience_time || '',
-      specialties: application.specialties || [],
-      profilePhotoPath,
-      profilePhotoUrl,
-      coverPhotoPath: publicCoverPhotoPath,
-      coverPhotoUrl: getPublicMediaUrl(publicCoverPhotoPath),
-      applicationStatus: application.status || null,
-      categoryLevel: application.category_level || null,
-      subscriptionPlan: application.subscription_plan || null,
-      subscriptionStatus: application.subscription_status || null
-    };
-  };
-
   useEffect(() => {
     let isMounted = true;
 
@@ -508,7 +169,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
       const normalizedEmail = data.user.email?.trim().toLowerCase() ?? '';
       const fallbackFullName =
-        (typeof data.user.user_metadata?.full_name === 'string' && data.user.user_metadata.full_name.trim())
+        typeof data.user.user_metadata?.full_name === 'string' && data.user.user_metadata.full_name.trim()
           ? data.user.user_metadata.full_name.trim()
           : normalizedEmail.split('@')[0];
 
@@ -601,13 +262,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         }
 
         console.error('Erro ao carregar agenda de visitas:', error);
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
         setVisitItems([]);
-        setVisitsError(
-          message.includes('painter_visit_requests') || message.includes('does not exist')
-            ? 'A tabela de visitas ainda nao foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
-            : 'Nao foi possivel carregar sua agenda de visitas agora.'
-        );
+        setVisitsError(buildVisitErrorMessage(error));
       } finally {
         if (isMounted) {
           setIsLoadingVisits(false);
@@ -697,7 +353,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
-  const handleTabChange = (tab: Tab) => {
+  const handleTabChange = (tab: DashboardTab) => {
     setActiveTab(tab);
     setIsChatInboxOpen(false);
   };
@@ -889,9 +545,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
             : thread
         ));
 
-        return reorderedThreads.sort((firstThread, secondThread) => {
-          return new Date(secondThread.last_message_at).getTime() - new Date(firstThread.last_message_at).getTime();
-        });
+        return reorderedThreads.sort((firstThread, secondThread) => (
+          new Date(secondThread.last_message_at).getTime() - new Date(firstThread.last_message_at).getTime()
+        ));
       });
       setChatReplyDraft('');
     } catch (error) {
@@ -928,9 +584,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const handleObraSaved = (obra: SavedObra) => {
     setPortfolioItems((currentItems) => {
       const nextItems = [obra, ...currentItems.filter((item) => item.id !== obra.id)];
-      return nextItems.sort((firstItem, secondItem) => {
-        return new Date(secondItem.created_at).getTime() - new Date(firstItem.created_at).getTime();
-      });
+      return nextItems.sort((firstItem, secondItem) => (
+        new Date(secondItem.created_at).getTime() - new Date(firstItem.created_at).getTime()
+      ));
     });
     setPortfolioError('');
     setActiveTab('portfolio');
@@ -939,9 +595,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const handleOrcamentoSaved = (orcamento: SavedOrcamento) => {
     setQuoteItems((currentItems) => {
       const nextItems = [orcamento, ...currentItems.filter((item) => item.id !== orcamento.id)];
-      return nextItems.sort((firstItem, secondItem) => {
-        return new Date(secondItem.created_at).getTime() - new Date(firstItem.created_at).getTime();
-      });
+      return nextItems.sort((firstItem, secondItem) => (
+        new Date(secondItem.created_at).getTime() - new Date(firstItem.created_at).getTime()
+      ));
     });
     setQuotesError('');
     setActiveTab('orcamentos');
@@ -1027,53 +683,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
-  const uploadPainterMedia = async (
-    file: File,
-    folder: 'foto-perfil' | 'foto-capa',
-    column: 'foto_perfil' | 'foto_capa',
-    applicationId: string,
-    userId: string,
-    previousPath: string | null
-  ) => {
-    const filePath = buildPainterMediaPath(folder, userId, file);
-
-    const { error: uploadError } = await supabase.storage
-      .from(PAINTER_MEDIA_BUCKET)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { error: updateError } = await supabase
-      .from('applications')
-      .update({ [column]: filePath })
-      .eq('id', applicationId);
-
-    if (updateError) {
-      await supabase.storage.from(PAINTER_MEDIA_BUCKET).remove([filePath]);
-      throw updateError;
-    }
-
-    if (previousPath && previousPath !== filePath && previousPath.startsWith(`${folder}/`)) {
-      const { error: removeError } = await supabase.storage
-        .from(PAINTER_MEDIA_BUCKET)
-        .remove([previousPath]);
-
-      if (removeError) {
-        console.error('Erro ao remover midia anterior do pintor:', removeError);
-      }
-    }
-
-    return {
-      path: filePath,
-      url: getPublicMediaUrl(filePath)
-    };
-  };
-
   const handlePainterMediaSelected = async (
     event: React.ChangeEvent<HTMLInputElement>,
     mediaType: 'profile' | 'cover'
@@ -1127,14 +736,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         throw new Error('Sua sessao expirou. Entre novamente para atualizar as imagens.');
       }
 
-      const uploadResult = await uploadPainterMedia(
+      const uploadResult = await uploadPainterMedia({
         file,
-        mediaType === 'profile' ? 'foto-perfil' : 'foto-capa',
-        mediaType === 'profile' ? 'foto_perfil' : 'foto_capa',
-        currentProfile.applicationId,
-        user.id,
-        mediaType === 'profile' ? currentProfile.profilePhotoPath : currentProfile.coverPhotoPath
-      );
+        folder: mediaType === 'profile' ? 'foto-perfil' : 'foto-capa',
+        column: mediaType === 'profile' ? 'foto_perfil' : 'foto_capa',
+        applicationId: currentProfile.applicationId,
+        userId: user.id,
+        previousPath: mediaType === 'profile' ? currentProfile.profilePhotoPath : currentProfile.coverPhotoPath
+      });
 
       setCurrentProfile((profile) => {
         if (!profile) {
@@ -1175,694 +784,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
-  const renderSidebar = () => (
-    <div className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-center cursor-pointer" onClick={() => setPage(Page.Home)}>
-        <Logo className="h-10" color="#000747" />
-      </div>
-
-      <nav className="flex-1 p-4 space-y-2">
-        {[
-          { id: 'inicio', label: 'Visao Geral', icon: LayoutDashboard },
-          { id: 'portfolio', label: 'Meu Portfolio', icon: Briefcase },
-          { id: 'orcamentos', label: 'Orcamentos', icon: FileText },
-          { id: 'agenda', label: 'Agenda', icon: CalendarDays },
-          { id: 'config', label: 'Configuracoes', icon: Settings },
-        ].map((item) => {
-          const isActive = activeTab === item.id;
-          const showAgendaAlert = item.id === 'agenda' && pendingVisitCount > 0;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleTabChange(item.id as Tab)}
-              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition font-bold text-sm ${
-                isActive
-                  ? 'bg-[#9A077B]/10 text-[#9A077B]'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <span className="flex items-center space-x-3">
-                <item.icon size={20} className={isActive ? 'text-[#9A077B]' : 'text-slate-400'} />
-                <span>{item.label}</span>
-              </span>
-              {showAgendaAlert && (
-                <span
-                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black shadow-sm ${
-                    isActive
-                      ? 'bg-[#9A077B] text-white'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}
-                  title={`${pendingVisitCount} novo(s) agendamento(s)`}
-                >
-                  <BellRing size={11} className="animate-pulse" />
-                  <span>{pendingVisitCount}</span>
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-slate-100">
-        <div className="bg-gradient-to-br from-[#000747] to-[#9A077B] rounded-xl p-4 text-white mb-4 shadow-lg shadow-[#000747]/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl -translate-y-10 translate-x-10"></div>
-          <div className="flex items-center space-x-2 mb-1 relative z-10">
-            <Star size={14} className="text-yellow-400 fill-yellow-400" />
-            <span className="font-black text-xs uppercase tracking-widest">{getPlanLabel(currentProfile)}</span>
-          </div>
-          <p className="text-[10px] text-white/80 font-medium relative z-10">
-            {getApplicationStatusLabel(currentProfile?.applicationStatus)}
-            {currentProfile?.city ? ` | ${[currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')}` : ''}
-          </p>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          disabled={isSignOut}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition font-bold text-sm"
-        >
-          <LogOut size={20} />
-          <span>{isSignOut ? 'Saindo...' : 'Sair da Conta'}</span>
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderInicio = () => {
-    const displayName = currentProfile?.fullName || userName;
-    const profilePhotoUrl = currentProfile?.profilePhotoUrl || DEFAULT_PROFILE_IMAGE;
-    const locationLabel = currentProfile?.city
-      ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
-      : '';
-    const coverPhotoUrl =
-      currentProfile?.coverPhotoUrl ||
-      portfolioItems.find((obra) => obra.imagem_url)?.imagem_url ||
-      DEFAULT_COVER_IMAGE;
-    const introDetails = [
-      locationLabel || null,
-      currentProfile?.experienceTime ? `${currentProfile.experienceTime} de experiencia` : null,
-      currentProfile?.specialties.length ? `${currentProfile.specialties.length} especialidades` : null
-    ].filter(Boolean);
-    const lastPortfolioEntry = portfolioItems[0];
-    const canEditMedia = Boolean(currentProfile?.applicationId);
-
-    return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <input
-          ref={profileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => void handlePainterMediaSelected(event, 'profile')}
-        />
-        <input
-          ref={coverInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => void handlePainterMediaSelected(event, 'cover')}
-        />
-
-        <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 mb-8 relative">
-          <div className="h-48 bg-slate-800 relative">
-            <img src={coverPhotoUrl} className="w-full h-full object-cover opacity-60" alt="Capa do perfil" />
-            <button
-              type="button"
-              onClick={openCoverPicker}
-              disabled={isUploadingCover || !canEditMedia}
-              className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center hover:bg-white/30 transition disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isUploadingCover ? (
-                <Loader2 size={14} className="mr-2 animate-spin" />
-              ) : (
-                <Camera size={14} className="mr-2" />
-              )}
-              {isUploadingCover ? 'Enviando capa...' : 'Alterar Capa'}
-            </button>
-          </div>
-
-          <div className="px-8 pb-8 relative">
-            <button
-              type="button"
-              onClick={openProfilePicker}
-              disabled={isUploadingProfile || !canEditMedia}
-              className="absolute -top-16 rounded-full bg-white shadow-xl group disabled:cursor-not-allowed"
-            >
-              <div className="border-4 border-white rounded-full overflow-hidden relative">
-                <img src={profilePhotoUrl} alt={displayName} className="w-32 h-32 rounded-full object-cover relative z-10" />
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                  {isUploadingProfile ? (
-                    <Loader2 className="text-white animate-spin" />
-                  ) : (
-                    <Camera className="text-white" />
-                  )}
-                </div>
-              </div>
-              <div className="absolute bottom-1 right-1 z-30 bg-[#9A077B] text-white rounded-full p-2 shadow-lg">
-                {isUploadingProfile ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-              </div>
-            </button>
-
-            <div className="pt-20 flex justify-between items-start gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-[#000747]">Bem-vindo de volta, {displayName.split(' ')[0]}!</h2>
-                <p className="text-slate-500 font-medium">
-                  {introDetails.length > 0
-                    ? introDetails.join(' | ')
-                    : 'Seu perfil esta ativo e visivel para clientes em sua regiao.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={openEditProfileModal}
-                disabled={!currentProfile?.applicationId}
-                className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Edit2 size={16} className="mr-2" /> Editar Perfil
-              </button>
-            </div>
-
-            {profileFeedback && (
-              <div
-                className={`mt-6 rounded-2xl border px-4 py-3 text-sm font-bold ${
-                  profileFeedback.type === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-red-200 bg-red-50 text-red-700'
-                }`}
-              >
-                {profileFeedback.message}
-              </div>
-            )}
-
-            {mediaFeedback && (
-              <div
-                className={`mt-6 rounded-2xl border px-4 py-3 text-sm font-bold ${
-                  mediaFeedback.type === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-red-200 bg-red-50 text-red-700'
-                }`}
-              >
-                {mediaFeedback.message}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {[
-            {
-              label: 'Obras no Portfolio',
-              value: String(metrics.portfolioCount),
-              trend: lastPortfolioEntry ? `Ultima obra em ${formatShortDate(lastPortfolioEntry.created_at)}` : 'Nenhuma obra cadastrada ainda',
-              icon: Users,
-              color: 'text-blue-500',
-              bg: 'bg-blue-50'
-            },
-            {
-              label: 'Orcamentos Recebidos',
-              value: String(metrics.quoteCount),
-              trend: `${metrics.pendingQuoteCount} aguardando resposta`,
-              icon: FileText,
-              color: 'text-[#9A077B]',
-              bg: 'bg-[#9A077B]/10'
-            },
-            {
-              label: 'Plano Atual',
-              value: getPlanLabel(currentProfile),
-              trend: getApplicationStatusLabel(currentProfile?.applicationStatus),
-              icon: Star,
-              color: 'text-amber-500',
-              bg: 'bg-amber-50'
-            }
-          ].map((stat, index) => (
-            <div key={index} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between hover:shadow-md transition">
-              <div>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{stat.label}</p>
-                <h3 className="text-4xl font-black text-slate-900 mb-2 break-words">{stat.value}</h3>
-                <p className="text-slate-400 text-sm font-medium">{stat.trend}</p>
-              </div>
-              <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color}`}>
-                <stat.icon size={24} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-          <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
-            <TrendingUp className="mr-3 text-[#9A077B]" /> Insights & Proximos Passos
-          </h3>
-          <ul className="space-y-4">
-            <li className="flex items-center p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-100">
-              <Clock className="mr-4 flex-shrink-0" />
-              <div>
-                <p className="font-bold">Orcamentos aguardando retorno</p>
-                <p className="text-sm opacity-80">
-                  {metrics.pendingQuoteCount > 0
-                    ? `Voce tem ${metrics.pendingQuoteCount} orcamento(s) novos esperando resposta.`
-                    : 'Nenhum novo orcamento pendente no momento.'}
-                </p>
-              </div>
-            </li>
-            <li className="flex items-center p-4 bg-slate-50 text-slate-700 rounded-2xl border border-slate-100">
-              <Camera className="mr-4 flex-shrink-0 text-slate-400" />
-              <div>
-                <p className="font-bold">Portfolio em evolucao</p>
-                <p className="text-sm text-slate-500">
-                  {metrics.portfolioCount > 0
-                    ? `Seu portfolio ja possui ${metrics.portfolioCount} obra(s) publicada(s).`
-                    : 'Adicione sua primeira obra para fortalecer sua apresentacao no painel.'}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    );
-  };
-
-  const renderPortfolio = () => (
-    <div className="animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-3xl font-black text-[#000747]">Meu Portfolio</h2>
-          <p className="text-slate-500 font-medium">Gerencie suas obras e impressione clientes.</p>
-        </div>
-        <button
-          onClick={() => setIsObraModalOpen(true)}
-          className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center"
-        >
-          <Plus size={18} className="mr-2" /> Adicionar Obra
-        </button>
-      </div>
-
-      {portfolioError && (
-        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
-          {portfolioError}
-        </div>
-      )}
-
-      {isLoadingPortfolio ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center text-slate-500 font-bold">
-          Carregando obras...
-        </div>
-      ) : portfolioItems.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center">
-          <h3 className="text-xl font-black text-slate-900 mb-2">Seu portfolio ainda esta vazio</h3>
-          <p className="text-slate-500 font-medium">Adicione sua primeira obra e ela aparecera aqui sem recarregar a pagina.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 justify-items-start">
-          {portfolioItems.map((obra) => (
-            <div key={obra.id} className="w-full max-w-[290px] bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-[0_12px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.12)] transition-shadow group">
-              <div className="aspect-square relative overflow-hidden bg-slate-100">
-                {obra.video_url ? (
-                  <video src={obra.video_url} className="w-full h-full object-cover object-center" muted playsInline controls />
-                ) : obra.imagem_url ? (
-                  <img src={obra.imagem_url} className="w-full h-full object-cover object-center transition duration-500 group-hover:scale-[1.03]" alt={obra.titulo} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold">
-                    Sem midia
-                  </div>
-                )}
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full">
-                  {obra.status === 'EM ANDAMENTO' ? 'Em Andamento' : 'Concluido'}
-                </div>
-              </div>
-              <div className="p-5">
-                <h4 className="font-black text-lg text-slate-900 mb-1">{obra.titulo}</h4>
-                <p className="text-sm text-slate-500 mb-4 line-clamp-2 min-h-[2.75rem]">{obra.local}</p>
-                <div className="flex gap-2 flex-wrap">
-                  <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">{obra.tipo_imovel}</span>
-                  <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">{obra.tipo_pintura}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderOrcamentos = () => (
-    <div className="animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-3xl font-black text-[#000747]">Orcamentos e Leads</h2>
-          <p className="text-slate-500 font-medium">Acompanhe novos contatos e negociacoes em aberto.</p>
-        </div>
-        <button
-          onClick={() => setIsOrcamentoModalOpen(true)}
-          className="bg-[#9A077B] text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest flex items-center"
-        >
-          <Plus size={18} className="mr-2" /> Novo Orcamento
-        </button>
-      </div>
-
-      {quotesError && (
-        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
-          {quotesError}
-        </div>
-      )}
-
-      {isLoadingQuotes ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center text-slate-500 font-bold">
-          Carregando orcamentos...
-        </div>
-      ) : quoteItems.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center">
-          <h3 className="text-xl font-black text-slate-900 mb-2">Nenhum orcamento salvo ainda</h3>
-          <p className="text-slate-500 font-medium">Crie seu primeiro orcamento e ele aparecera aqui automaticamente.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden text-left">
-          <div className="grid grid-cols-12 gap-4 p-6 bg-slate-50 border-b border-slate-200 text-xs font-black uppercase tracking-widest text-slate-500">
-            <div className="col-span-3">Cliente</div>
-            <div className="col-span-4">Servico Solicitado</div>
-            <div className="col-span-2">Data</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-1 text-center">Acao</div>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {quoteItems.map((orcamento) => {
-              const serviceLabel =
-                orcamento.pintura_tipo_servico ||
-                orcamento.imovel_tipo ||
-                'Servico nao informado';
-              const statusStyle = QUOTE_STATUS_STYLES[orcamento.status] ?? 'bg-slate-100 text-slate-700';
-              const statusLabel = QUOTE_STATUS_LABELS[orcamento.status] ?? orcamento.status;
-
-              return (
-                <div key={orcamento.id} className="grid grid-cols-12 gap-4 p-6 items-center hover:bg-slate-50 transition">
-                  <div className="col-span-3">
-                    <div className="font-bold text-slate-900">{orcamento.cliente_nome}</div>
-                    <div className="text-xs text-slate-500 mt-1">{orcamento.cliente_telefone}</div>
-                  </div>
-                  <div className="col-span-4 text-slate-600 font-medium pr-4">
-                    <div className="truncate">{serviceLabel}</div>
-                    <div className="text-xs text-slate-400 mt-1 truncate">{orcamento.imovel_cidade_estado || 'Local nao informado'}</div>
-                  </div>
-                  <div className="col-span-2 text-slate-500 text-sm">{formatShortDate(orcamento.created_at)}</div>
-                  <div className="col-span-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${statusStyle}`}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                  <div className="col-span-1 text-center">
-                    <button type="button" className="text-[#9A077B] hover:text-[#000747] font-bold p-2">
-                      <ChevronRightMock />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderAgenda = () => (
-    <div className="animate-in fade-in duration-500">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-[#000747]">Agenda</h2>
-        <p className="text-slate-500 font-medium">Organize visitas, prazos e compromissos do seu atendimento.</p>
-      </div>
-
-      {visitsError && (
-        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
-          {visitsError}
-        </div>
-      )}
-
-      {isLoadingVisits ? (
-        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10 text-center text-slate-500 font-bold">
-          Carregando agenda...
-        </div>
-      ) : visitItems.length === 0 ? (
-        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-10">
-          <div className="max-w-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-[#9A077B]/10 text-[#9A077B] flex items-center justify-center mb-6">
-              <CalendarDays size={28} />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-3">Nenhuma visita agendada ainda</h3>
-            <p className="text-slate-500 font-medium leading-relaxed">
-              Quando um cliente solicitar uma visita pelo seu perfil publico, o pedido aparecera aqui.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {visitItems.map((visit) => (
-            <div key={visit.id} className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-6">
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900">{visit.client_name}</h3>
-                  <p className="text-sm text-slate-500 font-medium">{visit.client_phone}</p>
-                  <p className="text-sm text-slate-400">{visit.client_email}</p>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider">
-                  {visit.status === 'pending' ? 'Pendente' : visit.status}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Data</p>
-                  <p className="font-bold text-slate-800">{formatShortDate(visit.preferred_date)}</p>
-                </div>
-                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Horario</p>
-                  <p className="font-bold text-slate-800">{visit.preferred_time.slice(0, 5)}</p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Local</p>
-                <p className="text-sm text-slate-600 font-medium">{visit.location}</p>
-              </div>
-
-              {visit.notes && (
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Observacoes</p>
-                  <p className="text-sm text-slate-600 leading-relaxed">{visit.notes}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderChatInboxCard = () => {
-    if (!currentProfile?.applicationId || !isChatInboxOpen) {
-      return null;
-    }
-
-    return (
-      <div
-        className="fixed z-40 w-[calc(100vw-2rem)] max-w-[390px] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] overflow-hidden"
-        style={{
-          right: '24px',
-          bottom: '96px'
-        }}
-      >
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div className="flex items-center gap-3 min-w-0">
-            {selectedChatThread && (
-              <button
-                type="button"
-                onClick={handleBackToChatList}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
-                aria-label="Voltar para a lista de conversas"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#9A077B]/10 text-[#9A077B]">
-              <MessageSquare size={20} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate text-base font-black text-slate-900">
-                {selectedChatThread ? selectedChatThread.client_name : 'Chat interno'}
-              </h3>
-              <p className="truncate text-xs font-medium text-slate-500">
-                {selectedChatThread ? 'Conversa ativa com o cliente' : 'Conversas iniciadas pelos clientes'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={toggleChatInbox}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
-            aria-label="Fechar chat"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="max-h-[65vh] overflow-y-auto p-4">
-          {chatsError && (
-            <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              {chatsError}
-            </div>
-          )}
-
-          {selectedChatThread ? (
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-sm font-black text-slate-900">{selectedChatThread.client_name}</p>
-                <p className="text-xs font-medium text-slate-500">{selectedChatThread.client_phone}</p>
-                <p className="truncate text-xs text-slate-400">{selectedChatThread.client_email}</p>
-              </div>
-
-              {activeChatError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-                  {activeChatError}
-                </div>
-              )}
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-3">
-                {isLoadingActiveChatMessages ? (
-                  <div className="p-6 text-center text-sm font-bold text-slate-500">
-                    Carregando mensagens...
-                  </div>
-                ) : activeChatDisplayMessages.length === 0 ? (
-                  <div className="p-6 text-center text-sm font-medium text-slate-500">
-                    Nenhuma mensagem nesta conversa ainda.
-                  </div>
-                ) : (
-                  <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
-                    {activeChatDisplayMessages.map((message) => {
-                      const isPainterMessage = message.sender_type === 'painter';
-
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex ${isPainterMessage ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                              isPainterMessage
-                                ? 'bg-[#9A077B] text-white'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            <p className={`mb-1 text-[11px] font-black ${isPainterMessage ? 'text-white/80' : 'text-slate-400'}`}>
-                              {isPainterMessage ? 'Voce' : message.sender_name}
-                            </p>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.message}</p>
-                            <p className={`mt-2 text-[10px] font-bold ${isPainterMessage ? 'text-white/70' : 'text-slate-400'}`}>
-                              {new Intl.DateTimeFormat('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }).format(new Date(message.created_at))}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div ref={chatMessagesEndRef} />
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-3">
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Responder cliente
-                </label>
-                <textarea
-                  value={chatReplyDraft}
-                  onChange={(event) => setChatReplyDraft(event.target.value)}
-                  rows={4}
-                  placeholder="Digite sua resposta para continuar a conversa..."
-                  className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                />
-                {chatReplyError && (
-                  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-                    {chatReplyError}
-                  </div>
-                )}
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => void handleSendChatReply()}
-                    disabled={isSendingChatReply}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#9A077B] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#EFC6E3] transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSendingChatReply ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={16} />}
-                    {isSendingChatReply ? 'Enviando...' : 'Enviar resposta'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : isLoadingChats ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
-              Carregando conversas...
-            </div>
-          ) : chatThreads.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
-              <h4 className="mb-2 text-base font-black text-slate-900">Nenhuma conversa recebida ainda</h4>
-              <p className="text-sm font-medium text-slate-500">
-                Quando um cliente clicar em "Chamar no Chat", a conversa aparecera aqui.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {chatThreads.map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  onClick={() => handleOpenChatThread(thread.id)}
-                  className="w-full rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#9A077B]/30 hover:shadow-md"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h4 className="truncate text-sm font-black text-slate-900">{thread.client_name}</h4>
-                      <p className="truncate text-xs font-medium text-slate-500">{thread.client_phone}</p>
-                      <p className="truncate text-xs text-slate-400">{thread.client_email}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      {thread.unread_for_painter && (
-                        <span className="flex items-center gap-1 rounded-full bg-[#9A077B]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#9A077B]">
-                          <BellRing size={11} />
-                          Nova
-                        </span>
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {formatShortDate(thread.last_message_at)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Ultima mensagem</p>
-                    <p className="text-sm leading-relaxed text-slate-600">
-                      {thread.last_message_preview || 'Sem mensagem visivel.'}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-
-  let content;
+  let content: React.ReactNode = null;
   switch (activeTab) {
-    case 'inicio': content = renderInicio(); break;
-    case 'portfolio': content = renderPortfolio(); break;
-    case 'orcamentos': content = renderOrcamentos(); break;
-    case 'agenda': content = renderAgenda(); break;
-    case 'config': content = <div className="p-10 text-center text-slate-500">Configuracoes em desenvolvimento...</div>; break;
+    case 'inicio':
+      content = (
+        <DashboardOverviewTab
+          userName={userName}
+          currentProfile={currentProfile}
+          metrics={metrics}
+          portfolioItems={portfolioItems}
+          mediaFeedback={mediaFeedback}
+          profileFeedback={profileFeedback}
+          profileInputRef={profileInputRef}
+          coverInputRef={coverInputRef}
+          isUploadingProfile={isUploadingProfile}
+          isUploadingCover={isUploadingCover}
+          onProfileFileChange={(event) => void handlePainterMediaSelected(event, 'profile')}
+          onCoverFileChange={(event) => void handlePainterMediaSelected(event, 'cover')}
+          onOpenProfilePicker={openProfilePicker}
+          onOpenCoverPicker={openCoverPicker}
+          onEditProfile={openEditProfileModal}
+        />
+      );
+      break;
+    case 'portfolio':
+      content = (
+        <DashboardPortfolioTab
+          items={portfolioItems}
+          isLoading={isLoadingPortfolio}
+          errorMessage={portfolioError}
+          onAdd={() => setIsObraModalOpen(true)}
+        />
+      );
+      break;
+    case 'orcamentos':
+      content = (
+        <DashboardQuotesTab
+          items={quoteItems}
+          isLoading={isLoadingQuotes}
+          errorMessage={quotesError}
+          onAdd={() => setIsOrcamentoModalOpen(true)}
+        />
+      );
+      break;
+    case 'agenda':
+      content = (
+        <DashboardAgendaTab
+          items={visitItems}
+          isLoading={isLoadingVisits}
+          errorMessage={visitsError}
+        />
+      );
+      break;
+    case 'config':
+      content = <div className="p-10 text-center text-slate-500">Configuracoes em desenvolvimento...</div>;
+      break;
   }
 
   if (isCheckingAccess) {
@@ -1875,14 +851,40 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50">
-      {renderSidebar()}
+      <DashboardSidebar
+        activeTab={activeTab}
+        currentProfile={currentProfile}
+        pendingVisitCount={pendingVisitCount}
+        isSigningOut={isSignOut}
+        onTabChange={handleTabChange}
+        onGoHome={() => setPage(Page.Home)}
+        onLogout={() => void handleLogout()}
+      />
       <main className="ml-64 flex-1 p-10 max-w-7xl relative">
         {content}
       </main>
 
       {portalTarget && currentProfile?.applicationId && createPortal(
         <>
-          {renderChatInboxCard()}
+          <DashboardChatInbox
+            isOpen={isChatInboxOpen}
+            selectedThread={selectedChatThread}
+            chatThreads={chatThreads}
+            activeChatDisplayMessages={activeChatDisplayMessages}
+            chatsError={chatsError}
+            activeChatError={activeChatError}
+            chatReplyDraft={chatReplyDraft}
+            chatReplyError={chatReplyError}
+            isLoadingChats={isLoadingChats}
+            isLoadingActiveChatMessages={isLoadingActiveChatMessages}
+            isSendingChatReply={isSendingChatReply}
+            chatMessagesEndRef={chatMessagesEndRef}
+            onBack={handleBackToChatList}
+            onClose={toggleChatInbox}
+            onOpenThread={handleOpenChatThread}
+            onChatReplyDraftChange={setChatReplyDraft}
+            onSendReply={() => void handleSendChatReply()}
+          />
           <button
             type="button"
             onClick={toggleChatInbox}

@@ -1,6 +1,7 @@
 # Checklist de Validacao de Assinaturas
 
-Use junto com o arquivo SQL:
+Use junto com os arquivos SQL:
+- `supabase/sql/supabase_schema.sql`
 - `docs/validacao-assinaturas.sql`
 
 ## 1) Conferir catalogo de planos

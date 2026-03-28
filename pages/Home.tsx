@@ -6,8 +6,8 @@ import { PainterCard } from '../components/PainterCard';
 import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
-import { getCurrentClientProfile } from '../lib/clientSignupService';
-import { paintersService } from '../lib/paintersService';
+import { getCurrentClientProfile } from '../lib/services/clientSignupService';
+import { paintersService } from '../lib/services/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
 import {
   CheckCircle,

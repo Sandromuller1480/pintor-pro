@@ -51,7 +51,7 @@ APP_BASE_URL=https://seu-dominio.com
 ```
 
 ## Deploy recomendado
-1. Aplicar SQL (`supabase_schema.sql`) no banco.
+1. Aplicar SQL (`supabase/sql/supabase_schema.sql`) no banco.
 2. Subir secrets:
 ```bash
 supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... STRIPE_PRICE_SILVER_MONTHLY=... STRIPE_PRICE_PRO_MONTHLY=... APP_BASE_URL=...

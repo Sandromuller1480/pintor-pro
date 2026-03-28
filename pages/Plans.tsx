@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Page } from '../types';
 import { Check, ShieldCheck, Zap, Award } from 'lucide-react';
-import { PaidPlanCode, subscriptionService } from '../lib/subscriptionService';
+import { PaidPlanCode, subscriptionService } from '../lib/services/subscriptionService';
 
 interface PlansProps {
   setPage: (p: Page) => void;

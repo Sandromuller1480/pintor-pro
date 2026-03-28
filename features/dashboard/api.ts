@@ -1,0 +1,215 @@
+import { SavedObra } from '../../components/ObraModal';
+import { SavedOrcamento } from '../../components/OrcamentoModal';
+import { supabase } from '../../lib/supabase';
+import {
+  buildPainterMediaPath,
+  getPublicMediaUrl,
+  getSignedLegacyMediaUrl,
+  PAINTER_MEDIA_BUCKET
+} from './utils';
+import { CurrentPainterProfile, SavedChatMessage, SavedChatThread, SavedVisitRequest } from './types';
+
+export const fetchPortfolioItems = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('obras')
+    .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
+    .eq('pintor_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SavedObra[];
+};
+
+export const fetchQuoteItems = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('orcamentos')
+    .select(
+      'id, cliente_nome, cliente_telefone, cliente_email, cliente_tipo, imovel_cidade_estado, imovel_tipo, pintura_tipo_servico, prazo_urgencia, status, created_at'
+    )
+    .eq('pintor_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SavedOrcamento[];
+};
+
+export const fetchVisitItems = async (applicationId: string) => {
+  const { data, error } = await supabase
+    .from('painter_visit_requests')
+    .select('id, client_name, client_phone, client_email, preferred_date, preferred_time, location, notes, status, created_at')
+    .eq('application_id', applicationId)
+    .order('preferred_date', { ascending: true })
+    .order('preferred_time', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SavedVisitRequest[];
+};
+
+export const fetchChatThreads = async (applicationId: string) => {
+  const { data, error } = await supabase
+    .from('painter_chat_threads')
+    .select('id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
+    .eq('application_id', applicationId)
+    .order('last_message_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SavedChatThread[];
+};
+
+export const fetchChatMessages = async (threadId: string) => {
+  const { data, error } = await supabase
+    .from('painter_chat_messages')
+    .select('id, thread_id, sender_type, sender_name, message, created_at')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SavedChatMessage[];
+};
+
+export const normalizeChatThreadsError = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  return message.includes('painter_chat_threads') || message.includes('does not exist')
+    ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+    : 'Nao foi possivel carregar as conversas do chat agora.';
+};
+
+export const normalizeChatMessagesError = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  return message.includes('painter_chat_messages') || message.includes('does not exist')
+    ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+    : 'Nao foi possivel carregar as mensagens dessa conversa agora.';
+};
+
+export const buildVisitErrorMessage = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  return message.includes('painter_visit_requests') || message.includes('does not exist')
+    ? 'A tabela de visitas ainda nao foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
+    : 'Nao foi possivel carregar sua agenda de visitas agora.';
+};
+
+export const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
+  if (!email) return null;
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*')
+    .ilike('email', email)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  const application = (data?.[0] ?? null) as any;
+
+  if (!application) {
+    return null;
+  }
+
+  const publicProfilePhotoPath = application.foto_perfil || null;
+  const publicCoverPhotoPath = application.foto_capa || null;
+  const legacyProfilePhotoPath =
+    application.profile_photo_path ||
+    application.work_photo_paths?.find((path: string) => path.includes('/profile-photo/')) ||
+    application.work_photo_paths?.[0] ||
+    null;
+
+  const profilePhotoPath = publicProfilePhotoPath || legacyProfilePhotoPath;
+  const profilePhotoUrl =
+    getPublicMediaUrl(publicProfilePhotoPath) || await getSignedLegacyMediaUrl(legacyProfilePhotoPath);
+
+  return {
+    applicationId: application.id,
+    fullName: application.full_name || email.split('@')[0],
+    email: application.email || email,
+    city: application.city || '',
+    uf: application.uf || '',
+    whatsapp: application.whatsapp || '',
+    experienceTime: application.experience_time || '',
+    specialties: application.specialties || [],
+    profilePhotoPath,
+    profilePhotoUrl,
+    coverPhotoPath: publicCoverPhotoPath,
+    coverPhotoUrl: getPublicMediaUrl(publicCoverPhotoPath),
+    applicationStatus: application.status || null,
+    categoryLevel: application.category_level || null,
+    subscriptionPlan: application.subscription_plan || null,
+    subscriptionStatus: application.subscription_status || null
+  };
+};
+
+type UploadPainterMediaParams = {
+  file: File;
+  folder: 'foto-perfil' | 'foto-capa';
+  column: 'foto_perfil' | 'foto_capa';
+  applicationId: string;
+  userId: string;
+  previousPath: string | null;
+};
+
+export const uploadPainterMedia = async ({
+  file,
+  folder,
+  column,
+  applicationId,
+  userId,
+  previousPath
+}: UploadPainterMediaParams) => {
+  const filePath = buildPainterMediaPath(folder, userId, file);
+
+  const { error: uploadError } = await supabase.storage
+    .from(PAINTER_MEDIA_BUCKET)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { error: updateError } = await supabase
+    .from('applications')
+    .update({ [column]: filePath })
+    .eq('id', applicationId);
+
+  if (updateError) {
+    await supabase.storage.from(PAINTER_MEDIA_BUCKET).remove([filePath]);
+    throw updateError;
+  }
+
+  if (previousPath && previousPath !== filePath && previousPath.startsWith(`${folder}/`)) {
+    const { error: removeError } = await supabase.storage
+      .from(PAINTER_MEDIA_BUCKET)
+      .remove([previousPath]);
+
+    if (removeError) {
+      console.error('Erro ao remover midia anterior do pintor:', removeError);
+    }
+  }
+
+  return {
+    path: filePath,
+    url: getPublicMediaUrl(filePath)
+  };
+};
