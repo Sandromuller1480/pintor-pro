@@ -276,8 +276,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <div>
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Marketplace</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-[#C93EA6] transition">Encontrar Profissionais</button></li>
-                <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
+                {sessionRole !== 'painter' && (
+                  <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-[#C93EA6] transition">Encontrar Profissionais</button></li>
+                )}
+                {sessionRole !== 'painter' && (
+                  <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
+                )}
                 <li><button className="hover:text-[#C93EA6] transition">Categorias de Pintura</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Galeria de Inspiracao</button></li>
               </ul>
