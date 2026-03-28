@@ -280,17 +280,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               </ul>
             </div>
 
-            <div>
-              <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Profissionais</h4>
-              <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfolio</button></li>
-                {shouldShowPlansEntry && (
-                  <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
-                )}
-                <li><button className="hover:text-[#C93EA6] transition">PINTOR PRO Academy</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
-              </ul>
-            </div>
+            {sessionRole !== 'client' && (
+              <div>
+                <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Profissionais</h4>
+                <ul className="space-y-4 text-slate-400 text-sm font-medium">
+                  <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfolio</button></li>
+                  {shouldShowPlansEntry && (
+                    <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
+                  )}
+                  <li><button className="hover:text-[#C93EA6] transition">PINTOR PRO Academy</button></li>
+                  <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Institucional</h4>
