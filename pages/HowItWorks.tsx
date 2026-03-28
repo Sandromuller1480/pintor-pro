@@ -1,7 +1,9 @@
 ﻿
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
 import { Search, ShieldCheck, CreditCard, Award, Camera, CheckCircle2 } from 'lucide-react';
+import { getSessionRoleContext, type SessionRole } from '../lib/authSession';
+import { supabase } from '../lib/supabase';
 
 interface HowItWorksProps {
   setPage: (p: Page) => void;
@@ -9,6 +11,7 @@ interface HowItWorksProps {
 
 export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
   const [view, setView] = useState<'client' | 'painter'>('client');
+  const [sessionRole, setSessionRole] = useState<SessionRole>('guest');
 
   const steps = {
     client: [
@@ -23,6 +26,49 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
     ]
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncSessionContext = async () => {
+      try {
+        const sessionContext = await getSessionRoleContext();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setSessionRole(sessionContext.role);
+
+        if (sessionContext.role === 'painter') {
+          setView('painter');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessao da pagina Como Funciona:', error);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setSessionRole('guest');
+      }
+    };
+
+    void syncSessionContext();
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(() => {
+      void syncSessionContext();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const shouldShowClientFlow = sessionRole !== 'painter';
+
   return (
     <div className="bg-white min-h-screen py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,12 +76,14 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
           <h1 className="text-6xl font-black text-slate-900 tracking-tighter mb-8">Fluxo <span className="text-[#9A077B]">PINTOR PRO</span></h1>
 
           <div className="inline-flex p-2 bg-slate-100 rounded-3xl mb-12">
-            <button
-              onClick={() => setView('client')}
-              className={`px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition ${view === 'client' ? 'bg-white text-[#9A077B] shadow-xl shadow-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Para o Cliente
-            </button>
+            {shouldShowClientFlow && (
+              <button
+                onClick={() => setView('client')}
+                className={`px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition ${view === 'client' ? 'bg-white text-[#9A077B] shadow-xl shadow-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Para o Cliente
+              </button>
+            )}
             <button
               onClick={() => setView('painter')}
               className={`px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition ${view === 'painter' ? 'bg-white text-[#9A077B] shadow-xl shadow-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
