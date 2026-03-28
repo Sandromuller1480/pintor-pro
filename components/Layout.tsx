@@ -68,6 +68,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
   const shouldShowClientEntry = sessionRole !== 'painter';
   const shouldShowPlansEntry = sessionRole !== 'client';
   const shouldShowPainterEntry = sessionRole !== 'client';
+  const footerGridClassName = sessionRole === 'client'
+    ? 'grid grid-cols-1 md:grid-cols-3 gap-16 mb-16 max-w-5xl mx-auto'
+    : 'grid grid-cols-1 md:grid-cols-4 gap-16 mb-16';
 
   const handleClientLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -257,7 +260,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
       <footer className="bg-[#0f172a] text-white pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
+          <div className={footerGridClassName}>
             <div className="col-span-1 md:col-span-1">
               <Logo className="h-20 mb-8" color="#ffffff" />
               <p className="text-slate-400 text-sm leading-relaxed mb-8">
