@@ -66,6 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   const clientFirstName = currentClientProfile?.fullName.trim().split(/\s+/)[0] ?? '';
   const shouldShowClientEntry = sessionRole !== 'painter';
+  const shouldShowPlansEntry = sessionRole !== 'client';
   const shouldShowPainterEntry = sessionRole !== 'client';
 
   const handleClientLogout = async () => {
@@ -136,12 +137,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               >
                 Como Funciona
               </button>
-              <button
-                onClick={() => setPage(Page.Plans)}
-                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
-              >
-                Planos
-              </button>
+              {shouldShowPlansEntry && (
+                <button
+                  onClick={() => setPage(Page.Plans)}
+                  className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Plans ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+                >
+                  Planos
+                </button>
+              )}
               {shouldShowPainterEntry && (
                 <>
                   <div className="h-6 w-px bg-slate-200 mx-2" />
@@ -211,15 +214,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             >
               Como Funciona
             </button>
-            <button
-              onClick={() => {
-                setPage(Page.Plans);
-                setIsMenuOpen(false);
-              }}
-              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
-            >
-              Planos
-            </button>
+            {shouldShowPlansEntry && (
+              <button
+                onClick={() => {
+                  setPage(Page.Plans);
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+              >
+                Planos
+              </button>
+            )}
             {shouldShowPainterEntry && (
               <button
                 onClick={() => {
@@ -279,7 +284,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Profissionais</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
                 <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfolio</button></li>
-                <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
+                {shouldShowPlansEntry && (
+                  <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
+                )}
                 <li><button className="hover:text-[#C93EA6] transition">PINTOR PRO Academy</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
               </ul>
