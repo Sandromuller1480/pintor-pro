@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from './components/Layout';
+import { getSessionRoleContext, type SessionRole } from './lib/authSession';
 import { buildPathForRoute, getInitialRoute } from './lib/routes';
 import { supabase } from './lib/supabase';
 import { About } from './pages/About';
@@ -16,7 +17,7 @@ import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(getInitialRoute);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionRole, setSessionRole] = useState<SessionRole>('guest');
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -45,27 +46,30 @@ const App: React.FC = () => {
     let isMounted = true;
 
     const syncSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      try {
+        const sessionContext = await getSessionRoleContext();
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      if (error) {
+        setSessionRole(sessionContext.role);
+        setIsAuthReady(true);
+      } catch (error) {
+        if (!isMounted) return;
+
         console.error('Erro ao recuperar sessao:', error);
+        setSessionRole('guest');
+        setIsAuthReady(true);
       }
-
-      setIsAuthenticated(Boolean(data.session));
-      setIsAuthReady(true);
     };
 
     void syncSession();
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(() => {
       if (!isMounted) return;
 
-      setIsAuthenticated(Boolean(session));
-      setIsAuthReady(true);
+      void syncSession();
     });
 
     return () => {
@@ -75,17 +79,19 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const isPainterAuthenticated = sessionRole === 'painter';
+
     if (!isAuthReady) return;
 
-    if (route.page === Page.Dashboard && !isAuthenticated) {
+    if (route.page === Page.Dashboard && !isPainterAuthenticated) {
       navigateToPage(Page.Login);
       return;
     }
 
-    if (route.page === Page.Login && isAuthenticated) {
+    if (route.page === Page.Login && isPainterAuthenticated) {
       navigateToPage(Page.Dashboard);
     }
-  }, [route.page, isAuthReady, isAuthenticated]);
+  }, [route.page, isAuthReady, sessionRole]);
 
   const renderPage = () => {
     if (route.page === Page.Dashboard && !isAuthReady) {
