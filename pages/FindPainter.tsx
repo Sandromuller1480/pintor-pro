@@ -37,8 +37,10 @@ const matchesNormalizedTerm = (source: string, query: string) => {
 };
 
 export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [locationTerm, setLocationTerm] = useState('');
+  const [searchDraft, setSearchDraft] = useState('');
+  const [locationDraft, setLocationDraft] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [appliedLocationTerm, setAppliedLocationTerm] = useState('');
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -89,8 +91,8 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   }, [painters]);
 
   const filteredPainters = useMemo(() => {
-    const normalizedSearchTerm = normalizeText(searchTerm);
-    const normalizedLocationTerm = normalizeText(locationTerm);
+    const normalizedSearchTerm = normalizeText(appliedSearchTerm);
+    const normalizedLocationTerm = normalizeText(appliedLocationTerm);
 
     return painters.filter((painter) => {
       const painterSearchIndex = [
@@ -114,11 +116,19 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
 
       return matchesSearch && matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated;
     });
-  }, [locationTerm, onlyTopRated, onlyVerified, painters, searchTerm, selectedSpecialties]);
+  }, [appliedLocationTerm, appliedSearchTerm, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
+
+  const handleSearchSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    setAppliedSearchTerm(searchDraft);
+    setAppliedLocationTerm(locationDraft);
+  };
 
   const clearFilters = () => {
-    setSearchTerm('');
-    setLocationTerm('');
+    setSearchDraft('');
+    setLocationDraft('');
+    setAppliedSearchTerm('');
+    setAppliedLocationTerm('');
     setSelectedSpecialties([]);
     setOnlyVerified(false);
     setOnlyTopRated(false);
@@ -136,15 +146,15 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     <div className="bg-slate-50 min-h-screen pt-12 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <form className="grid grid-cols-1 md:grid-cols-12 gap-4" onSubmit={handleSearchSubmit}>
             <div className="md:col-span-5 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Qual tipo de pintura voce precisa?"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
               />
             </div>
             <div className="md:col-span-4 relative">
@@ -153,16 +163,19 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                 type="text"
                 placeholder="Cidade ou regiao"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
-                value={locationTerm}
-                onChange={(e) => setLocationTerm(e.target.value)}
+                value={locationDraft}
+                onChange={(e) => setLocationDraft(e.target.value)}
               />
             </div>
             <div className="md:col-span-3">
-              <button className="w-full bg-[#9A077B] text-white py-4 rounded-2xl font-bold hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3]">
+              <button
+                type="submit"
+                className="w-full bg-[#9A077B] text-white py-4 rounded-2xl font-bold hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3]"
+              >
                 Buscar Pintores
               </button>
             </div>
-          </div>
+          </form>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
