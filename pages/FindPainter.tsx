@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PainterCard } from '../components/PainterCard';
+import { PublicPainterMap } from '../components/PublicPainterMap';
 import { Search, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { paintersService } from '../lib/services/paintersService';
@@ -47,6 +48,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [onlyTopRated, setOnlyTopRated] = useState(false);
+  const [visiblePainterIds, setVisiblePainterIds] = useState<string[] | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,6 +120,23 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     });
   }, [appliedLocationTerm, appliedSearchTerm, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
 
+  const filteredPainterIdsKey = useMemo(
+    () => filteredPainters.map((painter) => painter.id).join('|'),
+    [filteredPainters]
+  );
+
+  useEffect(() => {
+    setVisiblePainterIds(null);
+  }, [filteredPainterIdsKey]);
+
+  const displayedPainters = useMemo(() => {
+    if (visiblePainterIds === null) {
+      return filteredPainters;
+    }
+
+    return filteredPainters.filter((painter) => visiblePainterIds.includes(painter.id));
+  }, [filteredPainters, visiblePainterIds]);
+
   const handleSearchSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     setAppliedSearchTerm(searchDraft);
@@ -176,6 +195,26 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               </button>
             </div>
           </form>
+        </div>
+
+        <div className="mb-12">
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-[#9A077B] text-xs font-black uppercase tracking-[0.28em] mb-2">Mapa da Busca</h2>
+              <p className="text-2xl font-black tracking-tight text-slate-900">Explore a area visivel e encontre pintores por regiao.</p>
+            </div>
+            <p className="text-sm font-bold text-slate-500">
+              Mostrando <span className="text-[#9A077B]">{displayedPainters.length}</span> de <span className="text-slate-900">{filteredPainters.length}</span> pintores na area atual do mapa
+            </p>
+          </div>
+
+          <PublicPainterMap
+            painters={filteredPainters}
+            onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
+            onVisiblePaintersChange={(visiblePainters) => setVisiblePainterIds(visiblePainters.map((painter) => painter.id))}
+            primaryActionLabel="Entrar em contato"
+            showDirectoryButton={false}
+          />
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -246,7 +285,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
 
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
-              <p className="text-slate-500 font-medium">{filteredPainters.length} pintores encontrados</p>
+              <p className="text-slate-500 font-medium">{displayedPainters.length} pintores encontrados</p>
               <div className="flex items-center gap-2 text-sm font-bold cursor-default text-slate-500">
                 <span>Ordenar por: <span className="text-[#9A077B]">Mais recentes</span></span>
                 <ChevronDown className="w-4 h-4" />
@@ -262,12 +301,16 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {loading ? (
                 <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando pintores...</div>
-              ) : filteredPainters.length > 0 ? (
-                filteredPainters.map((painter) => (
+              ) : displayedPainters.length > 0 ? (
+                displayedPainters.map((painter) => (
                   <PainterCard key={painter.id} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
                 ))
               ) : (
-                <div className="col-span-full py-20 text-center text-slate-400 font-medium">Nenhum pintor encontrado com os filtros atuais.</div>
+                <div className="col-span-full py-20 text-center text-slate-400 font-medium">
+                  {filteredPainters.length > 0
+                    ? 'Nenhum pintor visivel na area atual do mapa. Arraste ou ajuste o zoom para ver mais profissionais.'
+                    : 'Nenhum pintor encontrado com os filtros atuais.'}
+                </div>
               )}
             </div>
           </div>

@@ -29,6 +29,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [imgError, setImgError] = useState(false);
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleHomePainterCount, setVisibleHomePainterCount] = useState<number | null>(null);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
   const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
@@ -102,6 +103,8 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const socialProofLabel = totalReviews > 0 && averageRating > 0
     ? `${averageRating.toFixed(1)} de media em ${totalReviewsLabel} avaliacoes publicas`
     : `${totalPaintersLabel} perfis publicados na vitrine`;
+  const homeMapBadgeCount = visibleHomePainterCount ?? totalPainters;
+  const homeMapBadgeLabel = visibleHomePainterCount === null ? 'Perfis ativos' : 'Na area atual';
 
   return (
     <div className="overflow-x-hidden">
@@ -224,12 +227,13 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                 painters={painters}
                 onOpenDirectory={() => setPage(Page.FindPainter)}
                 onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
+                onVisiblePaintersChange={(visiblePainters) => setVisibleHomePainterCount(visiblePainters.length)}
               />
 
-              {/* Badge de Profissionais Online */}
+              {/* Badge de Pintores na Area */}
               <div className="absolute -top-10 -right-10 bg-[#9A077B] text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
-                <p className="text-4xl font-black mb-1">{totalPaintersLabel}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Perfis ativos</p>
+                <p className="text-4xl font-black mb-1">{formatMetricValue(homeMapBadgeCount)}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{homeMapBadgeLabel}</p>
               </div>
             </div>
 

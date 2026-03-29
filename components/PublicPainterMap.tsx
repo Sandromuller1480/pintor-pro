@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Minus, Navigation, Plus, Search } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Loader2, Minus, Navigation, Plus, Search, Star, X } from 'lucide-react';
 import { Painter } from '../types';
 
 type LatLng = {
@@ -12,6 +12,11 @@ type PainterMarker = {
   coordinates: LatLng;
 };
 
+type VisiblePainterMarker = PainterMarker & {
+  x: number;
+  y: number;
+};
+
 type MapTile = {
   key: string;
   src: string;
@@ -21,8 +26,11 @@ type MapTile = {
 
 interface PublicPainterMapProps {
   painters: Painter[];
-  onOpenDirectory: () => void;
   onOpenPainter: (painterId: string) => void;
+  onOpenDirectory?: () => void;
+  onVisiblePaintersChange?: (painters: Painter[]) => void;
+  primaryActionLabel?: string;
+  showDirectoryButton?: boolean;
 }
 
 const TILE_SIZE = 256;
@@ -34,6 +42,7 @@ const DEFAULT_CENTER: LatLng = {
   lng: -51.9253
 };
 const GEOCODE_CACHE_PREFIX = 'pintor-pro:geocode:';
+const POPUP_WIDTH = 260;
 
 const normalizeLocationKey = (value: string) => (
   value
@@ -210,8 +219,11 @@ const geocodeLocation = async (location: string): Promise<LatLng | null> => {
 
 export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   painters,
+  onOpenPainter,
   onOpenDirectory,
-  onOpenPainter
+  onVisiblePaintersChange,
+  primaryActionLabel = 'Entrar em contato',
+  showDirectoryButton = true
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef({
@@ -224,6 +236,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [hoveredPainterId, setHoveredPainterId] = useState<string | null>(null);
+  const [selectedPainterId, setSelectedPainterId] = useState<string | null>(null);
   const [resolvedCoordinates, setResolvedCoordinates] = useState<Record<string, LatLng>>({});
   const [isResolvingLocations, setIsResolvingLocations] = useState(false);
 
@@ -362,9 +375,70 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     const nextView = fitMarkersToView(markers, containerSize.width, containerSize.height);
     setCenter(nextView.center);
     setZoom(nextView.zoom);
-  }, [markers, containerSize.height, containerSize.width]);
+  }, [containerSize.height, containerSize.width, markers]);
 
   const centerWorld = useMemo(() => latLngToWorld(center, zoom), [center, zoom]);
+
+  const updateCenterByScreenDelta = useCallback((deltaX: number, deltaY: number) => {
+    const nextCenterWorld = {
+      x: centerWorld.x - deltaX,
+      y: centerWorld.y - deltaY
+    };
+
+    setCenter(worldToLatLng(nextCenterWorld, zoom));
+  }, [centerWorld.x, centerWorld.y, zoom]);
+
+  const applyZoom = useCallback((nextZoom: number, anchorX = containerSize.width / 2, anchorY = containerSize.height / 2) => {
+    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
+
+    if (clampedZoom === zoom || containerSize.width <= 0 || containerSize.height <= 0) {
+      return;
+    }
+
+    const zoomFactor = 2 ** (clampedZoom - zoom);
+    const anchorWorld = {
+      x: centerWorld.x + (anchorX - containerSize.width / 2),
+      y: centerWorld.y + (anchorY - containerSize.height / 2)
+    };
+    const anchorWorldNext = {
+      x: anchorWorld.x * zoomFactor,
+      y: anchorWorld.y * zoomFactor
+    };
+    const nextCenterWorld = {
+      x: anchorWorldNext.x - (anchorX - containerSize.width / 2),
+      y: anchorWorldNext.y - (anchorY - containerSize.height / 2)
+    };
+
+    hasUserInteractedRef.current = true;
+    setZoom(clampedZoom);
+    setCenter(worldToLatLng(nextCenterWorld, clampedZoom));
+  }, [centerWorld.x, centerWorld.y, containerSize.height, containerSize.width, zoom]);
+
+  useEffect(() => {
+    const mapElement = containerRef.current;
+
+    if (!mapElement) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const bounds = mapElement.getBoundingClientRect();
+      const anchorX = event.clientX - bounds.left;
+      const anchorY = event.clientY - bounds.top;
+      const nextZoom = event.deltaY < 0 ? zoom + 1 : zoom - 1;
+
+      applyZoom(nextZoom, anchorX, anchorY);
+    };
+
+    mapElement.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      mapElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [applyZoom, zoom]);
 
   const tiles = useMemo<MapTile[]>(() => {
     if (containerSize.width <= 0 || containerSize.height <= 0) {
@@ -398,9 +472,9 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     }
 
     return nextTiles;
-  }, [centerWorld, containerSize.height, containerSize.width, zoom]);
+  }, [centerWorld.x, centerWorld.y, containerSize.height, containerSize.width, zoom]);
 
-  const visibleMarkers = useMemo(() => {
+  const visibleMarkers = useMemo<VisiblePainterMarker[]>(() => {
     if (containerSize.width <= 0 || containerSize.height <= 0) {
       return [];
     }
@@ -408,35 +482,79 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     const topLeftWorldX = centerWorld.x - containerSize.width / 2;
     const topLeftWorldY = centerWorld.y - containerSize.height / 2;
 
-    return markers.map((marker) => {
-      const world = latLngToWorld(marker.coordinates, zoom);
+    return markers
+      .map((marker) => {
+        const world = latLngToWorld(marker.coordinates, zoom);
 
-      return {
-        ...marker,
-        x: world.x - topLeftWorldX,
-        y: world.y - topLeftWorldY
-      };
-    }).filter((marker) => (
-      marker.x >= -40
-      && marker.y >= -40
-      && marker.x <= containerSize.width + 40
-      && marker.y <= containerSize.height + 40
-    ));
-  }, [centerWorld, containerSize.height, containerSize.width, markers, zoom]);
+        return {
+          ...marker,
+          x: world.x - topLeftWorldX,
+          y: world.y - topLeftWorldY
+        };
+      })
+      .filter((marker) => (
+        marker.x >= -40
+        && marker.y >= -40
+        && marker.x <= containerSize.width + 40
+        && marker.y <= containerSize.height + 40
+      ));
+  }, [centerWorld.x, centerWorld.y, containerSize.height, containerSize.width, markers, zoom]);
+
+  useEffect(() => {
+    if (!onVisiblePaintersChange) {
+      return;
+    }
+
+    if (containerSize.width <= 0 || containerSize.height <= 0) {
+      return;
+    }
+
+    if (isResolvingLocations && markers.length === 0) {
+      return;
+    }
+
+    onVisiblePaintersChange(visibleMarkers.map((marker) => marker.painter));
+  }, [
+    containerSize.height,
+    containerSize.width,
+    isResolvingLocations,
+    markers.length,
+    onVisiblePaintersChange,
+    visibleMarkers
+  ]);
+
+  useEffect(() => {
+    if (selectedPainterId && !markers.some((marker) => marker.painter.id === selectedPainterId)) {
+      setSelectedPainterId(null);
+    }
+  }, [markers, selectedPainterId]);
 
   const hoveredMarker = hoveredPainterId
     ? visibleMarkers.find((marker) => marker.painter.id === hoveredPainterId) ?? null
     : null;
-  const locationLabel = hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
+  const selectedMarker = selectedPainterId
+    ? visibleMarkers.find((marker) => marker.painter.id === selectedPainterId) ?? null
+    : null;
+  const locationLabel = selectedMarker?.painter.location ?? hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
+  const visiblePainterCount = visibleMarkers.length;
+  const popupStyle = useMemo(() => {
+    if (!selectedMarker || containerSize.width <= 0 || containerSize.height <= 0) {
+      return null;
+    }
 
-  const updateCenterByScreenDelta = (deltaX: number, deltaY: number) => {
-    const nextCenterWorld = {
-      x: centerWorld.x - deltaX,
-      y: centerWorld.y - deltaY
+    const clampedLeft = Math.min(
+      Math.max(selectedMarker.x, POPUP_WIDTH / 2 + 16),
+      containerSize.width - POPUP_WIDTH / 2 - 16
+    );
+    const shouldRenderBelow = selectedMarker.y < 150;
+    const top = shouldRenderBelow ? selectedMarker.y + 24 : selectedMarker.y - 24;
+
+    return {
+      left: clampedLeft,
+      top,
+      transform: shouldRenderBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
     };
-
-    setCenter(worldToLatLng(nextCenterWorld, zoom));
-  };
+  }, [containerSize.height, containerSize.width, selectedMarker]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     interactionRef.current = {
@@ -445,6 +563,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       lastClientY: event.clientY
     };
     hasUserInteractedRef.current = true;
+    setSelectedPainterId(null);
 
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -466,58 +585,6 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     interactionRef.current.isDragging = false;
     event.currentTarget.releasePointerCapture(event.pointerId);
   };
-
-  const applyZoom = (nextZoom: number, anchorX = containerSize.width / 2, anchorY = containerSize.height / 2) => {
-    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
-
-    if (clampedZoom === zoom || containerSize.width <= 0 || containerSize.height <= 0) {
-      return;
-    }
-
-    const zoomFactor = 2 ** (clampedZoom - zoom);
-    const anchorWorld = {
-      x: centerWorld.x + (anchorX - containerSize.width / 2),
-      y: centerWorld.y + (anchorY - containerSize.height / 2)
-    };
-    const anchorWorldNext = {
-      x: anchorWorld.x * zoomFactor,
-      y: anchorWorld.y * zoomFactor
-    };
-    const nextCenterWorld = {
-      x: anchorWorldNext.x - (anchorX - containerSize.width / 2),
-      y: anchorWorldNext.y - (anchorY - containerSize.height / 2)
-    };
-
-    hasUserInteractedRef.current = true;
-    setZoom(clampedZoom);
-    setCenter(worldToLatLng(nextCenterWorld, clampedZoom));
-  };
-
-  useEffect(() => {
-    const mapElement = containerRef.current;
-
-    if (!mapElement) {
-      return;
-    }
-
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const bounds = mapElement.getBoundingClientRect();
-      const anchorX = event.clientX - bounds.left;
-      const anchorY = event.clientY - bounds.top;
-      const nextZoom = event.deltaY < 0 ? zoom + 1 : zoom - 1;
-
-      applyZoom(nextZoom, anchorX, anchorY);
-    };
-
-    mapElement.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      mapElement.removeEventListener('wheel', handleWheel);
-    };
-  }, [applyZoom, zoom]);
 
   return (
     <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
@@ -550,50 +617,111 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(154,7,123,0.06),transparent_62%)] pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-transparent pointer-events-none" />
 
-        {visibleMarkers.map((marker) => (
-          <button
-            key={marker.painter.id}
-            type="button"
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{
-              left: marker.x,
-              top: marker.y
-            }}
+        {visibleMarkers.map((marker) => {
+          const isSelected = selectedPainterId === marker.painter.id;
+
+          return (
+            <button
+              key={marker.painter.id}
+              type="button"
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: marker.x,
+                top: marker.y
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedPainterId(marker.painter.id);
+                setHoveredPainterId(marker.painter.id);
+              }}
+              onMouseEnter={() => setHoveredPainterId(marker.painter.id)}
+              onMouseLeave={() => setHoveredPainterId((currentId) => (
+                currentId === marker.painter.id ? null : currentId
+              ))}
+              onFocus={() => setHoveredPainterId(marker.painter.id)}
+              onBlur={() => setHoveredPainterId((currentId) => (
+                currentId === marker.painter.id ? null : currentId
+              ))}
+            >
+              <div className="relative">
+                <div className={`absolute inset-0 rounded-full bg-[#B21492] ${isSelected ? 'opacity-90 scale-125' : 'opacity-70 animate-ping'}`} />
+                <div className={`relative flex h-4 w-4 items-center justify-center rounded-full border-2 border-white shadow-xl ${isSelected ? 'bg-[#C93EA6] scale-125' : 'bg-[#9A077B]'}`} />
+              </div>
+            </button>
+          );
+        })}
+
+        {selectedMarker && popupStyle && (
+          <div
+            className="absolute z-20 w-[260px] rounded-[28px] border border-white/20 bg-slate-950/92 p-4 text-white shadow-2xl backdrop-blur-md"
+            style={popupStyle}
             onPointerDown={(event) => {
               event.stopPropagation();
             }}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenPainter(marker.painter.id);
-            }}
-            onMouseEnter={() => setHoveredPainterId(marker.painter.id)}
-            onMouseLeave={() => setHoveredPainterId((currentId) => (
-              currentId === marker.painter.id ? null : currentId
-            ))}
-            onFocus={() => setHoveredPainterId(marker.painter.id)}
-            onBlur={() => setHoveredPainterId((currentId) => (
-              currentId === marker.painter.id ? null : currentId
-            ))}
           >
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-[#B21492] opacity-70 animate-ping" />
-              <div className="relative flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-[#9A077B] shadow-xl" />
+            <div className="flex items-start gap-3">
+              <img
+                src={selectedMarker.painter.avatar}
+                alt={selectedMarker.painter.name}
+                className="h-14 w-14 rounded-2xl object-cover border border-white/10"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black uppercase tracking-wider">
+                      {selectedMarker.painter.name}
+                    </p>
+                    <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-300">
+                      {selectedMarker.painter.location}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPainterId(null)}
+                    className="rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Fechar mini card"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedMarker.painter.verified && (
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#F7D3EF]">
+                      Verificado
+                    </span>
+                  )}
+                  {selectedMarker.painter.topRated && (
+                    <span className="rounded-full bg-[#9A077B] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                      Top Avaliado
+                    </span>
+                  )}
+                  {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                      <Star className="mr-1 h-3 w-3 fill-current text-amber-300" />
+                      {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div
-              className={`absolute -top-16 left-1/2 min-w-[160px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 text-left shadow-2xl backdrop-blur transition ${
-                hoveredPainterId === marker.painter.id ? 'opacity-100 scale-100' : 'pointer-events-none opacity-0 scale-95'
-              }`}
+            <p className="mt-3 max-h-10 overflow-hidden text-sm text-slate-300">
+              {selectedMarker.painter.description}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => onOpenPainter(selectedMarker.painter.id)}
+              className="mt-4 w-full rounded-2xl bg-[#9A077B] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#9A077B]/20 transition hover:bg-[#7F0665]"
             >
-              <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-900">
-                {marker.painter.name}
-              </p>
-              <p className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                {marker.painter.location}
-              </p>
-            </div>
-          </button>
-        ))}
+              {primaryActionLabel}
+            </button>
+          </div>
+        )}
 
         {visibleMarkers.length === 0 && isResolvingLocations && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-950/30 backdrop-blur-[1px]">
@@ -607,9 +735,9 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         {visibleMarkers.length === 0 && !isResolvingLocations && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-950/25">
             <div className="max-w-sm rounded-3xl border border-white/10 bg-slate-900/85 px-6 py-5 text-center text-white shadow-2xl">
-              <p className="text-sm font-black uppercase tracking-[0.15em]">Mapa em preparacao</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em]">Nenhum pintor nesta area</p>
               <p className="mt-2 text-sm text-slate-300">
-                Ainda nao encontramos coordenadas suficientes para posicionar os pintores no mapa.
+                Arraste o mapa ou ajuste o zoom para encontrar pintores em outras cidades.
               </p>
             </div>
           </div>
@@ -646,7 +774,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
           </button>
         </div>
 
-        <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between gap-4">
+        <div className={`absolute bottom-6 left-6 right-6 flex items-center gap-4 ${showDirectoryButton && onOpenDirectory ? 'justify-between' : 'justify-start'}`}>
           <div className="min-w-0 rounded-2xl border border-slate-700 bg-slate-900/85 px-4 py-3 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <Navigation size={16} className="shrink-0 text-[#B21492]" />
@@ -656,24 +784,26 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenDirectory();
-            }}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-            }}
-            className="shrink-0 rounded-2xl bg-[#9A077B] p-3 text-white shadow-xl shadow-[#B21492]/20 transition hover:bg-[#7F0665]"
-            aria-label="Abrir busca de pintores"
-          >
-            <Search size={20} />
-          </button>
+          {showDirectoryButton && onOpenDirectory && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenDirectory();
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              className="shrink-0 rounded-2xl bg-[#9A077B] p-3 text-white shadow-xl shadow-[#B21492]/20 transition hover:bg-[#7F0665]"
+              aria-label="Abrir busca de pintores"
+            >
+              <Search size={20} />
+            </button>
+          )}
         </div>
 
-        <div className="absolute bottom-6 right-20 hidden rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 shadow-xl backdrop-blur md:block">
-          {markers.length} ponto(s) no mapa
+        <div className={`absolute bottom-6 hidden rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 shadow-xl backdrop-blur md:block ${showDirectoryButton && onOpenDirectory ? 'right-20' : 'right-6'}`}>
+          {visiblePainterCount} pintor(es) na area
         </div>
       </div>
     </div>
