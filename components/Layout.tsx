@@ -66,6 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   const clientFirstName = currentClientProfile?.fullName.trim().split(/\s+/)[0] ?? '';
   const shouldShowClientEntry = sessionRole !== 'painter';
+  const shouldShowFindPainterEntry = sessionRole !== 'painter';
   const shouldShowPlansEntry = sessionRole !== 'client';
   const shouldShowPainterEntry = sessionRole !== 'client';
   const footerGridClassName = sessionRole === 'client'
@@ -128,12 +129,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             </div>
 
             <nav className="hidden md:flex space-x-8 items-center">
-              <button
-                onClick={() => setPage(Page.FindPainter)}
-                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
-              >
-                Encontrar Pintor
-              </button>
+              {shouldShowFindPainterEntry && (
+                <button
+                  onClick={() => setPage(Page.FindPainter)}
+                  className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+                >
+                  Encontrar Pintor
+                </button>
+              )}
               <button
                 onClick={() => setPage(Page.HowItWorks)}
                 className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
@@ -199,15 +202,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               )
             )}
 
-            <button
-              onClick={() => {
-                setPage(Page.FindPainter);
-                setIsMenuOpen(false);
-              }}
-              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
-            >
-              Encontrar Pintor
-            </button>
+            {shouldShowFindPainterEntry && (
+              <button
+                onClick={() => {
+                  setPage(Page.FindPainter);
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+              >
+                Encontrar Pintor
+              </button>
+            )}
             <button
               onClick={() => {
                 setPage(Page.HowItWorks);
