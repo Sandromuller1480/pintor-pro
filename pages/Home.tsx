@@ -6,41 +6,23 @@ import { PainterCard } from '../components/PainterCard';
 import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
+import { PublicPainterMap } from '../components/PublicPainterMap';
 import { getCurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
 import {
   CheckCircle,
-  ArrowRight,
   ShieldCheck,
-  Award,
-  TrendingUp,
-  Users,
   ChevronDown,
-  ChevronUp,
   Star,
-  Paintbrush,
-  Map as MapIcon,
-  Navigation,
-  Search
+  Paintbrush
 } from 'lucide-react';
 
 interface HomeProps {
   setPage: NavigateToPage;
 }
 
-const MAP_PIN_POSITIONS = [
-  { top: '35%', left: '25%' },
-  { top: '60%', left: '65%' },
-  { top: '25%', left: '58%' }
-] as const;
-
 const formatMetricValue = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
-
-const getPainterFirstName = (name: string) => {
-  const firstName = name.trim().split(/\s+/)[0];
-  return firstName ? firstName.toUpperCase() : 'PINTOR';
-};
 
 export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
@@ -86,7 +68,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   };
 
   const featuredPainters = painters.slice(0, 3);
-  const mapPainters = painters.slice(0, 2);
   const socialProofPainters = painters.slice(0, 4);
   const totalPainters = painters.length;
   const verifiedPainters = painters.filter((painter) => painter.verified).length;
@@ -111,7 +92,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         .filter(Boolean)
     )
   );
-  const leadLocationLabel = uniqueLocations[0] ?? 'Brasil';
   const hasDirectoryData = totalPainters > 0;
   const totalPaintersLabel = formatMetricValue(totalPainters);
   const verifiedPaintersLabel = formatMetricValue(verifiedPainters);
@@ -240,45 +220,11 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
 
             <div className="order-2 lg:order-1 relative">
-              {/* UI de Mapa Premium */}
-              <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
-                <div className="relative aspect-[16/11] rounded-[40px] overflow-hidden bg-slate-900 group">
-                  {/* Grid de Mapa */}
-                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#C93EA6_1px,transparent_1px)] [background-size:24px_24px]"></div>
-
-                  {mapPainters.map((painter, index) => {
-                    const pinPosition = MAP_PIN_POSITIONS[index] ?? MAP_PIN_POSITIONS[0];
-
-                    return (
-                      <div
-                        key={painter.id}
-                        className="absolute group-hover:scale-110 transition-transform cursor-pointer"
-                        style={{ top: pinPosition.top, left: pinPosition.left }}
-                      >
-                        <div className="relative">
-                          <div className="w-4 h-4 bg-[#B21492] rounded-full animate-ping absolute inset-0"></div>
-                          <div className="w-4 h-4 bg-[#9A077B] rounded-full border-2 border-white shadow-xl"></div>
-                          <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2 max-w-[140px]">
-                            <img src={painter.avatar} alt={painter.name} className="w-8 h-8 rounded-lg object-cover" />
-                            <span className="text-[10px] font-black text-slate-900 truncate">{getPainterFirstName(painter.name)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Camada de UI */}
-                  <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
-                    <div className="bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700 flex items-center gap-3">
-                      <Navigation size={16} className="text-[#B21492]" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest max-w-[11rem] truncate">{leadLocationLabel}</span>
-                    </div>
-                    <button onClick={() => setPage(Page.FindPainter)} className="bg-[#9A077B] text-white p-3 rounded-2xl shadow-xl shadow-[#B21492]/20">
-                      <Search size={20} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <PublicPainterMap
+                painters={painters}
+                onOpenDirectory={() => setPage(Page.FindPainter)}
+                onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
+              />
 
               {/* Badge de Profissionais Online */}
               <div className="absolute -top-10 -right-10 bg-[#9A077B] text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
