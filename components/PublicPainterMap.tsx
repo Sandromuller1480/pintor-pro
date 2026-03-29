@@ -31,6 +31,7 @@ interface PublicPainterMapProps {
   onVisiblePaintersChange?: (painters: Painter[]) => void;
   primaryActionLabel?: string;
   showDirectoryButton?: boolean;
+  variant?: 'default' | 'home';
 }
 
 const TILE_SIZE = 256;
@@ -42,7 +43,32 @@ const DEFAULT_CENTER: LatLng = {
   lng: -51.9253
 };
 const GEOCODE_CACHE_PREFIX = 'pintor-pro:geocode:';
-const POPUP_WIDTH = 260;
+const DEFAULT_POPUP_WIDTH = 260;
+const HOME_POPUP_WIDTH = 188;
+
+const DEFAULT_MARKER_PALETTE = {
+  pulse: 'rgba(178, 20, 146, 0.55)',
+  fill: '#9A077B',
+  selectedFill: '#C93EA6'
+} as const;
+
+const HOME_MARKER_PALETTES = {
+  feminine: {
+    pulse: 'rgba(178, 20, 146, 0.38)',
+    fill: '#9A077B',
+    selectedFill: '#C93EA6'
+  },
+  masculine: {
+    pulse: 'rgba(0, 7, 71, 0.28)',
+    fill: '#000747',
+    selectedFill: '#1C2478'
+  },
+  inactive: {
+    pulse: 'rgba(203, 213, 225, 0.7)',
+    fill: '#CBD5E1',
+    selectedFill: '#E2E8F0'
+  }
+} as const;
 
 const normalizeLocationKey = (value: string) => (
   value
@@ -223,8 +249,10 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   onOpenDirectory,
   onVisiblePaintersChange,
   primaryActionLabel = 'Entrar em contato',
-  showDirectoryButton = true
+  showDirectoryButton = true,
+  variant = 'default'
 }) => {
+  const isHomeVariant = variant === 'home';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef({
     isDragging: false,
@@ -535,6 +563,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   const selectedMarker = selectedPainterId
     ? visibleMarkers.find((marker) => marker.painter.id === selectedPainterId) ?? null
     : null;
+  const popupWidth = isHomeVariant ? HOME_POPUP_WIDTH : DEFAULT_POPUP_WIDTH;
   const locationLabel = selectedMarker?.painter.location ?? hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
   const visiblePainterCount = visibleMarkers.length;
   const selectedSpecialtiesPreview = selectedMarker?.painter.specialties.slice(0, 2).join(' • ') || 'Especialidades sob consulta';
@@ -544,18 +573,19 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     }
 
     const clampedLeft = Math.min(
-      Math.max(selectedMarker.x, POPUP_WIDTH / 2 + 16),
-      containerSize.width - POPUP_WIDTH / 2 - 16
+      Math.max(selectedMarker.x, popupWidth / 2 + 16),
+      containerSize.width - popupWidth / 2 - 16
     );
-    const shouldRenderBelow = selectedMarker.y < 150;
-    const top = shouldRenderBelow ? selectedMarker.y + 24 : selectedMarker.y - 24;
+    const shouldRenderBelow = selectedMarker.y < (isHomeVariant ? 110 : 150);
+    const verticalOffset = isHomeVariant ? 18 : 24;
+    const top = shouldRenderBelow ? selectedMarker.y + verticalOffset : selectedMarker.y - verticalOffset;
 
     return {
       left: clampedLeft,
       top,
       transform: shouldRenderBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
     };
-  }, [containerSize.height, containerSize.width, selectedMarker]);
+  }, [containerSize.height, containerSize.width, isHomeVariant, popupWidth, selectedMarker]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     interactionRef.current = {
@@ -620,6 +650,13 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
 
         {visibleMarkers.map((marker) => {
           const isSelected = selectedPainterId === marker.painter.id;
+          const markerPalette = !isHomeVariant
+            ? DEFAULT_MARKER_PALETTE
+            : !marker.painter.portfolioOwnerId
+              ? HOME_MARKER_PALETTES.inactive
+              : marker.painter.gender === 'masculino'
+                ? HOME_MARKER_PALETTES.masculine
+                : HOME_MARKER_PALETTES.feminine;
 
           return (
             <button
@@ -648,101 +685,129 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
               ))}
             >
               <div className="relative">
-                <div className={`absolute inset-0 rounded-full bg-[#B21492] ${isSelected ? 'opacity-90 scale-125' : 'opacity-70 animate-ping'}`} />
-                <div className={`relative flex h-4 w-4 items-center justify-center rounded-full border-2 border-white shadow-xl ${isSelected ? 'bg-[#C93EA6] scale-125' : 'bg-[#9A077B]'}`} />
+                <div
+                  className={`absolute inset-0 rounded-full ${isSelected ? 'opacity-90 scale-125' : 'opacity-70 animate-ping'}`}
+                  style={{ backgroundColor: markerPalette.pulse }}
+                />
+                <div
+                  className={`relative flex h-4 w-4 items-center justify-center rounded-full border-2 border-white shadow-xl ${isSelected ? 'scale-125' : ''}`}
+                  style={{ backgroundColor: isSelected ? markerPalette.selectedFill : markerPalette.fill }}
+                />
               </div>
             </button>
           );
         })}
 
         {selectedMarker && popupStyle && (
-          <div
-            className="absolute z-20 w-[280px] rounded-[28px] border border-slate-200 bg-white p-4 text-slate-900 shadow-[0_28px_80px_rgba(15,23,42,0.35)]"
-            style={popupStyle}
-            onPointerDown={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <div className="flex items-start gap-3">
+          isHomeVariant ? (
+            <button
+              type="button"
+              className="absolute z-20 flex w-[188px] items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-2.5 py-2 text-left text-slate-900 shadow-[0_18px_48px_rgba(15,23,42,0.26)] backdrop-blur-md transition hover:scale-[1.02]"
+              style={popupStyle}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={() => onOpenPainter(selectedMarker.painter.id)}
+              aria-label={`Abrir perfil de ${selectedMarker.painter.name}`}
+            >
               <img
                 src={selectedMarker.painter.avatar}
                 alt={selectedMarker.painter.name}
-                className="h-14 w-14 rounded-2xl object-cover border border-slate-200 shadow-sm"
+                className="h-10 w-10 shrink-0 rounded-full border border-slate-200 object-cover shadow-sm"
               />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-black uppercase tracking-wider text-slate-900">
-                      {selectedMarker.painter.name}
-                    </p>
-                    <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                      {selectedMarker.painter.location}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPainterId(null)}
-                    className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                    aria-label="Fechar mini card"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedMarker.painter.verified && (
-                    <span className="rounded-full bg-[#FDF3FA] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
-                      Verificado
-                    </span>
-                  )}
-                  {selectedMarker.painter.topRated && (
-                    <span className="rounded-full bg-[#9A077B] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
-                      Top Avaliado
-                    </span>
-                  )}
-                  {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700 ring-1 ring-amber-200">
-                      <Star className="mr-1 h-3 w-3 fill-current text-amber-500" />
-                      {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Resposta</p>
-                <p className="mt-1 text-xs font-black text-slate-900">{selectedMarker.painter.responseTime}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Especialidades</p>
-                <p className="mt-1 truncate text-xs font-black text-slate-900">{selectedMarker.painter.specialties.length || 0} areas</p>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Destaque do perfil</p>
-              <p className="mt-2 max-h-16 overflow-hidden text-sm font-medium leading-relaxed text-slate-700">
-                {selectedMarker.painter.description}
-              </p>
-            </div>
-
-            <div className="mt-3 rounded-2xl bg-[#000747] px-3 py-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#C7D2FE]">Atua em</p>
-              <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
-                {selectedSpecialtiesPreview}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onOpenPainter(selectedMarker.painter.id)}
-              className="mt-4 w-full rounded-2xl bg-[#9A077B] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#9A077B]/20 transition hover:bg-[#7F0665]"
-            >
-              {primaryActionLabel}
+              <span className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-900">
+                {selectedMarker.painter.name}
+              </span>
             </button>
-          </div>
+          ) : (
+            <div
+              className="absolute z-20 w-[280px] rounded-[28px] border border-slate-200 bg-white p-4 text-slate-900 shadow-[0_28px_80px_rgba(15,23,42,0.35)]"
+              style={popupStyle}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <img
+                  src={selectedMarker.painter.avatar}
+                  alt={selectedMarker.painter.name}
+                  className="h-14 w-14 rounded-2xl object-cover border border-slate-200 shadow-sm"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black uppercase tracking-wider text-slate-900">
+                        {selectedMarker.painter.name}
+                      </p>
+                      <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                        {selectedMarker.painter.location}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPainterId(null)}
+                      className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="Fechar mini card"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedMarker.painter.verified && (
+                      <span className="rounded-full bg-[#FDF3FA] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
+                        Verificado
+                      </span>
+                    )}
+                    {selectedMarker.painter.topRated && (
+                      <span className="rounded-full bg-[#9A077B] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
+                        Top Avaliado
+                      </span>
+                    )}
+                    {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700 ring-1 ring-amber-200">
+                        <Star className="mr-1 h-3 w-3 fill-current text-amber-500" />
+                        {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Resposta</p>
+                  <p className="mt-1 text-xs font-black text-slate-900">{selectedMarker.painter.responseTime}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Especialidades</p>
+                  <p className="mt-1 truncate text-xs font-black text-slate-900">{selectedMarker.painter.specialties.length || 0} areas</p>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Destaque do perfil</p>
+                <p className="mt-2 max-h-16 overflow-hidden text-sm font-medium leading-relaxed text-slate-700">
+                  {selectedMarker.painter.description}
+                </p>
+              </div>
+
+              <div className="mt-3 rounded-2xl bg-[#000747] px-3 py-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#C7D2FE]">Atua em</p>
+                <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
+                  {selectedSpecialtiesPreview}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onOpenPainter(selectedMarker.painter.id)}
+                className="mt-4 w-full rounded-2xl bg-[#9A077B] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#9A077B]/20 transition hover:bg-[#7F0665]"
+              >
+                {primaryActionLabel}
+              </button>
+            </div>
+          )
         )}
 
         {visibleMarkers.length === 0 && isResolvingLocations && (

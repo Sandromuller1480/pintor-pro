@@ -81,7 +81,8 @@ SELECT
   a.auth_user_id AS portfolio_owner_id,
   a.experience_time,
   a.category_level,
-  a.subscription_plan
+  a.subscription_plan,
+  a.gender
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

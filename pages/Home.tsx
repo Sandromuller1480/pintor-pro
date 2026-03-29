@@ -228,6 +228,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                 onOpenDirectory={() => setPage(Page.FindPainter)}
                 onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
                 onVisiblePaintersChange={(visiblePainters) => setVisibleHomePainterCount(visiblePainters.length)}
+                variant="home"
               />
 
               {/* Badge de Pintores na Area */}

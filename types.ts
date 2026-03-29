@@ -3,6 +3,7 @@ export interface Painter {
   id: string;
   applicationId?: string;
   name: string;
+  gender?: 'feminino' | 'masculino';
   location: string;
   rating: number;
   reviewsCount: number;
