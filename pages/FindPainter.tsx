@@ -8,6 +8,34 @@ interface FindPainterProps {
   setPage: NavigateToPage;
 }
 
+const normalizeText = (value: string) => (
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const matchesNormalizedTerm = (source: string, query: string) => {
+  const normalizedQuery = normalizeText(query);
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const normalizedSource = normalizeText(source);
+
+  if (normalizedSource.includes(normalizedQuery)) {
+    return true;
+  }
+
+  return normalizedQuery
+    .split(' ')
+    .every((term) => normalizedSource.includes(term));
+};
+
 export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [locationTerm, setLocationTerm] = useState('');
@@ -61,20 +89,25 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   }, [painters]);
 
   const filteredPainters = useMemo(() => {
-    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-    const normalizedLocationTerm = locationTerm.trim().toLowerCase();
+    const normalizedSearchTerm = normalizeText(searchTerm);
+    const normalizedLocationTerm = normalizeText(locationTerm);
 
     return painters.filter((painter) => {
-      const matchesSearch = !normalizedSearchTerm ||
-        painter.name.toLowerCase().includes(normalizedSearchTerm) ||
-        painter.description.toLowerCase().includes(normalizedSearchTerm) ||
-        painter.specialties.some((specialty) => specialty.toLowerCase().includes(normalizedSearchTerm));
+      const painterSearchIndex = [
+        painter.name,
+        painter.description,
+        painter.location,
+        ...(painter.specialties ?? [])
+      ].join(' ');
 
-      const matchesLocation = !normalizedLocationTerm ||
-        painter.location.toLowerCase().includes(normalizedLocationTerm);
+      const matchesSearch = !normalizedSearchTerm || matchesNormalizedTerm(painterSearchIndex, normalizedSearchTerm);
+
+      const matchesLocation = !normalizedLocationTerm || matchesNormalizedTerm(painter.location, normalizedLocationTerm);
 
       const matchesSpecialties = selectedSpecialties.length === 0 ||
-        selectedSpecialties.every((specialty) => painter.specialties.includes(specialty));
+        selectedSpecialties.every((specialty) => (
+          painter.specialties.some((painterSpecialty) => normalizeText(painterSpecialty) === normalizeText(specialty))
+        ));
 
       const matchesVerified = !onlyVerified || painter.verified;
       const matchesTopRated = !onlyTopRated || painter.topRated;
