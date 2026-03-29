@@ -183,7 +183,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                           type="checkbox"
                           checked={selectedSpecialties.includes(specialty)}
                           onChange={() => toggleSpecialty(specialty)}
-                          className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                          className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                         />
                         <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{specialty}</span>
                       </label>
@@ -201,7 +201,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                         type="checkbox"
                         checked={onlyVerified}
                         onChange={(e) => setOnlyVerified(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                        className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Verificado</span>
                     </label>
@@ -210,7 +210,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                         type="checkbox"
                         checked={onlyTopRated}
                         onChange={(e) => setOnlyTopRated(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                        className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
                     </label>
