@@ -537,6 +537,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     : null;
   const locationLabel = selectedMarker?.painter.location ?? hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
   const visiblePainterCount = visibleMarkers.length;
+  const selectedSpecialtiesPreview = selectedMarker?.painter.specialties.slice(0, 2).join(' • ') || 'Especialidades sob consulta';
   const popupStyle = useMemo(() => {
     if (!selectedMarker || containerSize.width <= 0 || containerSize.height <= 0) {
       return null;
@@ -656,7 +657,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
 
         {selectedMarker && popupStyle && (
           <div
-            className="absolute z-20 w-[260px] rounded-[28px] border border-white/20 bg-slate-950/92 p-4 text-white shadow-2xl backdrop-blur-md"
+            className="absolute z-20 w-[280px] rounded-[28px] border border-slate-200 bg-white p-4 text-slate-900 shadow-[0_28px_80px_rgba(15,23,42,0.35)]"
             style={popupStyle}
             onPointerDown={(event) => {
               event.stopPropagation();
@@ -666,22 +667,22 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
               <img
                 src={selectedMarker.painter.avatar}
                 alt={selectedMarker.painter.name}
-                className="h-14 w-14 rounded-2xl object-cover border border-white/10"
+                className="h-14 w-14 rounded-2xl object-cover border border-slate-200 shadow-sm"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-black uppercase tracking-wider">
+                    <p className="truncate text-sm font-black uppercase tracking-wider text-slate-900">
                       {selectedMarker.painter.name}
                     </p>
-                    <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-300">
+                    <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500">
                       {selectedMarker.painter.location}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSelectedPainterId(null)}
-                    className="rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                     aria-label="Fechar mini card"
                   >
                     <X size={14} />
@@ -690,18 +691,18 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedMarker.painter.verified && (
-                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#F7D3EF]">
+                    <span className="rounded-full bg-[#FDF3FA] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
                       Verificado
                     </span>
                   )}
                   {selectedMarker.painter.topRated && (
-                    <span className="rounded-full bg-[#9A077B] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                    <span className="rounded-full bg-[#9A077B] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
                       Top Avaliado
                     </span>
                   )}
                   {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                      <Star className="mr-1 h-3 w-3 fill-current text-amber-300" />
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700 ring-1 ring-amber-200">
+                      <Star className="mr-1 h-3 w-3 fill-current text-amber-500" />
                       {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
                     </span>
                   )}
@@ -709,9 +710,30 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
               </div>
             </div>
 
-            <p className="mt-3 max-h-10 overflow-hidden text-sm text-slate-300">
-              {selectedMarker.painter.description}
-            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Resposta</p>
+                <p className="mt-1 text-xs font-black text-slate-900">{selectedMarker.painter.responseTime}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Especialidades</p>
+                <p className="mt-1 truncate text-xs font-black text-slate-900">{selectedMarker.painter.specialties.length || 0} areas</p>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Destaque do perfil</p>
+              <p className="mt-2 max-h-16 overflow-hidden text-sm font-medium leading-relaxed text-slate-700">
+                {selectedMarker.painter.description}
+              </p>
+            </div>
+
+            <div className="mt-3 rounded-2xl bg-[#000747] px-3 py-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#C7D2FE]">Atua em</p>
+              <p className="mt-1 text-xs font-black uppercase tracking-wide text-white">
+                {selectedSpecialtiesPreview}
+              </p>
+            </div>
 
             <button
               type="button"
