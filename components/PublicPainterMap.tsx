@@ -493,12 +493,31 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     setCenter(worldToLatLng(nextCenterWorld, clampedZoom));
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
+  useEffect(() => {
+    const mapElement = containerRef.current;
 
-    const nextZoom = event.deltaY < 0 ? zoom + 1 : zoom - 1;
-    applyZoom(nextZoom, event.nativeEvent.offsetX, event.nativeEvent.offsetY);
-  };
+    if (!mapElement) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const bounds = mapElement.getBoundingClientRect();
+      const anchorX = event.clientX - bounds.left;
+      const anchorY = event.clientY - bounds.top;
+      const nextZoom = event.deltaY < 0 ? zoom + 1 : zoom - 1;
+
+      applyZoom(nextZoom, anchorX, anchorY);
+    };
+
+    mapElement.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      mapElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [applyZoom, zoom]);
 
   return (
     <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
@@ -511,7 +530,6 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         onPointerLeave={() => {
           interactionRef.current.isDragging = false;
         }}
-        onWheel={handleWheel}
       >
         {tiles.map((tile) => (
           <img
