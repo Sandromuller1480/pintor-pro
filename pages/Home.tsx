@@ -29,6 +29,19 @@ interface HomeProps {
   setPage: NavigateToPage;
 }
 
+const MAP_PIN_POSITIONS = [
+  { top: '35%', left: '25%' },
+  { top: '60%', left: '65%' },
+  { top: '25%', left: '58%' }
+] as const;
+
+const formatMetricValue = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
+
+const getPainterFirstName = (name: string) => {
+  const firstName = name.trim().split(/\s+/)[0];
+  return firstName ? firstName.toUpperCase() : 'PINTOR';
+};
+
 export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [imgError, setImgError] = useState(false);
@@ -40,9 +53,15 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
   useEffect(() => {
     async function loadPainters() {
-      const data = await paintersService.getAll();
-      setPainters(data.slice(0, 3)); // Mostrar apenas os 3 primeiros na Home
-      setLoading(false);
+      try {
+        const data = await paintersService.getAll();
+        setPainters(data);
+      } catch (error) {
+        console.error('Erro ao carregar pintores na home:', error);
+        setPainters([]);
+      } finally {
+        setLoading(false);
+      }
     }
     loadPainters();
   }, []);
@@ -65,6 +84,44 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
     setIsClientLoginModalOpen(true);
   };
+
+  const featuredPainters = painters.slice(0, 3);
+  const mapPainters = painters.slice(0, 2);
+  const socialProofPainters = painters.slice(0, 4);
+  const totalPainters = painters.length;
+  const verifiedPainters = painters.filter((painter) => painter.verified).length;
+  const topRatedPainters = painters.filter((painter) => painter.topRated).length;
+  const totalReviews = painters.reduce((total, painter) => total + Math.max(0, painter.reviewsCount), 0);
+  const ratedPainters = painters.filter((painter) => painter.reviewsCount > 0 && painter.rating > 0);
+  const averageRating = ratedPainters.length > 0
+    ? ratedPainters.reduce((total, painter) => total + painter.rating, 0) / ratedPainters.length
+    : 0;
+  const uniqueLocations = Array.from(
+    new Set(
+      painters
+        .map((painter) => painter.location.trim())
+        .filter(Boolean)
+    )
+  );
+  const uniqueSpecialties = Array.from(
+    new Set(
+      painters
+        .flatMap((painter) => painter.specialties ?? [])
+        .map((specialty) => specialty.trim())
+        .filter(Boolean)
+    )
+  );
+  const leadLocationLabel = uniqueLocations[0] ?? 'Brasil';
+  const hasDirectoryData = totalPainters > 0;
+  const totalPaintersLabel = formatMetricValue(totalPainters);
+  const verifiedPaintersLabel = formatMetricValue(verifiedPainters);
+  const topRatedPaintersLabel = formatMetricValue(topRatedPainters);
+  const totalReviewsLabel = formatMetricValue(totalReviews);
+  const uniqueLocationsLabel = formatMetricValue(uniqueLocations.length);
+  const uniqueSpecialtiesLabel = formatMetricValue(uniqueSpecialties.length);
+  const socialProofLabel = totalReviews > 0 && averageRating > 0
+    ? `${averageRating.toFixed(1)} de media em ${totalReviewsLabel} avaliacoes publicas`
+    : `${totalPaintersLabel} perfis publicados na vitrine`;
 
   return (
     <div className="overflow-x-hidden">
@@ -113,13 +170,26 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               <div className="flex items-center gap-8 pt-8">
                 <div className="flex -space-x-3">
-                  {[1, 2, 3, 4].map(i => <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} className="w-12 h-12 rounded-full border-4 border-white shadow-sm" />)}
+                  {socialProofPainters.length > 0 ? (
+                    socialProofPainters.map((painter) => (
+                      <img
+                        key={painter.id}
+                        src={painter.avatar}
+                        alt={painter.name}
+                        className="w-12 h-12 rounded-full border-4 border-white shadow-sm object-cover"
+                      />
+                    ))
+                  ) : (
+                    [1, 2, 3, 4].map((item) => (
+                      <div key={item} className="w-12 h-12 rounded-full border-4 border-white shadow-sm bg-slate-100" />
+                    ))
+                  )}
                 </div>
                 <div>
                   <div className="flex text-yellow-400 mb-1">
                     <Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" />
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+1.200 Projetos Concluídos</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{socialProofLabel}</p>
                 </div>
               </div>
             </div>
@@ -163,7 +233,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      {/* SEÇÃO: MAPA REAL (DÚVIDA DO USUÁRIO) */}
+      {/* SEÇÃO: VITRINE COM DADOS REAIS */}
       <section className="py-32 bg-slate-900 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -176,34 +246,32 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   {/* Grid de Mapa */}
                   <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#C93EA6_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
-                  {/* Pins de Pintores Reais */}
-                  <div className="absolute top-[35%] left-[25%] group-hover:scale-110 transition-transform cursor-pointer">
-                    <div className="relative">
-                      <div className="w-4 h-4 bg-[#B21492] rounded-full animate-ping absolute inset-0"></div>
-                      <div className="w-4 h-4 bg-[#9A077B] rounded-full border-2 border-white shadow-xl"></div>
-                      <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2">
-                        <img src="https://i.pravatar.cc/100?u=1" className="w-8 h-8 rounded-lg" />
-                        <span className="text-[10px] font-black text-slate-900">RICARDO</span>
-                      </div>
-                    </div>
-                  </div>
+                  {mapPainters.map((painter, index) => {
+                    const pinPosition = MAP_PIN_POSITIONS[index] ?? MAP_PIN_POSITIONS[0];
 
-                  <div className="absolute top-[60%] left-[65%] group-hover:scale-110 transition-transform cursor-pointer">
-                    <div className="relative">
-                      <div className="w-4 h-4 bg-[#B21492] rounded-full animate-ping absolute inset-0"></div>
-                      <div className="w-4 h-4 bg-[#9A077B] rounded-full border-2 border-white shadow-xl"></div>
-                      <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2">
-                        <img src="https://i.pravatar.cc/100?u=2" className="w-8 h-8 rounded-lg" />
-                        <span className="text-[10px] font-black text-slate-900">ELAINE</span>
+                    return (
+                      <div
+                        key={painter.id}
+                        className="absolute group-hover:scale-110 transition-transform cursor-pointer"
+                        style={{ top: pinPosition.top, left: pinPosition.left }}
+                      >
+                        <div className="relative">
+                          <div className="w-4 h-4 bg-[#B21492] rounded-full animate-ping absolute inset-0"></div>
+                          <div className="w-4 h-4 bg-[#9A077B] rounded-full border-2 border-white shadow-xl"></div>
+                          <div className="absolute -top-14 -left-10 bg-white p-2 rounded-xl shadow-2xl flex items-center gap-2 max-w-[140px]">
+                            <img src={painter.avatar} alt={painter.name} className="w-8 h-8 rounded-lg object-cover" />
+                            <span className="text-[10px] font-black text-slate-900 truncate">{getPainterFirstName(painter.name)}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
 
                   {/* Camada de UI */}
                   <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
                     <div className="bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-700 flex items-center gap-3">
                       <Navigation size={16} className="text-[#B21492]" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">São Paulo, BR</span>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest max-w-[11rem] truncate">{leadLocationLabel}</span>
                     </div>
                     <button onClick={() => setPage(Page.FindPainter)} className="bg-[#9A077B] text-white p-3 rounded-2xl shadow-xl shadow-[#B21492]/20">
                       <Search size={20} />
@@ -214,27 +282,29 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               {/* Badge de Profissionais Online */}
               <div className="absolute -top-10 -right-10 bg-[#9A077B] text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
-                <p className="text-4xl font-black mb-1">+380</p>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Online agora</p>
+                <p className="text-4xl font-black mb-1">{totalPaintersLabel}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Perfis ativos</p>
               </div>
             </div>
 
             <div className="order-1 lg:order-2 space-y-8">
-              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Geolocalização PRO</h2>
+              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Vitrine Publica</h2>
               <h3 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none">
-                O melhor pintor <br /> está <span className="text-[#B21492] underline decoration-slate-700">do seu lado.</span>
+                {hasDirectoryData ? `${totalPaintersLabel} perfis reais` : 'A vitrine publica'} <br /> ja publicados <span className="text-[#B21492] underline decoration-slate-700">na plataforma.</span>
               </h3>
               <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-md">
-                Nossa tecnologia cruza sua localização com a agenda dos pintores de elite, garantindo rapidez no orçamento e na execução.
+                {hasDirectoryData
+                  ? `Hoje a busca publica reune ${totalPaintersLabel} pintores, ${verifiedPaintersLabel} verificados, ${uniqueSpecialtiesLabel} especialidades cadastradas e presenca em ${uniqueLocationsLabel} regioes da vitrine.`
+                  : 'Os perfis aprovados aparecem aqui com cidade, especialidades, portfolio e selos de confianca.'}
               </p>
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Busca por KM de distância</span>
+                  <span className="font-bold text-lg">Filtro por cidade, especialidade e palavras-chave</span>
                 </div>
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Tempo de resposta em minutos</span>
+                  <span className="font-bold text-lg">Perfis com selos, portfolio e avaliacoes publicas</span>
                 </div>
               </div>
             </div>
@@ -248,20 +318,20 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
             <div className="space-y-4">
-              <div className="text-5xl font-black text-[#B21492] tracking-tighter">+2.500</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pintores Elite</div>
+              <div className="text-5xl font-black text-[#B21492] tracking-tighter">{totalPaintersLabel}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Perfis Publicados</div>
             </div>
             <div className="space-y-4">
-              <div className="text-5xl font-black text-[#B21492] tracking-tighter">R$ 18M</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Investidos em Qualidade</div>
+              <div className="text-5xl font-black text-[#B21492] tracking-tighter">{verifiedPaintersLabel}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pintores Verificados</div>
             </div>
             <div className="space-y-4">
-              <div className="text-5xl font-black text-[#B21492] tracking-tighter">100%</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pagamento Protegido</div>
+              <div className="text-5xl font-black text-[#B21492] tracking-tighter">{totalReviewsLabel}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Avaliacoes Publicas</div>
             </div>
             <div className="space-y-4">
-              <div className="text-5xl font-black text-[#B21492] tracking-tighter">Brasil</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Atendimento Nacional</div>
+              <div className="text-5xl font-black text-[#B21492] tracking-tighter">{topRatedPainters > 0 ? topRatedPaintersLabel : uniqueLocationsLabel}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{topRatedPainters > 0 ? 'Top Avaliados' : 'Regioes Ativas'}</div>
             </div>
           </div>
         </div>
@@ -308,7 +378,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             {loading ? (
               <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando Elite...</div>
             ) : (
-                painters.map((painter, idx) => (
+                featuredPainters.map((painter, idx) => (
                 <PainterCard key={idx} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
               ))
             )}
