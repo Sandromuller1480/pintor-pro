@@ -208,13 +208,16 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             </p>
           </div>
 
-          <PublicPainterMap
-            painters={filteredPainters}
-            onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
-            onVisiblePaintersChange={(visiblePainters) => setVisiblePainterIds(visiblePainters.map((painter) => painter.id))}
-            primaryActionLabel="Entrar em contato"
-            showDirectoryButton={false}
-          />
+          <div className="mx-auto max-w-6xl">
+            <PublicPainterMap
+              painters={filteredPainters}
+              onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
+              onVisiblePaintersChange={(visiblePainters) => setVisiblePainterIds(visiblePainters.map((painter) => painter.id))}
+              primaryActionLabel="Entrar em contato"
+              showDirectoryButton={false}
+              size="compact"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">

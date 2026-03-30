@@ -32,6 +32,7 @@ interface PublicPainterMapProps {
   primaryActionLabel?: string;
   showDirectoryButton?: boolean;
   variant?: 'default' | 'home';
+  size?: 'default' | 'compact';
 }
 
 const TILE_SIZE = 256;
@@ -250,9 +251,13 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   onVisiblePaintersChange,
   primaryActionLabel = 'Entrar em contato',
   showDirectoryButton = true,
-  variant = 'default'
+  variant = 'default',
+  size = 'default'
 }) => {
   const isHomeVariant = variant === 'home';
+  const mapViewportClassName = size === 'compact'
+    ? 'aspect-[16/8.8] md:aspect-[16/7.5] lg:aspect-[16/6.8]'
+    : 'aspect-[16/11]';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef({
     isDragging: false,
@@ -621,7 +626,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
       <div
         ref={containerRef}
-        className="relative aspect-[16/11] rounded-[40px] overflow-hidden bg-slate-900 touch-none cursor-grab active:cursor-grabbing"
+        className={`relative ${mapViewportClassName} rounded-[40px] overflow-hidden bg-slate-900 touch-none cursor-grab active:cursor-grabbing`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
