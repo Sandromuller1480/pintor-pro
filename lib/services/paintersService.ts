@@ -118,6 +118,9 @@ function mapPainterRowToPainter(item: any): Painter {
         categoryLevel: item.category_level ?? undefined,
         subscriptionPlan: item.subscription_plan ?? undefined,
         portfolioOwnerId: item.portfolio_owner_id ?? item.auth_user_id ?? undefined,
+        isOnline: typeof item.is_online === 'boolean'
+            ? item.is_online
+            : undefined,
         createdAt: item.created_at ?? undefined,
         coordinates: item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }

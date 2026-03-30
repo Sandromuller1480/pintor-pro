@@ -38,6 +38,15 @@ USING (
 
 GRANT SELECT ON public.painter_reviews TO anon, authenticated;
 
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS is_online BOOLEAN NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS idx_applications_last_seen_at
+  ON public.applications(last_seen_at DESC);
+
 CREATE OR REPLACE VIEW public.painter_directory_public AS
 SELECT
   a.id,
@@ -82,7 +91,14 @@ SELECT
   a.experience_time,
   a.category_level,
   a.subscription_plan,
-  a.gender
+  a.gender,
+  (
+    COALESCE(a.is_online, false)
+    AND COALESCE(
+      a.last_seen_at >= timezone('utc'::text, now()) - interval '3 minutes',
+      false
+    )
+  ) AS is_online
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

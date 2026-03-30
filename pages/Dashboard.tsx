@@ -15,6 +15,7 @@ import {
   fetchVisitItems,
   normalizeChatMessagesError,
   normalizeChatThreadsError,
+  updatePainterPresence,
   uploadPainterMedia
 } from '../features/dashboard/api';
 import { DashboardAgendaTab } from '../features/dashboard/components/DashboardAgendaTab';
@@ -275,6 +276,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     return () => {
       isMounted = false;
+    };
+  }, [currentProfile?.applicationId]);
+
+  useEffect(() => {
+    if (!currentProfile?.applicationId) {
+      return;
+    }
+
+    let isDisposed = false;
+    const presenceHeartbeatMs = 60_000;
+
+    const syncPresence = async (isOnline: boolean) => {
+      try {
+        await updatePainterPresence(currentProfile.applicationId, isOnline);
+      } catch (error) {
+        if (!isDisposed) {
+          console.error(`Erro ao atualizar presenca do pintor (${isOnline ? 'online' : 'offline'}):`, error);
+        }
+      }
+    };
+
+    void syncPresence(true);
+
+    const heartbeatId = window.setInterval(() => {
+      void syncPresence(true);
+    }, presenceHeartbeatMs);
+
+    return () => {
+      isDisposed = true;
+      window.clearInterval(heartbeatId);
+      void updatePainterPresence(currentProfile.applicationId, false).catch((error) => {
+        console.error('Erro ao marcar pintor como offline no encerramento do painel:', error);
+      });
     };
   }, [currentProfile?.applicationId]);
 
@@ -567,6 +601,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setIsSignOut(true);
 
     try {
+      if (currentProfile?.applicationId) {
+        try {
+          await updatePainterPresence(currentProfile.applicationId, false);
+        } catch (presenceError) {
+          console.error('Erro ao marcar pintor como offline antes do logout:', presenceError);
+        }
+      }
+
       const { error } = await supabase.auth.signOut();
 
       if (error) {

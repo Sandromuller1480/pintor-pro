@@ -158,6 +158,24 @@ export const fetchCurrentPainterProfile = async (email: string): Promise<Current
   };
 };
 
+export const updatePainterPresence = async (applicationId: string, isOnline: boolean) => {
+  if (!applicationId) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('applications')
+    .update({
+      is_online: isOnline,
+      last_seen_at: new Date().toISOString()
+    })
+    .eq('id', applicationId);
+
+  if (error) {
+    throw error;
+  }
+};
+
 type UploadPainterMediaParams = {
   file: File;
   folder: 'foto-perfil' | 'foto-capa';

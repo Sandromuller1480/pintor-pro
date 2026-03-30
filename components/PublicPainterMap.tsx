@@ -676,14 +676,16 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         {visibleMarkers.map((marker) => {
           const isSelected = selectedPainterId === marker.painter.id;
           const markerPalette = !isHomeVariant
-            ? marker.painter.gender === 'masculino'
-              ? HOME_MARKER_PALETTES.masculine
-              : DEFAULT_MARKER_PALETTE
-            : !marker.painter.portfolioOwnerId
+            ? marker.painter.isOnline === false
               ? HOME_MARKER_PALETTES.inactive
               : marker.painter.gender === 'masculino'
                 ? HOME_MARKER_PALETTES.masculine
-                : HOME_MARKER_PALETTES.feminine;
+                : DEFAULT_MARKER_PALETTE
+            : marker.painter.isOnline === false || !marker.painter.portfolioOwnerId
+              ? HOME_MARKER_PALETTES.inactive
+              : marker.painter.gender === 'masculino'
+              ? HOME_MARKER_PALETTES.masculine
+              : HOME_MARKER_PALETTES.feminine;
 
           return (
             <button
