@@ -256,8 +256,14 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
 }) => {
   const isHomeVariant = variant === 'home';
   const mapViewportClassName = size === 'compact'
-    ? 'aspect-[16/8.8] md:aspect-[16/7.5] lg:aspect-[16/6.8]'
+    ? 'aspect-[16/9.4] md:aspect-[16/8.1] lg:aspect-[16/7.3]'
     : 'aspect-[16/11]';
+  const frameClassName = size === 'compact'
+    ? 'rounded-[34px] bg-white p-[6px] border border-slate-200/80 shadow-[0_18px_48px_rgba(15,23,42,0.08)]'
+    : 'bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl';
+  const mapSurfaceClassName = size === 'compact'
+    ? 'rounded-[30px]'
+    : 'rounded-[40px]';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef({
     isDragging: false,
@@ -623,10 +629,10 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   };
 
   return (
-    <div className="bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl">
+    <div className={frameClassName}>
       <div
         ref={containerRef}
-        className={`relative ${mapViewportClassName} rounded-[40px] overflow-hidden bg-slate-900 touch-none cursor-grab active:cursor-grabbing`}
+        className={`relative ${mapViewportClassName} ${mapSurfaceClassName} overflow-hidden bg-slate-900 touch-none cursor-grab active:cursor-grabbing`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

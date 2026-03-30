@@ -208,7 +208,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
             </p>
           </div>
 
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-[82rem]">
             <PublicPainterMap
               painters={filteredPainters}
               onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
