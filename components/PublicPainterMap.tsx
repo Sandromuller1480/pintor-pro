@@ -578,6 +578,17 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   const locationLabel = selectedMarker?.painter.location ?? hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
   const visiblePainterCount = visibleMarkers.length;
   const selectedSpecialtiesPreview = selectedMarker?.painter.specialties.slice(0, 2).join(' • ') || 'Especialidades sob consulta';
+  const selectedProfileHighlight = useMemo(() => {
+    const description = selectedMarker?.painter.description?.trim();
+
+    if (!description) {
+      return '';
+    }
+
+    return description
+      .replace(/^Especialidades:\s*.*?\.\s*/i, '')
+      .trim();
+  }, [selectedMarker]);
   const popupStyle = useMemo(() => {
     if (!selectedMarker || containerSize.width <= 0 || containerSize.height <= 0) {
       return null;
@@ -796,12 +807,14 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Destaque do perfil</p>
-                <p className="mt-2 max-h-16 overflow-hidden text-sm font-medium leading-relaxed text-slate-700">
-                  {selectedMarker.painter.description}
-                </p>
-              </div>
+              {selectedProfileHighlight && (
+                <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">Destaque do perfil</p>
+                  <p className="mt-2 max-h-16 overflow-hidden text-sm font-medium leading-relaxed text-slate-700">
+                    {selectedProfileHighlight}
+                  </p>
+                </div>
+              )}
 
               <div className="mt-3 rounded-2xl bg-[#000747] px-3 py-2">
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#C7D2FE]">Atua em</p>
