@@ -259,7 +259,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
     ? 'aspect-[16/9.4] md:aspect-[16/8.1] lg:aspect-[16/7.3]'
     : 'aspect-[16/11]';
   const frameClassName = size === 'compact'
-    ? 'rounded-[34px] bg-white p-[6px] border border-slate-200/80 shadow-[0_18px_48px_rgba(15,23,42,0.08)]'
+    ? 'rounded-[34px] bg-[linear-gradient(180deg,rgba(201,62,166,0.58)_0%,rgba(201,62,166,0.2)_42%,rgba(0,7,71,0.2)_56%,rgba(0,7,71,0.72)_100%)] p-[6px] shadow-[0_18px_48px_rgba(15,23,42,0.08)]'
     : 'bg-slate-800 rounded-[50px] p-4 border border-slate-700 shadow-3xl';
   const mapSurfaceClassName = size === 'compact'
     ? 'rounded-[30px]'
