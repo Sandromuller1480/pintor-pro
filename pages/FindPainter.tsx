@@ -53,9 +53,11 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadPainters() {
-      setLoading(true);
-      setErrorMessage('');
+    async function loadPainters(silent = false) {
+      if (!silent) {
+        setLoading(true);
+        setErrorMessage('');
+      }
 
       try {
         const data = await paintersService.getAll();
@@ -67,18 +69,33 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
         console.error('Erro ao carregar vitrine de pintores:', error);
         if (!isMounted) return;
         setPainters([]);
-        setErrorMessage('Nao foi possivel carregar os pintores agora.');
+        if (!silent) {
+          setErrorMessage('Nao foi possivel carregar os pintores agora.');
+        }
       } finally {
-        if (isMounted) {
+        if (isMounted && !silent) {
           setLoading(false);
         }
       }
     }
 
+    const handleWindowFocus = () => {
+      void loadPainters(true);
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadPainters(true);
+      }
+    }, 30_000);
+
+    window.addEventListener('focus', handleWindowFocus);
     void loadPainters();
 
     return () => {
       isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
 

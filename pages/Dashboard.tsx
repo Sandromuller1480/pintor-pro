@@ -177,7 +177,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       const [portfolioResult, quotesResult, profileResult] = await Promise.allSettled([
         fetchPortfolioItems(data.user.id),
         fetchQuoteItems(data.user.id),
-        fetchCurrentPainterProfile(normalizedEmail)
+        fetchCurrentPainterProfile({
+          email: normalizedEmail,
+          userId: data.user.id
+        })
       ]);
 
       if (!isMounted) return;

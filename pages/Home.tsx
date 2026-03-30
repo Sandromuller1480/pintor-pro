@@ -35,18 +35,54 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
 
   useEffect(() => {
-    async function loadPainters() {
+    let isMounted = true;
+
+    async function loadPainters(silent = false) {
+      if (!silent) {
+        setLoading(true);
+      }
+
       try {
         const data = await paintersService.getAll();
+
+        if (!isMounted) {
+          return;
+        }
+
         setPainters(data);
       } catch (error) {
         console.error('Erro ao carregar pintores na home:', error);
+
+        if (!isMounted) {
+          return;
+        }
+
         setPainters([]);
       } finally {
-        setLoading(false);
+        if (isMounted && !silent) {
+          setLoading(false);
+        }
       }
     }
-    loadPainters();
+
+    const handleWindowFocus = () => {
+      void loadPainters(true);
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadPainters(true);
+      }
+    }, 30_000);
+
+    window.addEventListener('focus', handleWindowFocus);
+    void loadPainters();
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
 
   const handleHireNowClick = async () => {

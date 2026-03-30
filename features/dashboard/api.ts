@@ -9,6 +9,11 @@ import {
 } from './utils';
 import { CurrentPainterProfile, SavedChatMessage, SavedChatThread, SavedVisitRequest } from './types';
 
+type FetchCurrentPainterProfileParams = {
+  email: string;
+  userId?: string;
+};
+
 export const fetchPortfolioItems = async (userId: string) => {
   const { data, error } = await supabase
     .from('obras')
@@ -106,21 +111,49 @@ export const buildVisitErrorMessage = (error: unknown) => {
     : 'Nao foi possivel carregar sua agenda de visitas agora.';
 };
 
-export const fetchCurrentPainterProfile = async (email: string): Promise<CurrentPainterProfile | null> => {
-  if (!email) return null;
+const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
+  if (!applications.length) {
+    return null;
+  }
 
-  const { data, error } = await supabase
+  const normalizedEmail = email.trim().toLowerCase();
+  const byUserId = userId
+    ? applications.filter((application) => application.auth_user_id === userId)
+    : [];
+  const byEmail = applications.filter((application) => (
+    typeof application.email === 'string' && application.email.trim().toLowerCase() === normalizedEmail
+  ));
+
+  const pickAccepted = (items: any[]) => items.find((application) => application.status === 'accepted') ?? null;
+
+  return pickAccepted(byUserId)
+    ?? byUserId[0]
+    ?? pickAccepted(byEmail)
+    ?? byEmail[0]
+    ?? applications[0]
+    ?? null;
+};
+
+export const fetchCurrentPainterProfile = async ({
+  email,
+  userId
+}: FetchCurrentPainterProfileParams): Promise<CurrentPainterProfile | null> => {
+  if (!email && !userId) return null;
+
+  const query = supabase
     .from('applications')
     .select('*')
-    .ilike('email', email)
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .order('created_at', { ascending: false });
+
+  const { data, error } = userId
+    ? await query.or(`auth_user_id.eq.${userId},email.ilike.${email}`)
+    : await query.ilike('email', email);
 
   if (error) {
     throw error;
   }
 
-  const application = (data?.[0] ?? null) as any;
+  const application = pickBestPainterApplication((data ?? []) as any[], email, userId);
 
   if (!application) {
     return null;
