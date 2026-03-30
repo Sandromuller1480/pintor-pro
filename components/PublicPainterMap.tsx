@@ -616,7 +616,10 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       lastClientY: event.clientY
     };
     hasUserInteractedRef.current = true;
-    setSelectedPainterId(null);
+
+    if (isHomeVariant) {
+      setSelectedPainterId(null);
+    }
 
     event.currentTarget.setPointerCapture(event.pointerId);
   };
