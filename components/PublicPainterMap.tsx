@@ -804,6 +804,11 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                         Online agora
                       </span>
                     )}
+                    {selectedMarker.painter.isOnline === false && (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-600 ring-1 ring-slate-300">
+                        Pintor indisponivel
+                      </span>
+                    )}
                     {selectedMarker.painter.verified && (
                       <span className="rounded-full bg-[#FDF3FA] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
                         Verificado
