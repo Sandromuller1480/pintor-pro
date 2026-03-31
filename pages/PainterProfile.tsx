@@ -383,12 +383,23 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                 alt={painter.name}
                 className="w-24 h-24 lg:w-32 lg:h-32 rounded-3xl border-4 border-white shadow-xl object-cover relative z-10"
               />
-              <div className="pb-2">
-                <div className="flex items-center gap-3 text-white mb-2">
-                  <h1 className="text-3xl font-black">{painter.name}</h1>
-                  {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
-                </div>
-                <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
+                <div className="pb-2">
+                  <div className="flex items-center gap-3 text-white mb-2">
+                    <h1 className="text-3xl font-black">{painter.name}</h1>
+                    {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
+                    {painter.isOnline === true && (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur-md">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
+                        Online agora
+                      </span>
+                    )}
+                    {painter.isOnline === false && (
+                      <span className="inline-flex items-center rounded-full border border-slate-300/25 bg-slate-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-100 backdrop-blur-md">
+                        Indisponivel
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
                   {hasRealReviews ? (
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
