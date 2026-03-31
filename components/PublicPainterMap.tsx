@@ -799,7 +799,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 </div>
               </div>
 
-              <div className="mt-2.5 flex items-center gap-1.5 whitespace-nowrap">
+              <div className="mt-2.5 flex items-center justify-center gap-1.5 whitespace-nowrap">
                 {selectedMarker.painter.verified && (
                   <span className="rounded-full bg-[#FDF3FA] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-[#9A077B] ring-1 ring-[#EFC6E3]">
                     Verificado
