@@ -41,7 +41,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
   const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
   const publicApplicationId = painter?.applicationId;
-  const canScheduleVisit = Boolean(publicApplicationId && isUuid(publicApplicationId));
+  const isPainterOffline = painter?.isOnline === false;
+  const hasSchedulableProfile = Boolean(publicApplicationId && isUuid(publicApplicationId));
+  const canScheduleVisit = hasSchedulableProfile && !isPainterOffline;
   const canStartChat = canScheduleVisit;
 
   const openProtectedClientAction = (action: 'chat' | 'visit') => {
@@ -384,6 +386,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           </div>
 
           <PainterActionsSidebar
+            isPainterOffline={isPainterOffline}
             canStartChat={canStartChat}
             canScheduleVisit={canScheduleVisit}
             checkingClientAction={checkingClientAction}

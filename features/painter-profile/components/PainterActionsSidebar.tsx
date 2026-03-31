@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Info, Loader2, MessageSquare, Shield } from 'lucide-react';
 
 interface PainterActionsSidebarProps {
+  isPainterOffline: boolean;
   canStartChat: boolean;
   canScheduleVisit: boolean;
   checkingClientAction: 'chat' | 'visit' | null;
@@ -9,6 +10,7 @@ interface PainterActionsSidebarProps {
 }
 
 export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
+  isPainterOffline,
   canStartChat,
   canScheduleVisit,
   checkingClientAction,
@@ -37,7 +39,11 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             type="button"
             onClick={() => void onProtectedClientAction('chat')}
             disabled={!canStartChat || checkingClientAction !== null}
-            className="w-full bg-[#9A077B] text-white py-5 rounded-2xl font-black text-lg hover:bg-[#7F0665] transition shadow-xl shadow-[#EFC6E3] flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
+            className={`w-full py-5 rounded-2xl font-black text-lg transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-100 ${
+              isPainterOffline
+                ? 'bg-[#94A3B8] text-white shadow-none'
+                : 'bg-[#9A077B] text-white hover:bg-[#7F0665] shadow-xl shadow-[#EFC6E3]'
+            }`}
           >
             {checkingClientAction === 'chat' ? (
               <>
@@ -53,7 +59,11 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             type="button"
             onClick={() => void onProtectedClientAction('visit')}
             disabled={!canScheduleVisit || checkingClientAction !== null}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-[#000747] transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"
+            className={`w-full py-5 rounded-2xl font-black text-lg transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-100 ${
+              isPainterOffline
+                ? 'bg-[#94A3B8] text-white shadow-none'
+                : 'bg-slate-900 text-white hover:bg-[#000747]'
+            }`}
           >
             {checkingClientAction === 'visit' ? (
               <>
