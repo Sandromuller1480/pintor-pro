@@ -151,6 +151,69 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   }, [painterId]);
 
   useEffect(() => {
+    const targetApplicationId = publicApplicationId && isUuid(publicApplicationId)
+      ? publicApplicationId
+      : painterId && isUuid(painterId)
+        ? painterId
+        : null;
+
+    if (!targetApplicationId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const refreshPainterPresence = async () => {
+      try {
+        const nextPainter = await paintersService.getById(targetApplicationId);
+
+        if (!isMounted || !nextPainter) {
+          return;
+        }
+
+        setPainter((currentPainter) => currentPainter ? { ...currentPainter, ...nextPainter } : nextPainter);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao atualizar status publico do pintor em tempo real:', error);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      void refreshPainterPresence();
+    };
+
+    const presenceIntervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void refreshPainterPresence();
+      }
+    }, 15_000);
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    const presenceChannel = supabase
+      .channel(`public-painter-profile-${targetApplicationId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'applications',
+        filter: `id=eq.${targetApplicationId}`
+      }, () => {
+        void refreshPainterPresence();
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(presenceIntervalId);
+      window.removeEventListener('focus', handleWindowFocus);
+      void supabase.removeChannel(presenceChannel);
+    };
+  }, [painterId, publicApplicationId]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadPortfolio() {
