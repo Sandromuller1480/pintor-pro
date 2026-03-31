@@ -796,38 +796,43 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                       <X size={14} />
                     </button>
                   </div>
-
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {selectedMarker.painter.isOnline && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 ring-1 ring-emerald-200">
-                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Online agora
-                      </span>
-                    )}
-                    {selectedMarker.painter.isOnline === false && (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-600 ring-1 ring-slate-300">
-                        Pintor indisponivel
-                      </span>
-                    )}
-                    {selectedMarker.painter.verified && (
-                      <span className="rounded-full bg-[#FDF3FA] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
-                        Verificado
-                      </span>
-                    )}
-                    {selectedMarker.painter.topRated && (
-                      <span className="rounded-full bg-[#9A077B] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
-                        Top Avaliado
-                      </span>
-                    )}
-                    {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
-                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-700 ring-1 ring-amber-200">
-                        <Star className="mr-1 h-3 w-3 fill-current text-amber-500" />
-                        {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
+
+              <div className="mt-2.5 flex items-center gap-1.5 whitespace-nowrap">
+                {selectedMarker.painter.verified && (
+                  <span className="rounded-full bg-[#FDF3FA] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-[#9A077B] ring-1 ring-[#EFC6E3]">
+                    Verificado
+                  </span>
+                )}
+                {selectedMarker.painter.isOnline && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-700 ring-1 ring-emerald-200">
+                    <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Online agora
+                  </span>
+                )}
+                {selectedMarker.painter.isOnline === false && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-slate-600 ring-1 ring-slate-300">
+                    Pintor indisponivel
+                  </span>
+                )}
+              </div>
+
+              {(selectedMarker.painter.topRated || (selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0)) && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {selectedMarker.painter.topRated && (
+                    <span className="rounded-full bg-[#9A077B] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
+                      Top Avaliado
+                    </span>
+                  )}
+                  {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-700 ring-1 ring-amber-200">
+                      <Star className="mr-1 h-3 w-3 fill-current text-amber-500" />
+                      {selectedMarker.painter.rating.toFixed(1)} ({selectedMarker.painter.reviewsCount})
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div className="rounded-2xl bg-slate-50 px-3 py-1.5 ring-1 ring-slate-100">
