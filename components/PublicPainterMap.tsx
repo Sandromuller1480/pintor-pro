@@ -244,6 +244,39 @@ const geocodeLocation = async (location: string): Promise<LatLng | null> => {
   return coordinates;
 };
 
+const formatLastActivityLabel = (value: string | undefined, isOnline?: boolean) => {
+  if (!value) {
+    return '';
+  }
+
+  const lastSeenDate = new Date(value);
+  const lastSeenTime = lastSeenDate.getTime();
+
+  if (Number.isNaN(lastSeenTime)) {
+    return '';
+  }
+
+  if (isOnline) {
+    return 'Atividade agora';
+  }
+
+  const diffMs = Date.now() - lastSeenTime;
+  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `Ultima atividade ha ${diffMinutes} min`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `Ultima atividade ha ${diffHours} h`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `Ultima atividade ha ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+};
+
 export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   painters,
   onOpenPainter,
@@ -578,6 +611,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   const locationLabel = selectedMarker?.painter.location ?? hoveredMarker?.painter.location ?? 'Arraste o mapa e use o zoom para explorar';
   const visiblePainterCount = visibleMarkers.length;
   const selectedSpecialtiesPreview = selectedMarker?.painter.specialties.slice(0, 2).join(' • ') || 'Especialidades sob consulta';
+  const selectedLastActivityLabel = formatLastActivityLabel(selectedMarker?.painter.lastSeenAt, selectedMarker?.painter.isOnline);
   const selectedProfileHighlight = useMemo(() => {
     const description = selectedMarker?.painter.description?.trim();
 
@@ -817,6 +851,12 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                   </span>
                 )}
               </div>
+
+              {selectedLastActivityLabel && (
+                <p className="mt-1.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                  {selectedLastActivityLabel}
+                </p>
+              )}
 
               {(selectedMarker.painter.topRated || (selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0)) && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">

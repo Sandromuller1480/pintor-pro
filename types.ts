@@ -19,6 +19,7 @@ export interface Painter {
   subscriptionPlan?: string;
   portfolioOwnerId?: string;
   isOnline?: boolean;
+  lastSeenAt?: string;
   createdAt?: string;
   coordinates?: {
     lat: number;

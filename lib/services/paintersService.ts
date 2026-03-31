@@ -121,6 +121,7 @@ function mapPainterRowToPainter(item: any): Painter {
         isOnline: typeof item.is_online === 'boolean'
             ? item.is_online
             : undefined,
+        lastSeenAt: item.last_seen_at ?? undefined,
         createdAt: item.created_at ?? undefined,
         coordinates: item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }

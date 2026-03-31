@@ -98,7 +98,8 @@ SELECT
       a.last_seen_at >= timezone('utc'::text, now()) - interval '3 minutes',
       false
     )
-  ) AS is_online
+  ) AS is_online,
+  a.last_seen_at
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 
