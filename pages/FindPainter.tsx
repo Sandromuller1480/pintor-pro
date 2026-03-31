@@ -48,6 +48,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [onlyTopRated, setOnlyTopRated] = useState(false);
+  const [onlyOnline, setOnlyOnline] = useState(false);
   const [visiblePainterIds, setVisiblePainterIds] = useState<string[] | null>(null);
 
   useEffect(() => {
@@ -132,10 +133,11 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
 
       const matchesVerified = !onlyVerified || painter.verified;
       const matchesTopRated = !onlyTopRated || painter.topRated;
+      const matchesOnline = !onlyOnline || painter.isOnline === true;
 
-      return matchesSearch && matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated;
+      return matchesSearch && matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated && matchesOnline;
     });
-  }, [appliedLocationTerm, appliedSearchTerm, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
+  }, [appliedLocationTerm, appliedSearchTerm, onlyOnline, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
 
   const filteredPainterIdsKey = useMemo(
     () => filteredPainters.map((painter) => painter.id).join('|'),
@@ -168,6 +170,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
     setSelectedSpecialties([]);
     setOnlyVerified(false);
     setOnlyTopRated(false);
+    setOnlyOnline(false);
   };
 
   const toggleSpecialty = (specialty: string) => {
@@ -285,6 +288,21 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                         className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Disponibilidade</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={onlyOnline}
+                        onChange={(e) => setOnlyOnline(e.target.checked)}
+                        className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
+                      />
+                      <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Somente online</span>
                     </label>
                   </div>
                 </div>

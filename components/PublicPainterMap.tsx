@@ -45,7 +45,7 @@ const DEFAULT_CENTER: LatLng = {
 };
 const GEOCODE_CACHE_PREFIX = 'pintor-pro:geocode:';
 const DEFAULT_POPUP_WIDTH = 260;
-const HOME_POPUP_WIDTH = 188;
+const HOME_POPUP_WIDTH = 214;
 
 const DEFAULT_MARKER_PALETTE = {
   pulse: 'rgba(178, 20, 146, 0.55)',
@@ -675,6 +675,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
 
         {visibleMarkers.map((marker) => {
           const isSelected = selectedPainterId === marker.painter.id;
+          const shouldShowOnlineHalo = marker.painter.isOnline === true;
           const markerPalette = !isHomeVariant
             ? marker.painter.isOnline === false
               ? HOME_MARKER_PALETTES.inactive
@@ -714,6 +715,12 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
               ))}
             >
               <div className="relative">
+                {shouldShowOnlineHalo && (
+                  <div
+                    className={`absolute inset-[-7px] rounded-full blur-[7px] ${isSelected ? 'opacity-65 scale-[1.95]' : 'opacity-45 scale-[1.8]'}`}
+                    style={{ backgroundColor: markerPalette.fill }}
+                  />
+                )}
                 <div
                   className={`absolute inset-0 rounded-full ${isSelected ? 'opacity-90 scale-125' : 'opacity-70 animate-ping'}`}
                   style={{ backgroundColor: markerPalette.pulse }}
@@ -731,7 +738,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
           isHomeVariant ? (
             <button
               type="button"
-              className="absolute z-20 flex w-[188px] items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-2.5 py-2 text-left text-slate-900 shadow-[0_18px_48px_rgba(15,23,42,0.26)] backdrop-blur-md transition hover:scale-[1.02]"
+              className="absolute z-20 flex w-[214px] items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-2.5 py-2 text-left text-slate-900 shadow-[0_18px_48px_rgba(15,23,42,0.26)] backdrop-blur-md transition hover:scale-[1.02]"
               style={popupStyle}
               onPointerDown={(event) => {
                 event.stopPropagation();
@@ -744,9 +751,17 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 alt={selectedMarker.painter.name}
                 className="h-10 w-10 shrink-0 rounded-full border border-slate-200 object-cover shadow-sm"
               />
-              <span className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-900">
-                {selectedMarker.painter.name}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-900">
+                  {selectedMarker.painter.name}
+                </span>
+                {selectedMarker.painter.isOnline && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-emerald-700 ring-1 ring-emerald-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Online agora
+                  </span>
+                )}
+              </div>
             </button>
           ) : (
             <div
@@ -783,6 +798,12 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                   </div>
 
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {selectedMarker.painter.isOnline && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 ring-1 ring-emerald-200">
+                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Online agora
+                      </span>
+                    )}
                     {selectedMarker.painter.verified && (
                       <span className="rounded-full bg-[#FDF3FA] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#9A077B] ring-1 ring-[#EFC6E3]">
                         Verificado
