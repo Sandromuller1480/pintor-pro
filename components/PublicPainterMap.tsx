@@ -65,9 +65,9 @@ const HOME_MARKER_PALETTES = {
     selectedFill: '#1C2478'
   },
   inactive: {
-    pulse: 'rgba(203, 213, 225, 0.7)',
-    fill: '#CBD5E1',
-    selectedFill: '#E2E8F0'
+    pulse: 'rgba(100, 116, 139, 0.48)',
+    fill: '#94A3B8',
+    selectedFill: '#64748B'
   }
 } as const;
 
