@@ -7,7 +7,7 @@ import {
   getSignedLegacyMediaUrl,
   PAINTER_MEDIA_BUCKET
 } from './utils';
-import { CurrentPainterProfile, SavedChatMessage, SavedChatThread, SavedVisitRequest } from './types';
+import { CurrentPainterProfile, PainterSettingsForm, SavedChatMessage, SavedChatThread, SavedVisitRequest } from './types';
 
 type FetchCurrentPainterProfileParams = {
   email: string;
@@ -187,7 +187,39 @@ export const fetchCurrentPainterProfile = async ({
     applicationStatus: application.status || null,
     categoryLevel: application.category_level || null,
     subscriptionPlan: application.subscription_plan || null,
-    subscriptionStatus: application.subscription_status || null
+    subscriptionStatus: application.subscription_status || null,
+    allowChat: application.allow_chat ?? true,
+    allowVisitRequests: application.allow_visit_requests ?? true,
+    pauseLeadIntake: application.pause_lead_intake ?? false,
+    emailNotifications: application.email_notifications ?? true,
+    dailySummaryEnabled: application.daily_summary_enabled ?? false
+  };
+};
+
+export const updatePainterSettings = async (applicationId: string, settings: PainterSettingsForm): Promise<PainterSettingsForm> => {
+  const { data, error } = await supabase
+    .from('applications')
+    .update({
+      allow_chat: settings.allowChat,
+      allow_visit_requests: settings.allowVisitRequests,
+      pause_lead_intake: settings.pauseLeadIntake,
+      email_notifications: settings.emailNotifications,
+      daily_summary_enabled: settings.dailySummaryEnabled
+    })
+    .eq('id', applicationId)
+    .select('allow_chat, allow_visit_requests, pause_lead_intake, email_notifications, daily_summary_enabled')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    allowChat: data.allow_chat ?? true,
+    allowVisitRequests: data.allow_visit_requests ?? true,
+    pauseLeadIntake: data.pause_lead_intake ?? false,
+    emailNotifications: data.email_notifications ?? true,
+    dailySummaryEnabled: data.daily_summary_enabled ?? false
   };
 };
 

@@ -39,6 +39,21 @@ ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS is_online BOOLEAN NOT NULL DEFAULT false;
 
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS allow_chat BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS allow_visit_requests BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS pause_lead_intake BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS daily_summary_enabled BOOLEAN NOT NULL DEFAULT false;
+
 CREATE INDEX IF NOT EXISTS idx_applications_last_seen_at
   ON public.applications(last_seen_at DESC);
 
@@ -94,6 +109,9 @@ SELECT
       false
     )
   ) AS is_online,
-  a.last_seen_at
+  a.last_seen_at,
+  COALESCE(a.allow_chat, true) AS allow_chat,
+  COALESCE(a.allow_visit_requests, true) AS allow_visit_requests,
+  COALESCE(a.pause_lead_intake, false) AS pause_lead_intake
 FROM public.applications AS a
 WHERE a.status = 'accepted';

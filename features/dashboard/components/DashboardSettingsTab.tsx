@@ -1,0 +1,249 @@
+import React, { useEffect, useState } from 'react';
+import {
+  BellRing,
+  Briefcase,
+  Clock3,
+  Loader2,
+  Mail,
+  MessageSquare,
+  PauseCircle,
+  Save,
+  ShieldCheck
+} from 'lucide-react';
+import { CurrentPainterProfile, FeedbackMessage, PainterSettingsForm } from '../types';
+import { getApplicationStatusLabel, getPlanLabel } from '../utils';
+
+interface DashboardSettingsTabProps {
+  currentProfile: CurrentPainterProfile | null;
+  feedback: FeedbackMessage | null;
+  isSaving: boolean;
+  onSave: (settings: PainterSettingsForm) => void;
+}
+
+type SettingsToggleCardProps = {
+  icon: typeof MessageSquare;
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+const SettingsToggleCard: React.FC<SettingsToggleCardProps> = ({
+  icon: Icon,
+  title,
+  description,
+  checked,
+  onChange
+}) => (
+  <label className="flex cursor-pointer items-start justify-between gap-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+    <div className="flex gap-4">
+      <div className={`mt-0.5 rounded-2xl p-3 ${checked ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'bg-slate-100 text-slate-500'}`}>
+        <Icon size={20} />
+      </div>
+      <div>
+        <h3 className="text-base font-black text-[#000747]">{title}</h3>
+        <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500">{description}</p>
+      </div>
+    </div>
+    <span
+      className={`relative mt-1 inline-flex h-7 w-12 flex-shrink-0 rounded-full transition ${
+        checked ? 'bg-[#9A077B]' : 'bg-slate-300'
+      }`}
+    >
+      <input
+        type="checkbox"
+        className="peer sr-only"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+          checked ? 'left-6' : 'left-1'
+        }`}
+      />
+    </span>
+  </label>
+);
+
+export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
+  currentProfile,
+  feedback,
+  isSaving,
+  onSave
+}) => {
+  const [form, setForm] = useState<PainterSettingsForm>({
+    allowChat: true,
+    allowVisitRequests: true,
+    pauseLeadIntake: false,
+    emailNotifications: true,
+    dailySummaryEnabled: false
+  });
+
+  useEffect(() => {
+    if (!currentProfile) {
+      return;
+    }
+
+    setForm({
+      allowChat: currentProfile.allowChat,
+      allowVisitRequests: currentProfile.allowVisitRequests,
+      pauseLeadIntake: currentProfile.pauseLeadIntake,
+      emailNotifications: currentProfile.emailNotifications,
+      dailySummaryEnabled: currentProfile.dailySummaryEnabled
+    });
+  }, [currentProfile]);
+
+  const updateField = <K extends keyof PainterSettingsForm>(field: K, value: PainterSettingsForm[K]) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: value
+    }));
+  };
+
+  const planLabel = getPlanLabel(currentProfile);
+  const statusLabel = getApplicationStatusLabel(currentProfile?.applicationStatus);
+  const locationLabel = currentProfile?.city
+    ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
+    : 'Localizacao nao informada';
+
+  return (
+    <div className="animate-in fade-in duration-500 space-y-8">
+      <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-[#9A077B]">Configuracoes operacionais</p>
+            <h2 className="text-3xl font-black text-[#000747]">Controle como voce aparece e atende dentro da plataforma.</h2>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
+              Essas preferencias afetam seu perfil publico em tempo real. Se voce pausar o recebimento de contatos,
+              os botoes de chat e agendamento ficam indisponiveis para clientes ate a reativacao.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSave(form)}
+            disabled={!currentProfile?.applicationId || isSaving}
+            className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#EFC6E3] transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSaving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
+            {isSaving ? 'Salvando...' : 'Salvar alteracoes'}
+          </button>
+        </div>
+
+        {feedback && (
+          <div
+            className={`mt-6 rounded-2xl border px-4 py-3 text-sm font-bold ${
+              feedback.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_0.95fr]">
+        <section className="space-y-8">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#9A077B]/10 p-3 text-[#9A077B]">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#000747]">Disponibilidade e atendimento</h3>
+                <p className="text-sm font-medium text-slate-500">Defina como clientes podem iniciar contato com voce.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <SettingsToggleCard
+                icon={MessageSquare}
+                title="Permitir contato por chat"
+                description="Quando desativado, o botao Chamar no Chat fica bloqueado no seu perfil publico."
+                checked={form.allowChat}
+                onChange={(checked) => updateField('allowChat', checked)}
+              />
+              <SettingsToggleCard
+                icon={Clock3}
+                title="Permitir agendamento de visita"
+                description="Controla se clientes podem solicitar visitas tecnicas diretamente pela sua pagina publica."
+                checked={form.allowVisitRequests}
+                onChange={(checked) => updateField('allowVisitRequests', checked)}
+              />
+              <SettingsToggleCard
+                icon={PauseCircle}
+                title="Pausar recebimento de novos contatos"
+                description="Desliga chat e agenda ao mesmo tempo, ideal para ferias, agenda lotada ou manutencao do atendimento."
+                checked={form.pauseLeadIntake}
+                onChange={(checked) => updateField('pauseLeadIntake', checked)}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#000747]/10 p-3 text-[#000747]">
+                <BellRing size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#000747]">Notificacoes</h3>
+                <p className="text-sm font-medium text-slate-500">Organize como voce quer acompanhar oportunidades no painel.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <SettingsToggleCard
+                icon={Mail}
+                title="Receber avisos por e-mail"
+                description="Mantem comunicacoes importantes de conversas, agenda e atualizacoes operacionais."
+                checked={form.emailNotifications}
+                onChange={(checked) => updateField('emailNotifications', checked)}
+              />
+              <SettingsToggleCard
+                icon={Briefcase}
+                title="Receber resumo diario"
+                description="Agrupa novas interacoes e status do painel em um resumo mais compacto ao longo do dia."
+                checked={form.dailySummaryEnabled}
+                onChange={(checked) => updateField('dailySummaryEnabled', checked)}
+              />
+            </div>
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <h3 className="text-xl font-black text-[#000747]">Conta e plano</h3>
+            <div className="mt-6 space-y-4">
+              {[
+                { label: 'Conta principal', value: currentProfile?.email || 'Nao informada' },
+                { label: 'Plano atual', value: planLabel },
+                { label: 'Status do cadastro', value: statusLabel },
+                { label: 'Cidade base', value: locationLabel }
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-700 break-words">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-[#000747] to-[#111F45] p-8 text-white shadow-sm">
+            <h3 className="text-xl font-black">Impacto publico agora</h3>
+            <ul className="mt-6 space-y-4 text-sm font-medium leading-relaxed text-white/80">
+              <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                Chat: <span className="font-black text-white">{form.pauseLeadIntake ? 'Pausado' : form.allowChat ? 'Ativo' : 'Desativado'}</span>
+              </li>
+              <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                Agenda: <span className="font-black text-white">{form.pauseLeadIntake ? 'Pausada' : form.allowVisitRequests ? 'Ativa' : 'Desativada'}</span>
+              </li>
+              <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                Leads novos: <span className="font-black text-white">{form.pauseLeadIntake ? 'Bloqueados' : 'Recebendo normalmente'}</span>
+              </li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+};

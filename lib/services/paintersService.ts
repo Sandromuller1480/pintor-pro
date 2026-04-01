@@ -122,6 +122,15 @@ function mapPainterRowToPainter(item: any): Painter {
             ? item.is_online
             : undefined,
         lastSeenAt: item.last_seen_at ?? undefined,
+        allowChat: typeof item.allow_chat === 'boolean'
+            ? item.allow_chat
+            : undefined,
+        allowVisitRequests: typeof item.allow_visit_requests === 'boolean'
+            ? item.allow_visit_requests
+            : undefined,
+        pauseLeadIntake: typeof item.pause_lead_intake === 'boolean'
+            ? item.pause_lead_intake
+            : undefined,
         createdAt: item.created_at ?? undefined,
         coordinates: item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }

@@ -17,6 +17,19 @@ export type CurrentPainterProfile = {
   categoryLevel: string | null;
   subscriptionPlan: string | null;
   subscriptionStatus: string | null;
+  allowChat: boolean;
+  allowVisitRequests: boolean;
+  pauseLeadIntake: boolean;
+  emailNotifications: boolean;
+  dailySummaryEnabled: boolean;
+};
+
+export type PainterSettingsForm = {
+  allowChat: boolean;
+  allowVisitRequests: boolean;
+  pauseLeadIntake: boolean;
+  emailNotifications: boolean;
+  dailySummaryEnabled: boolean;
 };
 
 export type DashboardMetrics = {

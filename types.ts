@@ -20,6 +20,9 @@ export interface Painter {
   portfolioOwnerId?: string;
   isOnline?: boolean;
   lastSeenAt?: string;
+  allowChat?: boolean;
+  allowVisitRequests?: boolean;
+  pauseLeadIntake?: boolean;
   createdAt?: string;
   coordinates?: {
     lat: number;

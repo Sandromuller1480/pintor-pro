@@ -1,48 +1,7 @@
 -- ============================================================
--- DIRETORIO PUBLICO DE PINTORES APROVADOS
+-- CONFIGURACOES OPERACIONAIS DO PINTOR
 -- Execute este script no SQL Editor do Supabase.
 -- ============================================================
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE IF NOT EXISTS public.painter_reviews (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  application_id UUID NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
-  client_name TEXT NOT NULL,
-  client_avatar_url TEXT,
-  rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  comment TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
-CREATE INDEX IF NOT EXISTS idx_painter_reviews_application_id
-  ON public.painter_reviews(application_id);
-
-CREATE INDEX IF NOT EXISTS idx_painter_reviews_created_at
-  ON public.painter_reviews(created_at DESC);
-
-ALTER TABLE public.painter_reviews ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public can read reviews for accepted painters" ON public.painter_reviews;
-CREATE POLICY "Public can read reviews for accepted painters"
-ON public.painter_reviews FOR SELECT
-TO anon, authenticated
-USING (
-  EXISTS (
-    SELECT 1
-    FROM public.applications AS a
-    WHERE a.id = painter_reviews.application_id
-      AND a.status = 'accepted'
-  )
-);
-
-GRANT SELECT ON public.painter_reviews TO anon, authenticated;
-
-ALTER TABLE public.applications
-ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE;
-
-ALTER TABLE public.applications
-ADD COLUMN IF NOT EXISTS is_online BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS allow_chat BOOLEAN NOT NULL DEFAULT true;
@@ -58,9 +17,6 @@ ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN NOT NULL DEFAULT true;
 
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS daily_summary_enabled BOOLEAN NOT NULL DEFAULT false;
-
-CREATE INDEX IF NOT EXISTS idx_applications_last_seen_at
-  ON public.applications(last_seen_at DESC);
 
 CREATE OR REPLACE VIEW public.painter_directory_public AS
 SELECT
@@ -122,18 +78,3 @@ FROM public.applications AS a
 WHERE a.status = 'accepted';
 
 GRANT SELECT ON public.painter_directory_public TO anon, authenticated;
-
-DROP POLICY IF EXISTS "Public can read approved application profile photos" ON storage.objects;
-CREATE POLICY "Public can read approved application profile photos"
-ON storage.objects FOR SELECT
-TO anon, authenticated
-USING (
-  bucket_id = 'application-work-photos'
-  AND (storage.foldername(name))[2] = 'profile-photo'
-  AND EXISTS (
-    SELECT 1
-    FROM public.applications AS a
-    WHERE a.id::text = (storage.foldername(name))[1]
-      AND a.status = 'accepted'
-  )
-);

@@ -15,6 +15,7 @@ import {
   fetchVisitItems,
   normalizeChatMessagesError,
   normalizeChatThreadsError,
+  updatePainterSettings,
   updatePainterPresence,
   uploadPainterMedia
 } from '../features/dashboard/api';
@@ -23,12 +24,14 @@ import { DashboardChatInbox } from '../features/dashboard/components/DashboardCh
 import { DashboardOverviewTab } from '../features/dashboard/components/DashboardOverviewTab';
 import { DashboardPortfolioTab } from '../features/dashboard/components/DashboardPortfolioTab';
 import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQuotesTab';
+import { DashboardSettingsTab } from '../features/dashboard/components/DashboardSettingsTab';
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
 import {
   CurrentPainterProfile,
   DashboardMetrics,
   DashboardTab,
   FeedbackMessage,
+  PainterSettingsForm,
   SavedChatMessage,
   SavedChatThread,
   SavedVisitRequest
@@ -78,6 +81,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isSendingChatReply, setIsSendingChatReply] = useState(false);
   const [mediaFeedback, setMediaFeedback] = useState<FeedbackMessage | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<FeedbackMessage | null>(null);
+  const [settingsFeedback, setSettingsFeedback] = useState<FeedbackMessage | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -716,6 +721,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setIsEditProfileModalOpen(false);
   };
 
+  const handleSettingsSave = async (settings: PainterSettingsForm) => {
+    if (!currentProfile?.applicationId) {
+      setSettingsFeedback({
+        type: 'error',
+        message: 'Nao encontramos seu cadastro para salvar as configuracoes.'
+      });
+      return;
+    }
+
+    setIsSavingSettings(true);
+    setSettingsFeedback(null);
+
+    try {
+      const savedSettings = await updatePainterSettings(currentProfile.applicationId, settings);
+
+      setCurrentProfile((profile) => (
+        profile
+          ? {
+              ...profile,
+              ...savedSettings
+            }
+          : profile
+      ));
+
+      setSettingsFeedback({
+        type: 'success',
+        message: 'Configuracoes atualizadas com sucesso.'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar configuracoes do pintor:', error);
+      setSettingsFeedback({
+        type: 'error',
+        message: 'Nao foi possivel salvar as configuracoes agora.'
+      });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
   const openProfilePicker = () => {
     if (!isUploadingProfile && currentProfile?.applicationId) {
       profileInputRef.current?.click();
@@ -882,7 +926,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       );
       break;
     case 'config':
-      content = <div className="p-10 text-center text-slate-500">Configuracoes em desenvolvimento...</div>;
+      content = (
+        <DashboardSettingsTab
+          currentProfile={currentProfile}
+          feedback={settingsFeedback}
+          isSaving={isSavingSettings}
+          onSave={(settings) => void handleSettingsSave(settings)}
+        />
+      );
       break;
   }
 
