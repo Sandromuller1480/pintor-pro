@@ -59,6 +59,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     visitContactsCount: 0,
     quoteContactsCount: 0,
     currentWeekProfileViews: 0,
+    currentWeekContactsCount: 0,
+    currentWeekChatContactsCount: 0,
+    currentWeekVisitContactsCount: 0,
+    currentWeekQuoteContactsCount: 0,
     previousWeekProfileViews: 0,
     weeklyGrowthPercent: 0
   });
@@ -250,9 +254,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   }, [setPage]);
 
   useEffect(() => {
+    const oneWeekAgoMs = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const quoteContactsCount = quoteItems.length;
     const visitContactsCount = visitItems.length;
     const chatContactsCount = chatThreads.length;
+    const currentWeekQuoteContactsCount = quoteItems.filter((quote) => (
+      new Date(quote.created_at).getTime() >= oneWeekAgoMs
+    )).length;
+    const currentWeekVisitContactsCount = visitItems.filter((visit) => (
+      new Date(visit.created_at).getTime() >= oneWeekAgoMs
+    )).length;
+    const currentWeekChatContactsCount = chatThreads.filter((thread) => (
+      new Date(thread.created_at).getTime() >= oneWeekAgoMs
+    )).length;
+    const currentWeekContactsCount = currentWeekQuoteContactsCount + currentWeekVisitContactsCount + currentWeekChatContactsCount;
 
     setMetrics({
       portfolioCount: portfolioItems.length,
@@ -264,6 +279,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       visitContactsCount,
       quoteContactsCount,
       currentWeekProfileViews: profileViewMetrics.currentWeekViews,
+      currentWeekContactsCount,
+      currentWeekChatContactsCount,
+      currentWeekVisitContactsCount,
+      currentWeekQuoteContactsCount,
       previousWeekProfileViews: profileViewMetrics.previousWeekViews,
       weeklyGrowthPercent: profileViewMetrics.weeklyGrowthPercent
     });

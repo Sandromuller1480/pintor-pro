@@ -52,6 +52,10 @@ export type DashboardMetrics = {
   visitContactsCount: number;
   quoteContactsCount: number;
   currentWeekProfileViews: number;
+  currentWeekContactsCount: number;
+  currentWeekChatContactsCount: number;
+  currentWeekVisitContactsCount: number;
+  currentWeekQuoteContactsCount: number;
   previousWeekProfileViews: number;
   weeklyGrowthPercent: number;
 };

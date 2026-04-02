@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
 import { CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
@@ -88,6 +88,39 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
     }
   ] as const;
   const topContactSource = [...contactSources].sort((firstSource, secondSource) => secondSource.value - firstSource.value)[0];
+  const safeFunnelPercent = (value: number, base: number) => {
+    if (base <= 0 || value <= 0) {
+      return 0;
+    }
+
+    return Math.round((value / base) * 100);
+  };
+  const funnelStages = [
+    {
+      label: 'Visualizacoes',
+      value: metrics.currentWeekProfileViews,
+      detail: 'Perfis abertos nos ultimos 7 dias',
+      accent: 'bg-emerald-50 border-emerald-100 text-emerald-600'
+    },
+    {
+      label: 'Contatos',
+      value: metrics.currentWeekContactsCount,
+      detail: 'Chats, visitas e orcamentos no periodo',
+      accent: 'bg-cyan-50 border-cyan-100 text-cyan-600'
+    },
+    {
+      label: 'Visitas',
+      value: metrics.currentWeekVisitContactsCount,
+      detail: 'Pedidos de visita tecnica no periodo',
+      accent: 'bg-indigo-50 border-indigo-100 text-indigo-600'
+    },
+    {
+      label: 'Orcamentos',
+      value: metrics.currentWeekQuoteContactsCount,
+      detail: 'Pedidos de orcamento no periodo',
+      accent: 'bg-[#F7E3F1] border-[#F2C9E7] text-[#9A077B]'
+    }
+  ] as const;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -283,6 +316,56 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
         </div>
       </div>
 
+      <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-black text-[#000747]">Funil Comercial</h3>
+            <p className="text-sm font-medium text-slate-500">Leitura simples dos ultimos 7 dias: do interesse no perfil ate a solicitacao comercial.</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Taxa visita / contato</p>
+            <p className="mt-1 text-sm font-black text-slate-700">
+              {safeFunnelPercent(metrics.currentWeekVisitContactsCount, metrics.currentWeekContactsCount)}%
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[repeat(4,minmax(0,1fr))]">
+          {funnelStages.map((stage, index) => {
+            const previousValue = index === 0 ? stage.value : funnelStages[index - 1].value;
+            const stageRate = index === 0 ? 100 : safeFunnelPercent(stage.value, previousValue);
+            const overallRate = safeFunnelPercent(stage.value, funnelStages[0].value);
+
+            return (
+              <div key={stage.label} className="relative">
+                <div className={`h-full rounded-[28px] border p-5 ${stage.accent}`}>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70">{stage.label}</p>
+                  <p className="mt-3 text-4xl font-black text-slate-900">{stage.value}</p>
+                  <p className="mt-3 text-sm font-medium text-slate-500">{stage.detail}</p>
+                  <div className="mt-5 space-y-2 rounded-2xl bg-white/70 px-4 py-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      {index === 0 ? 'Base da semana' : 'Conversao da etapa anterior'}
+                    </p>
+                    <p className="text-sm font-black text-slate-700">
+                      {index === 0 ? '100%' : `${stageRate}%`}
+                    </p>
+                    <p className="text-xs font-medium text-slate-500">
+                      {overallRate}% em relacao as visualizacoes da semana
+                    </p>
+                  </div>
+                </div>
+
+                {index < funnelStages.length - 1 && (
+                  <div className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 xl:flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
+                    <ArrowRight size={18} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
         <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
           <TrendingUp className="mr-3 text-[#9A077B]" /> Insights & Proximos Passos
@@ -318,6 +401,17 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
                 {topContactSource.value > 0
                   ? `${topContactSource.label} lidera com ${topContactSource.value} contato(s) recebido(s) ate agora.`
                   : 'Assim que os primeiros contatos chegarem, mostramos aqui qual canal mais converte.'}
+              </p>
+            </div>
+          </li>
+          <li className="flex items-center p-4 bg-violet-50 text-violet-900 rounded-2xl border border-violet-100">
+            <TrendingUp className="mr-4 flex-shrink-0 text-violet-500" />
+            <div>
+              <p className="font-bold">Funil da semana</p>
+              <p className="text-sm opacity-80">
+                {metrics.currentWeekProfileViews > 0
+                  ? `${metrics.currentWeekContactsCount} contato(s), ${metrics.currentWeekVisitContactsCount} visita(s) e ${metrics.currentWeekQuoteContactsCount} orcamento(s) nasceram de ${metrics.currentWeekProfileViews} visualizacao(oes) nesta semana.`
+                  : 'Assim que o perfil registrar visualizacoes nesta semana, o funil comercial passa a preencher automaticamente.'}
               </p>
             </div>
           </li>
