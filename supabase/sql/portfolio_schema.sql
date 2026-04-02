@@ -66,14 +66,34 @@ USING ( bucket_id = 'portfolio-obras' );
 DROP POLICY IF EXISTS "Pintores logados podem subir fotos" ON storage.objects;
 CREATE POLICY "Pintores logados podem subir fotos"
 ON storage.objects FOR INSERT
-WITH CHECK ( bucket_id = 'portfolio-obras' AND auth.role() = 'authenticated' );
+TO authenticated
+WITH CHECK (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
 
 DROP POLICY IF EXISTS "Pintores logados podem atualizar fotos" ON storage.objects;
 CREATE POLICY "Pintores logados podem atualizar fotos"
 ON storage.objects FOR UPDATE
-USING ( bucket_id = 'portfolio-obras' AND auth.role() = 'authenticated' );
+TO authenticated
+USING (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+)
+WITH CHECK (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
 
 DROP POLICY IF EXISTS "Pintores logados podem deletar fotos" ON storage.objects;
 CREATE POLICY "Pintores logados podem deletar fotos"
 ON storage.objects FOR DELETE
-USING ( bucket_id = 'portfolio-obras' AND auth.role() = 'authenticated' );
+TO authenticated
+USING (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);

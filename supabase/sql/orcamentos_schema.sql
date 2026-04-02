@@ -72,10 +72,11 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
 ALTER TABLE public.orcamentos ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Permitir criacao publica de orcamentos" ON public.orcamentos;
-CREATE POLICY "Permitir criacao publica de orcamentos"
+DROP POLICY IF EXISTS "Pintor pode inserir seus orcamentos" ON public.orcamentos;
+CREATE POLICY "Pintor pode inserir seus orcamentos"
 ON public.orcamentos FOR INSERT
-TO anon, authenticated
-WITH CHECK (true);
+TO authenticated
+WITH CHECK (auth.uid() = pintor_id);
 
 DROP POLICY IF EXISTS "Pintor pode ver seus orcamentos" ON public.orcamentos;
 CREATE POLICY "Pintor pode ver seus orcamentos"

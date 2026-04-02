@@ -40,6 +40,7 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 2. `add_profile_media_columns.sql`
 3. `add_profile_cover_bucket.sql`
 4. `add_portfolio_stage_media.sql`
+5. `add_applications_rls_and_onboarding_storage.sql`
 
 ## Scripts legados ou situacionais
 

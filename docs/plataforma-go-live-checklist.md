@@ -20,6 +20,7 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - `supabase/sql/add_profile_media_columns.sql`
   - `supabase/sql/add_profile_cover_bucket.sql`
   - `supabase/sql/add_portfolio_stage_media.sql`
+  - `supabase/sql/add_applications_rls_and_onboarding_storage.sql`
 - Validar se os buckets existem:
   - `portfolio-obras`
   - `orcamentos-media`
