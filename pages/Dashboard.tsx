@@ -13,6 +13,7 @@ import {
   fetchPortfolioItems,
   fetchPainterProfileViewMetrics,
   fetchQuoteItems,
+  updateVisitRequest,
   fetchVisitItems,
   normalizeChatMessagesError,
   normalizeChatThreadsError,
@@ -762,6 +763,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setActiveTab('orcamentos');
   };
 
+  const handleVisitUpdated = async (
+    visitId: string,
+    updates: {
+      preferredDate: string;
+      preferredTime: string;
+      location: string;
+      status: string;
+    }
+  ) => {
+    const updatedVisit = await updateVisitRequest(visitId, updates);
+
+    setVisitItems((currentItems) => (
+      currentItems.map((item) => (item.id === visitId ? updatedVisit : item))
+    ));
+    setVisitsError('');
+
+    return updatedVisit;
+  };
+
   const openEditProfileModal = () => {
     if (!currentProfile?.applicationId) {
       setProfileFeedback({
@@ -1033,6 +1053,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           items={visitItems}
           isLoading={isLoadingVisits}
           errorMessage={visitsError}
+          onUpdateVisit={(visitId, updates) => handleVisitUpdated(visitId, updates)}
         />
       );
       break;

@@ -17,6 +17,33 @@ export const QUOTE_STATUS_STYLES: Record<string, string> = {
   recusado: 'bg-red-100 text-red-700'
 };
 
+export const VISIT_REQUEST_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  confirmed: 'Confirmada',
+  rescheduled: 'Reagendada',
+  completed: 'Visita concluida',
+  cancelled: 'Cancelada',
+  no_show: 'Cliente ausente'
+};
+
+export const VISIT_REQUEST_STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-700',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  rescheduled: 'bg-violet-100 text-violet-700',
+  completed: 'bg-slate-200 text-slate-700',
+  cancelled: 'bg-rose-100 text-rose-700',
+  no_show: 'bg-slate-100 text-slate-600'
+};
+
+export const VISIT_REQUEST_STATUS_SORT_ORDER: Record<string, number> = {
+  pending: 0,
+  confirmed: 1,
+  rescheduled: 2,
+  completed: 3,
+  no_show: 4,
+  cancelled: 5
+};
+
 export const DEFAULT_COVER_IMAGE =
   'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=2070&auto=format&fit=crop';
 export const DEFAULT_PROFILE_IMAGE = 'https://i.pravatar.cc/150?u=dashboard-profile';

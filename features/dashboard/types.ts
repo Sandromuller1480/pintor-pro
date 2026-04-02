@@ -69,6 +69,21 @@ export type PainterProfileViewMetrics = {
   periodGrowthPercent: number;
 };
 
+export type VisitRequestStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'rescheduled'
+  | 'completed'
+  | 'cancelled'
+  | 'no_show';
+
+export type UpdateVisitRequestInput = {
+  preferredDate: string;
+  preferredTime: string;
+  location: string;
+  status: VisitRequestStatus | string;
+};
+
 export type SavedVisitRequest = {
   id: string;
   client_name: string;
@@ -78,7 +93,7 @@ export type SavedVisitRequest = {
   preferred_time: string;
   location: string;
   notes: string | null;
-  status: string;
+  status: VisitRequestStatus | string;
   created_at: string;
 };
 

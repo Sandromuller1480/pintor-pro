@@ -20,6 +20,7 @@ import {
   CurrentPainterProfile,
   PainterProfileViewMetrics,
   PainterSettingsForm,
+  UpdateVisitRequestInput,
   SavedChatMessage,
   SavedChatThread,
   SavedVisitRequest
@@ -73,6 +74,31 @@ export const fetchVisitItems = async (applicationId: string) => {
   }
 
   return (data ?? []) as SavedVisitRequest[];
+};
+
+export const updateVisitRequest = async (
+  visitId: string,
+  updates: UpdateVisitRequestInput
+): Promise<SavedVisitRequest> => {
+  const normalizedLocation = updates.location.trim();
+
+  const { data, error } = await supabase
+    .from('painter_visit_requests')
+    .update({
+      preferred_date: updates.preferredDate,
+      preferred_time: updates.preferredTime,
+      location: normalizedLocation,
+      status: updates.status
+    })
+    .eq('id', visitId)
+    .select('id, client_name, client_phone, client_email, preferred_date, preferred_time, location, notes, status, created_at')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as SavedVisitRequest;
 };
 
 export const fetchChatThreads = async (applicationId: string) => {
