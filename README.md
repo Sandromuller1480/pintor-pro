@@ -47,17 +47,21 @@ VITE_SUPABASE_ANON_KEY=
 
 Os scripts estao em `supabase/sql/`.
 
-Ordem recomendada:
+Leia primeiro:
 
-1. `clientes_schema.sql`
-2. `portfolio_schema.sql`
-3. `orcamentos_schema.sql`
-4. `agendamentos_visitas_schema.sql`
-5. `chat_interno_schema.sql`
-6. `avaliacoes_schema.sql`
-7. `create_public_painter_directory.sql`
-8. `supabase_schema.sql`
-9. Scripts incrementais `add_*.sql`
+- `supabase/sql/README.md`
+- `docs/plataforma-go-live-checklist.md`
+
+Resumo da ordem atual:
+
+1. Schemas base: `clientes_schema.sql`, `portfolio_schema.sql`, `orcamentos_schema.sql`, `agendamentos_visitas_schema.sql`, `chat_interno_schema.sql`, `avaliacoes_schema.sql`
+2. Publico, presenca e configuracoes: use `supabase_schema.sql` ou o conjunto modular equivalente descrito em `supabase/sql/README.md`
+3. Complementos atuais: `add_application_form_columns.sql`, `add_profile_media_columns.sql`, `add_profile_cover_bucket.sql`, `add_portfolio_stage_media.sql`
+
+Importante:
+
+- Este repositorio nao inclui a criacao inicial da tabela `public.applications`
+- Os scripts incrementais assumem que `public.applications` ja existe
 
 ### 4. Rodar o projeto
 
@@ -114,3 +118,4 @@ Principais secrets:
 
 - O projeto ainda usa Tailwind via CDN em `index.html`. A base foi limpa, mas ainda nao foi migrada para uma pipeline local de Tailwind.
 - Nao existe suite de testes automatizados no repositorio neste momento.
+- O checklist final de subida da plataforma esta em `docs/plataforma-go-live-checklist.md`.

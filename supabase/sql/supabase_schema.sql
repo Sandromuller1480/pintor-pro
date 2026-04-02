@@ -1,3 +1,11 @@
+-- ============================================================
+-- CONSOLIDADO DA VITRINE PUBLICA, PRESENCA E CONFIGURACOES
+-- Este arquivo NAO substitui os schemas base de clientes,
+-- portfolio, orcamentos, agenda e chat.
+-- Ele centraliza reviews, profile views, presenca online,
+-- configuracoes operacionais e a view publica de pintores.
+-- ============================================================
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS public.painter_reviews (
@@ -183,3 +191,20 @@ SELECT
   COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone
 FROM public.applications AS a
 WHERE a.status = 'accepted';
+
+GRANT SELECT ON public.painter_directory_public TO anon, authenticated;
+
+DROP POLICY IF EXISTS "Public can read approved application profile photos" ON storage.objects;
+CREATE POLICY "Public can read approved application profile photos"
+ON storage.objects FOR SELECT
+TO anon, authenticated
+USING (
+  bucket_id = 'application-work-photos'
+  AND (storage.foldername(name))[2] = 'profile-photo'
+  AND EXISTS (
+    SELECT 1
+    FROM public.applications AS a
+    WHERE a.id::text = (storage.foldername(name))[1]
+      AND a.status = 'accepted'
+  )
+);
