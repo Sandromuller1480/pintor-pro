@@ -78,13 +78,7 @@ SELECT
   a.category_level,
   a.subscription_plan,
   a.gender,
-  (
-    COALESCE(a.is_online, false)
-    AND COALESCE(
-      a.last_seen_at >= timezone('utc'::text, now()) - interval '3 minutes',
-      false
-    )
-  ) AS is_online,
+  COALESCE(a.is_online, false) AS is_online,
   a.last_seen_at,
   COALESCE(a.allow_chat, true) AS allow_chat,
   COALESCE(a.allow_visit_requests, true) AS allow_visit_requests,

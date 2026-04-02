@@ -57,14 +57,16 @@ SELECT
   a.category_level,
   a.subscription_plan,
   a.gender,
-  (
-    COALESCE(a.is_online, false)
-    AND COALESCE(
-      a.last_seen_at >= timezone('utc'::text, now()) - interval '3 minutes',
-      false
-    )
-  ) AS is_online,
-  a.last_seen_at
+  COALESCE(a.is_online, false) AS is_online,
+  a.last_seen_at,
+  COALESCE(a.allow_chat, true) AS allow_chat,
+  COALESCE(a.allow_visit_requests, true) AS allow_visit_requests,
+  COALESCE(a.pause_lead_intake, false) AS pause_lead_intake,
+  COALESCE(a.business_hours_enabled, false) AS business_hours_enabled,
+  COALESCE(a.working_days, ARRAY['1', '2', '3', '4', '5']::text[]) AS working_days,
+  COALESCE(a.working_hours_start, '08:00'::text) AS working_hours_start,
+  COALESCE(a.working_hours_end, '18:00'::text) AS working_hours_end,
+  COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

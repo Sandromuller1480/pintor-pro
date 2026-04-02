@@ -19,23 +19,58 @@ const isClientMetadataUser = (user: User | null) => {
     && user.user_metadata.user_type.trim().toLowerCase() === 'client';
 };
 
-const hasPainterApplication = async (email: string) => {
-  if (!email) {
-    return false;
+const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
+  if (!applications.length) {
+    return null;
   }
 
-  const { data, error } = await supabase
+  const normalizedEmail = email.trim().toLowerCase();
+  const byUserId = userId
+    ? applications.filter((application) => application.auth_user_id === userId)
+    : [];
+  const byEmail = applications.filter((application) => (
+    typeof application.email === 'string' && application.email.trim().toLowerCase() === normalizedEmail
+  ));
+
+  const pickAccepted = (items: any[]) => items.find((application) => application.status === 'accepted') ?? null;
+
+  return pickAccepted(byUserId)
+    ?? byUserId[0]
+    ?? pickAccepted(byEmail)
+    ?? byEmail[0]
+    ?? applications[0]
+    ?? null;
+};
+
+export const getPainterApplicationId = async (email: string, userId?: string) => {
+  if (!email && !userId) {
+    return null;
+  }
+
+  const query = supabase
     .from('applications')
-    .select('id')
-    .ilike('email', email)
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .select('id, email, status, auth_user_id')
+    .order('created_at', { ascending: false });
+
+  const { data, error } = userId
+    ? await query.or(`auth_user_id.eq.${userId},email.ilike.${email}`)
+    : await query.ilike('email', email);
 
   if (error) {
     throw error;
   }
 
-  return (data?.length ?? 0) > 0;
+  const application = pickBestPainterApplication((data ?? []) as any[], email, userId);
+  return application?.id ?? null;
+};
+
+const hasPainterApplication = async (email: string, userId?: string) => {
+  if (!email && !userId) {
+    return false;
+  }
+
+  const applicationId = await getPainterApplicationId(email, userId);
+  return Boolean(applicationId);
 };
 
 export const getSessionRoleContext = async (): Promise<SessionRoleContext> => {
@@ -66,7 +101,7 @@ export const getSessionRoleContext = async (): Promise<SessionRoleContext> => {
   }
 
   const normalizedEmail = user.email?.trim().toLowerCase() ?? '';
-  const painterAuthenticated = await hasPainterApplication(normalizedEmail);
+  const painterAuthenticated = await hasPainterApplication(normalizedEmail, user.id);
 
   return {
     role: painterAuthenticated ? 'painter' : 'unknown',

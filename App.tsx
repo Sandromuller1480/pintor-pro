@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from './components/Layout';
-import { getSessionRoleContext, type SessionRole } from './lib/authSession';
+import { getPainterApplicationId, getSessionRoleContext, type SessionRole } from './lib/authSession';
 import { buildPathForRoute, getInitialRoute } from './lib/routes';
 import { supabase } from './lib/supabase';
 import { About } from './pages/About';
@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(getInitialRoute);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [sessionRole, setSessionRole] = useState<SessionRole>('guest');
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [sessionUserEmail, setSessionUserEmail] = useState('');
 
   const navigateToPage: NavigateToPage = (page, params?: PageNavigationParams) => {
     const nextRoute: AppRoute =
@@ -52,12 +54,16 @@ const App: React.FC = () => {
         if (!isMounted) return;
 
         setSessionRole(sessionContext.role);
+        setSessionUserId(sessionContext.user?.id ?? null);
+        setSessionUserEmail(sessionContext.user?.email?.trim().toLowerCase() ?? '');
         setIsAuthReady(true);
       } catch (error) {
         if (!isMounted) return;
 
         console.error('Erro ao recuperar sessao:', error);
         setSessionRole('guest');
+        setSessionUserId(null);
+        setSessionUserEmail('');
         setIsAuthReady(true);
       }
     };
@@ -77,6 +83,46 @@ const App: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const syncPainterPresenceFromSession = async () => {
+      if (!isAuthReady || sessionRole !== 'painter' || !sessionUserId) {
+        return;
+      }
+
+      try {
+        const applicationId = await getPainterApplicationId(sessionUserEmail, sessionUserId);
+
+        if (!applicationId || isCancelled) {
+          return;
+        }
+
+        const { error } = await supabase
+          .from('applications')
+          .update({
+            is_online: true,
+            last_seen_at: new Date().toISOString()
+          })
+          .eq('id', applicationId);
+
+        if (error && !isCancelled) {
+          console.error('Erro ao sincronizar presenca online do pintor a partir da sessao:', error);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Erro ao localizar cadastro do pintor para sincronizar presenca:', error);
+        }
+      }
+    };
+
+    void syncPainterPresenceFromSession();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAuthReady, sessionRole, sessionUserEmail, sessionUserId]);
 
   useEffect(() => {
     const isPainterAuthenticated = sessionRole === 'painter';
