@@ -96,27 +96,9 @@ export const DashboardPortfolioTab: React.FC<DashboardPortfolioTabProps> = ({
                     <div className="flex h-full w-full items-center justify-center font-bold text-slate-400">Sem midia</div>
                   )}
 
-                  <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
+                  <div className="absolute inset-x-0 top-0 flex items-start justify-end p-4">
                     <div className="rounded-full bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
                       {obra.status === 'EM ANDAMENTO' ? 'Em Andamento' : 'Concluido'}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setViewingObra(obra)}
-                        className="rounded-full bg-white/92 p-2.5 text-slate-700 shadow-sm transition hover:bg-white hover:text-[#9A077B]"
-                        aria-label="Visualizar obra"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingObra(obra)}
-                        className="rounded-full bg-white/92 p-2.5 text-slate-700 shadow-sm transition hover:bg-white hover:text-[#000747]"
-                        aria-label="Editar obra"
-                      >
-                        <Pencil size={16} />
-                      </button>
                     </div>
                   </div>
 
