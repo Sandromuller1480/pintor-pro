@@ -168,7 +168,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               </div>
 
               <p className="text-xl text-slate-500 leading-relaxed max-w-lg font-medium border-l-4 border-slate-200 pl-6">
-                Conectamos os projetos mais exigentes aos pintores de elite que dominam as técnicas mais avançadas do mercado.
+                Conectamos os usuários aos pintores de elite que dominam as técnicas mais avançadas do mercado.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
