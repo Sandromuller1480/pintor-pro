@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { getCurrentAdminProfile } from '../lib/adminAccess';
+import { getSessionRoleContext } from '../lib/authSession';
 import { Page, NavigateToPage } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -48,7 +50,20 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
         return;
       }
 
-      setPage(Page.Dashboard);
+      const sessionContext = await getSessionRoleContext();
+      const adminProfile = await getCurrentAdminProfile(sessionContext.user);
+
+      if (adminProfile) {
+        setPage(Page.Admin);
+        return;
+      }
+
+      if (sessionContext.role === 'painter') {
+        setPage(Page.Dashboard);
+        return;
+      }
+
+      setPage(Page.Home);
     } catch (error) {
       console.error('Erro ao autenticar:', error);
       setErrorMessage('Nao foi possivel concluir o login agora. Tente novamente em instantes.');

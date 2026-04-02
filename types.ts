@@ -71,7 +71,8 @@ export enum Page {
   Plans = 'plans',
   About = 'about',
   Login = 'login',
-  Dashboard = 'dashboard'
+  Dashboard = 'dashboard',
+  Admin = 'admin'
 }
 
 export type PageNavigationParams = {

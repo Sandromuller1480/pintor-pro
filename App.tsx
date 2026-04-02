@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from './components/Layout';
 import { getPainterApplicationId, getSessionRoleContext, type SessionRole } from './lib/authSession';
+import { getCurrentAdminProfile } from './lib/adminAccess';
 import { buildPathForRoute, getInitialRoute } from './lib/routes';
 import { supabase } from './lib/supabase';
+import { AdminDashboard } from './pages/AdminDashboard';
 import { About } from './pages/About';
 import { Dashboard } from './pages/Dashboard';
 import { FindPainter } from './pages/FindPainter';
@@ -18,6 +20,7 @@ const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(getInitialRoute);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [sessionRole, setSessionRole] = useState<SessionRole>('guest');
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [sessionUserEmail, setSessionUserEmail] = useState('');
 
@@ -50,10 +53,12 @@ const App: React.FC = () => {
     const syncSession = async () => {
       try {
         const sessionContext = await getSessionRoleContext();
+        const adminProfile = await getCurrentAdminProfile(sessionContext.user);
 
         if (!isMounted) return;
 
         setSessionRole(sessionContext.role);
+        setHasAdminAccess(Boolean(adminProfile));
         setSessionUserId(sessionContext.user?.id ?? null);
         setSessionUserEmail(sessionContext.user?.email?.trim().toLowerCase() ?? '');
         setIsAuthReady(true);
@@ -62,6 +67,7 @@ const App: React.FC = () => {
 
         console.error('Erro ao recuperar sessao:', error);
         setSessionRole('guest');
+        setHasAdminAccess(false);
         setSessionUserId(null);
         setSessionUserEmail('');
         setIsAuthReady(true);
@@ -130,14 +136,34 @@ const App: React.FC = () => {
     if (!isAuthReady) return;
 
     if (route.page === Page.Dashboard && !isPainterAuthenticated) {
+      if (hasAdminAccess) {
+        navigateToPage(Page.Admin);
+        return;
+      }
+
       navigateToPage(Page.Login);
+      return;
+    }
+
+    if (route.page === Page.Admin && !hasAdminAccess) {
+      if (isPainterAuthenticated) {
+        navigateToPage(Page.Dashboard);
+        return;
+      }
+
+      navigateToPage(Page.Login);
+      return;
+    }
+
+    if (route.page === Page.Login && hasAdminAccess) {
+      navigateToPage(Page.Admin);
       return;
     }
 
     if (route.page === Page.Login && isPainterAuthenticated) {
       navigateToPage(Page.Dashboard);
     }
-  }, [route.page, isAuthReady, sessionRole]);
+  }, [route.page, hasAdminAccess, isAuthReady, sessionRole]);
 
   const renderPage = () => {
     if (route.page === Page.Dashboard && !isAuthReady) {
@@ -167,6 +193,8 @@ const App: React.FC = () => {
         return <Login setPage={navigateToPage} />;
       case Page.Dashboard:
         return <Dashboard setPage={navigateToPage} />;
+      case Page.Admin:
+        return <AdminDashboard setPage={navigateToPage} />;
       default:
         return <Home setPage={navigateToPage} />;
     }

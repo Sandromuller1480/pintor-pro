@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Menu, X, Instagram, Facebook, Linkedin, LogOut, LogIn } from 'lucide-react';
+import { getCurrentAdminProfile, type CurrentAdminProfile } from '../lib/adminAccess';
 import { getSessionRoleContext, type SessionRole } from '../lib/authSession';
 import { type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { supabase } from '../lib/supabase';
@@ -18,6 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [sessionRole, setSessionRole] = useState<SessionRole>('guest');
   const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
+  const [currentAdminProfile, setCurrentAdminProfile] = useState<CurrentAdminProfile | null>(null);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
 
@@ -27,6 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
     const syncSessionContext = async () => {
       try {
         const sessionContext = await getSessionRoleContext();
+        const adminProfile = await getCurrentAdminProfile(sessionContext.user);
 
         if (!isMounted) {
           return;
@@ -34,6 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
         setSessionRole(sessionContext.role);
         setCurrentClientProfile(sessionContext.currentClientProfile);
+        setCurrentAdminProfile(adminProfile);
       } catch (error) {
         console.error('Erro ao carregar sessao do cabecalho:', error);
 
@@ -43,6 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
         setSessionRole('guest');
         setCurrentClientProfile(null);
+        setCurrentAdminProfile(null);
       }
     };
 
@@ -60,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
     };
   }, []);
 
-  if (currentPage === Page.Dashboard) {
+  if (currentPage === Page.Dashboard || currentPage === Page.Admin) {
     return <div className="min-h-screen bg-slate-50 font-sans">{children}</div>;
   }
 
@@ -69,6 +74,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
   const shouldShowFindPainterEntry = sessionRole !== 'painter';
   const shouldShowPlansEntry = sessionRole !== 'client';
   const shouldShowPainterEntry = sessionRole !== 'client';
+  const shouldShowAdminEntry = Boolean(currentAdminProfile);
   const footerGridClassName = sessionRole === 'client'
     ? 'grid grid-cols-1 md:grid-cols-3 gap-16 mb-16 max-w-5xl mx-auto'
     : 'grid grid-cols-1 md:grid-cols-4 gap-16 mb-16';
@@ -162,6 +168,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                   </button>
                 </>
               )}
+              {shouldShowAdminEntry && (
+                <button
+                  onClick={() => setPage(Page.Admin)}
+                  className="rounded-xl border border-[#000747]/15 bg-[#000747] px-5 py-3 text-sm font-black uppercase tracking-widest text-white transition hover:bg-[#020b72]"
+                >
+                  Painel Admin
+                </button>
+              )}
             </nav>
 
             <div className="md:hidden flex items-center">
@@ -242,6 +256,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 className="w-full bg-[#9A077B] text-white px-6 py-4 rounded-xl font-black text-center uppercase tracking-widest mt-4"
               >
                 Sou Pintor
+              </button>
+            )}
+            {shouldShowAdminEntry && (
+              <button
+                onClick={() => {
+                  setPage(Page.Admin);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full rounded-xl bg-[#000747] px-6 py-4 text-center font-black uppercase tracking-widest text-white"
+              >
+                Painel Admin
               </button>
             )}
           </div>
