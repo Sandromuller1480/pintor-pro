@@ -28,6 +28,7 @@ import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQu
 import { DashboardSettingsTab } from '../features/dashboard/components/DashboardSettingsTab';
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
 import {
+  AnalyticsPeriodDays,
   CurrentPainterProfile,
   DashboardMetrics,
   DashboardTab,
@@ -53,25 +54,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     portfolioCount: 0,
     quoteCount: 0,
     pendingQuoteCount: 0,
-    profileViewsCount: 0,
-    contactsCount: 0,
-    chatContactsCount: 0,
-    visitContactsCount: 0,
-    quoteContactsCount: 0,
-    currentWeekProfileViews: 0,
-    currentWeekContactsCount: 0,
-    currentWeekChatContactsCount: 0,
-    currentWeekVisitContactsCount: 0,
-    currentWeekQuoteContactsCount: 0,
-    previousWeekProfileViews: 0,
-    weeklyGrowthPercent: 0
+    totalProfileViewsCount: 0,
+    totalContactsCount: 0,
+    totalChatContactsCount: 0,
+    totalVisitContactsCount: 0,
+    totalQuoteContactsCount: 0,
+    periodProfileViewsCount: 0,
+    periodContactsCount: 0,
+    periodChatContactsCount: 0,
+    periodVisitContactsCount: 0,
+    periodQuoteContactsCount: 0,
+    previousPeriodProfileViewsCount: 0,
+    periodGrowthPercent: 0
   });
   const [profileViewMetrics, setProfileViewMetrics] = useState<PainterProfileViewMetrics>({
     totalViews: 0,
-    currentWeekViews: 0,
-    previousWeekViews: 0,
-    weeklyGrowthPercent: 0
+    currentPeriodViews: 0,
+    previousPeriodViews: 0,
+    periodGrowthPercent: 0
   });
+  const [analyticsPeriodDays, setAnalyticsPeriodDays] = useState<AnalyticsPeriodDays>(7);
   const [isSignOut, setIsSignOut] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
@@ -254,58 +256,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   }, [setPage]);
 
   useEffect(() => {
-    const oneWeekAgoMs = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const periodStartMs = Date.now() - (analyticsPeriodDays * 24 * 60 * 60 * 1000);
     const quoteContactsCount = quoteItems.length;
     const visitContactsCount = visitItems.length;
     const chatContactsCount = chatThreads.length;
-    const currentWeekQuoteContactsCount = quoteItems.filter((quote) => (
-      new Date(quote.created_at).getTime() >= oneWeekAgoMs
+    const periodQuoteContactsCount = quoteItems.filter((quote) => (
+      new Date(quote.created_at).getTime() >= periodStartMs
     )).length;
-    const currentWeekVisitContactsCount = visitItems.filter((visit) => (
-      new Date(visit.created_at).getTime() >= oneWeekAgoMs
+    const periodVisitContactsCount = visitItems.filter((visit) => (
+      new Date(visit.created_at).getTime() >= periodStartMs
     )).length;
-    const currentWeekChatContactsCount = chatThreads.filter((thread) => (
-      new Date(thread.created_at).getTime() >= oneWeekAgoMs
+    const periodChatContactsCount = chatThreads.filter((thread) => (
+      new Date(thread.created_at).getTime() >= periodStartMs
     )).length;
-    const currentWeekContactsCount = currentWeekQuoteContactsCount + currentWeekVisitContactsCount + currentWeekChatContactsCount;
+    const periodContactsCount = periodQuoteContactsCount + periodVisitContactsCount + periodChatContactsCount;
 
     setMetrics({
       portfolioCount: portfolioItems.length,
       quoteCount: quoteContactsCount,
       pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length,
-      profileViewsCount: profileViewMetrics.totalViews,
-      contactsCount: quoteContactsCount + visitContactsCount + chatContactsCount,
-      chatContactsCount,
-      visitContactsCount,
-      quoteContactsCount,
-      currentWeekProfileViews: profileViewMetrics.currentWeekViews,
-      currentWeekContactsCount,
-      currentWeekChatContactsCount,
-      currentWeekVisitContactsCount,
-      currentWeekQuoteContactsCount,
-      previousWeekProfileViews: profileViewMetrics.previousWeekViews,
-      weeklyGrowthPercent: profileViewMetrics.weeklyGrowthPercent
+      totalProfileViewsCount: profileViewMetrics.totalViews,
+      totalContactsCount: quoteContactsCount + visitContactsCount + chatContactsCount,
+      totalChatContactsCount: chatContactsCount,
+      totalVisitContactsCount: visitContactsCount,
+      totalQuoteContactsCount: quoteContactsCount,
+      periodProfileViewsCount: profileViewMetrics.currentPeriodViews,
+      periodContactsCount,
+      periodChatContactsCount,
+      periodVisitContactsCount,
+      periodQuoteContactsCount,
+      previousPeriodProfileViewsCount: profileViewMetrics.previousPeriodViews,
+      periodGrowthPercent: profileViewMetrics.periodGrowthPercent
     });
-  }, [portfolioItems, quoteItems, visitItems, chatThreads, profileViewMetrics]);
+  }, [analyticsPeriodDays, portfolioItems, quoteItems, visitItems, chatThreads, profileViewMetrics]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadProfileViewMetrics = async () => {
-      if (!currentProfile?.applicationId) {
-        if (isMounted) {
-          setProfileViewMetrics({
-            totalViews: 0,
-            currentWeekViews: 0,
-            previousWeekViews: 0,
-            weeklyGrowthPercent: 0
-          });
+        if (!currentProfile?.applicationId) {
+          if (isMounted) {
+            setProfileViewMetrics({
+              totalViews: 0,
+              currentPeriodViews: 0,
+              previousPeriodViews: 0,
+              periodGrowthPercent: 0
+            });
+          }
+          return;
         }
-        return;
-      }
 
       try {
-        const nextMetrics = await fetchPainterProfileViewMetrics(currentProfile.applicationId);
+        const nextMetrics = await fetchPainterProfileViewMetrics(currentProfile.applicationId, analyticsPeriodDays);
 
         if (!isMounted) {
           return;
@@ -320,9 +322,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         console.error('Erro ao carregar metricas de visualizacao do perfil:', error);
         setProfileViewMetrics({
           totalViews: 0,
-          currentWeekViews: 0,
-          previousWeekViews: 0,
-          weeklyGrowthPercent: 0
+          currentPeriodViews: 0,
+          previousPeriodViews: 0,
+          periodGrowthPercent: 0
         });
       }
     };
@@ -346,7 +348,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       window.clearInterval(refreshIntervalId);
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [currentProfile?.applicationId]);
+  }, [analyticsPeriodDays, currentProfile?.applicationId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -985,6 +987,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     case 'inicio':
       content = (
         <DashboardOverviewTab
+          analyticsPeriodDays={analyticsPeriodDays}
           userName={userName}
           currentProfile={currentProfile}
           metrics={metrics}
@@ -1000,6 +1003,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           onOpenProfilePicker={openProfilePicker}
           onOpenCoverPicker={openCoverPicker}
           onEditProfile={openEditProfileModal}
+          onAnalyticsPeriodChange={setAnalyticsPeriodDays}
         />
       );
       break;

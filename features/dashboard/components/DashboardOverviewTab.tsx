@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
-import { CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
+import { AnalyticsPeriodDays, CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
   DEFAULT_COVER_IMAGE,
   DEFAULT_PROFILE_IMAGE,
@@ -11,6 +11,7 @@ import {
 } from '../utils';
 
 interface DashboardOverviewTabProps {
+  analyticsPeriodDays: AnalyticsPeriodDays;
   userName: string;
   currentProfile: CurrentPainterProfile | null;
   metrics: DashboardMetrics;
@@ -26,9 +27,11 @@ interface DashboardOverviewTabProps {
   onOpenProfilePicker: () => void;
   onOpenCoverPicker: () => void;
   onEditProfile: () => void;
+  onAnalyticsPeriodChange: (nextPeriod: AnalyticsPeriodDays) => void;
 }
 
 export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
+  analyticsPeriodDays,
   userName,
   currentProfile,
   metrics,
@@ -43,8 +46,10 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   onCoverFileChange,
   onOpenProfilePicker,
   onOpenCoverPicker,
-  onEditProfile
+  onEditProfile,
+  onAnalyticsPeriodChange
 }) => {
+  const analyticsPeriodOptions: AnalyticsPeriodDays[] = [7, 30, 90];
   const displayName = currentProfile?.fullName || userName;
   const profilePhotoUrl = currentProfile?.profilePhotoUrl || DEFAULT_PROFILE_IMAGE;
   const locationLabel = currentProfile?.city
@@ -61,27 +66,30 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   ].filter(Boolean);
   const lastPortfolioEntry = portfolioItems[0];
   const canEditMedia = Boolean(currentProfile?.applicationId);
-  const weeklyGrowthLabel = metrics.weeklyGrowthPercent > 0
-    ? `+${metrics.weeklyGrowthPercent}%`
-    : `${metrics.weeklyGrowthPercent}%`;
+  const periodLabel = `${analyticsPeriodDays} dias`;
+  const periodContextLabel = `nos ultimos ${analyticsPeriodDays} dias`;
+  const previousPeriodContextLabel = `nos ${analyticsPeriodDays} dias anteriores`;
+  const periodGrowthLabel = metrics.periodGrowthPercent > 0
+    ? `+${metrics.periodGrowthPercent}%`
+    : `${metrics.periodGrowthPercent}%`;
   const contactSources = [
     {
       label: 'Chat',
-      value: metrics.chatContactsCount,
+      value: metrics.periodChatContactsCount,
       icon: MessageSquare,
       color: 'text-cyan-600',
       bg: 'bg-cyan-50'
     },
     {
       label: 'Visitas',
-      value: metrics.visitContactsCount,
+      value: metrics.periodVisitContactsCount,
       icon: CalendarDays,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50'
     },
     {
       label: 'Orcamentos',
-      value: metrics.quoteContactsCount,
+      value: metrics.periodQuoteContactsCount,
       icon: FileText,
       color: 'text-[#9A077B]',
       bg: 'bg-[#9A077B]/10'
@@ -98,25 +106,25 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   const funnelStages = [
     {
       label: 'Visualizacoes',
-      value: metrics.currentWeekProfileViews,
-      detail: 'Perfis abertos nos ultimos 7 dias',
+      value: metrics.periodProfileViewsCount,
+      detail: `Perfis abertos ${periodContextLabel}`,
       accent: 'bg-emerald-50 border-emerald-100 text-emerald-600'
     },
     {
       label: 'Contatos',
-      value: metrics.currentWeekContactsCount,
+      value: metrics.periodContactsCount,
       detail: 'Chats, visitas e orcamentos no periodo',
       accent: 'bg-cyan-50 border-cyan-100 text-cyan-600'
     },
     {
       label: 'Visitas',
-      value: metrics.currentWeekVisitContactsCount,
+      value: metrics.periodVisitContactsCount,
       detail: 'Pedidos de visita tecnica no periodo',
       accent: 'bg-indigo-50 border-indigo-100 text-indigo-600'
     },
     {
       label: 'Orcamentos',
-      value: metrics.currentWeekQuoteContactsCount,
+      value: metrics.periodQuoteContactsCount,
       detail: 'Pedidos de orcamento no periodo',
       accent: 'bg-[#F7E3F1] border-[#F2C9E7] text-[#9A077B]'
     }
@@ -216,6 +224,38 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
         </div>
       </div>
 
+      <div className="mb-8 rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Filtro Analitico</p>
+            <h3 className="mt-2 text-xl font-black text-[#000747]">Periodo das metricas comerciais</h3>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Visualizacoes, contatos, origem e funil agora seguem o mesmo intervalo.
+            </p>
+          </div>
+          <div className="inline-flex w-full flex-wrap gap-2 rounded-[20px] bg-slate-100 p-1.5 lg:w-auto lg:flex-nowrap">
+            {analyticsPeriodOptions.map((periodOption) => {
+              const isActive = analyticsPeriodDays === periodOption;
+
+              return (
+                <button
+                  key={periodOption}
+                  type="button"
+                  onClick={() => onAnalyticsPeriodChange(periodOption)}
+                  className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-black transition lg:flex-none ${
+                    isActive
+                      ? 'bg-[#000747] text-white shadow-sm'
+                      : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                  }`}
+                >
+                  {periodOption} dias
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         {[
           {
@@ -236,27 +276,27 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
           },
           {
             label: 'Visualizacoes do Perfil',
-            value: String(metrics.profileViewsCount),
-            trend: `${metrics.currentWeekProfileViews} nesta semana`,
+            value: String(metrics.periodProfileViewsCount),
+            trend: `${metrics.totalProfileViewsCount} no total acumulado`,
             icon: Eye,
             color: 'text-emerald-500',
             bg: 'bg-emerald-50'
           },
           {
             label: 'Contatos Recebidos',
-            value: String(metrics.contactsCount),
-            trend: `${metrics.chatContactsCount} chat(s), ${metrics.visitContactsCount} visita(s) e ${metrics.quoteContactsCount} orcamento(s)`,
+            value: String(metrics.periodContactsCount),
+            trend: `${metrics.periodChatContactsCount} chat(s), ${metrics.periodVisitContactsCount} visita(s) e ${metrics.periodQuoteContactsCount} orcamento(s) no periodo`,
             icon: MessageSquare,
             color: 'text-cyan-600',
             bg: 'bg-cyan-50'
           },
           {
-            label: 'Crescimento Semanal',
-            value: weeklyGrowthLabel,
-            trend: `${metrics.currentWeekProfileViews} visualizacao(oes) vs ${metrics.previousWeekProfileViews} na semana anterior`,
+            label: 'Crescimento do Periodo',
+            value: periodGrowthLabel,
+            trend: `${metrics.periodProfileViewsCount} visualizacao(oes) vs ${metrics.previousPeriodProfileViewsCount} ${previousPeriodContextLabel}`,
             icon: TrendingUp,
-            color: metrics.weeklyGrowthPercent >= 0 ? 'text-violet-600' : 'text-rose-600',
-            bg: metrics.weeklyGrowthPercent >= 0 ? 'bg-violet-50' : 'bg-rose-50'
+            color: metrics.periodGrowthPercent >= 0 ? 'text-violet-600' : 'text-rose-600',
+            bg: metrics.periodGrowthPercent >= 0 ? 'bg-violet-50' : 'bg-rose-50'
           },
           {
             label: 'Plano Atual',
@@ -283,8 +323,13 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
       <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-xl font-black text-[#000747]">Origem dos Contatos</h3>
-            <p className="text-sm font-medium text-slate-500">Veja qual canal esta trazendo mais demanda para o seu perfil.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-black text-[#000747]">Origem dos Contatos</h3>
+              <span className="rounded-full bg-[#9A077B]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-[#9A077B]">
+                {periodLabel}
+              </span>
+            </div>
+            <p className="text-sm font-medium text-slate-500">Veja qual canal esta trazendo mais demanda para o seu perfil no intervalo selecionado.</p>
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Canal lider</p>
@@ -302,8 +347,8 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{source.label}</p>
                   <p className="mt-2 text-3xl font-black text-slate-900">{source.value}</p>
                   <p className="mt-2 text-sm font-medium text-slate-500">
-                    {metrics.contactsCount > 0
-                      ? `${Math.round((source.value / metrics.contactsCount) * 100)}% dos contatos recebidos`
+                    {metrics.periodContactsCount > 0
+                      ? `${Math.round((source.value / metrics.periodContactsCount) * 100)}% dos contatos no periodo`
                       : 'Aguardando os primeiros contatos'}
                   </p>
                 </div>
@@ -319,13 +364,18 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
       <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-xl font-black text-[#000747]">Funil Comercial</h3>
-            <p className="text-sm font-medium text-slate-500">Leitura simples dos ultimos 7 dias: do interesse no perfil ate a solicitacao comercial.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-black text-[#000747]">Funil Comercial</h3>
+              <span className="rounded-full bg-[#000747]/5 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-[#000747]">
+                {periodLabel}
+              </span>
+            </div>
+            <p className="text-sm font-medium text-slate-500">Leitura simples do interesse no perfil ate a solicitacao comercial no periodo escolhido.</p>
           </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Taxa visita / contato</p>
             <p className="mt-1 text-sm font-black text-slate-700">
-              {safeFunnelPercent(metrics.currentWeekVisitContactsCount, metrics.currentWeekContactsCount)}%
+              {safeFunnelPercent(metrics.periodVisitContactsCount, metrics.periodContactsCount)}%
             </p>
           </div>
         </div>
@@ -344,13 +394,13 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
                   <p className="mt-3 text-sm font-medium text-slate-500">{stage.detail}</p>
                   <div className="mt-5 space-y-2 rounded-2xl bg-white/70 px-4 py-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      {index === 0 ? 'Base da semana' : 'Conversao da etapa anterior'}
+                      {index === 0 ? 'Base do periodo' : 'Conversao da etapa anterior'}
                     </p>
                     <p className="text-sm font-black text-slate-700">
                       {index === 0 ? '100%' : `${stageRate}%`}
                     </p>
                     <p className="text-xs font-medium text-slate-500">
-                      {overallRate}% em relacao as visualizacoes da semana
+                      {overallRate}% em relacao as visualizacoes do periodo
                     </p>
                   </div>
                 </div>
@@ -387,8 +437,8 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
             <div>
               <p className="font-bold">Desempenho do perfil</p>
               <p className="text-sm opacity-80">
-                {metrics.profileViewsCount > 0
-                  ? `Seu perfil soma ${metrics.profileViewsCount} visualizacao(oes), com ${weeklyGrowthLabel} nesta comparacao semanal.`
+                {metrics.totalProfileViewsCount > 0
+                  ? `Seu perfil soma ${metrics.totalProfileViewsCount} visualizacao(oes), com ${metrics.periodProfileViewsCount} ${periodContextLabel} e ${periodGrowthLabel} frente ao periodo anterior.`
                   : 'Seu perfil ainda nao registrou visualizacoes publicas suficientes para analise.'}
               </p>
             </div>
@@ -399,7 +449,7 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
               <p className="font-bold">Canal com mais retorno</p>
               <p className="text-sm opacity-80">
                 {topContactSource.value > 0
-                  ? `${topContactSource.label} lidera com ${topContactSource.value} contato(s) recebido(s) ate agora.`
+                  ? `${topContactSource.label} lidera com ${topContactSource.value} contato(s) recebidos ${periodContextLabel}.`
                   : 'Assim que os primeiros contatos chegarem, mostramos aqui qual canal mais converte.'}
               </p>
             </div>
@@ -407,11 +457,11 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
           <li className="flex items-center p-4 bg-violet-50 text-violet-900 rounded-2xl border border-violet-100">
             <TrendingUp className="mr-4 flex-shrink-0 text-violet-500" />
             <div>
-              <p className="font-bold">Funil da semana</p>
+              <p className="font-bold">Funil do periodo</p>
               <p className="text-sm opacity-80">
-                {metrics.currentWeekProfileViews > 0
-                  ? `${metrics.currentWeekContactsCount} contato(s), ${metrics.currentWeekVisitContactsCount} visita(s) e ${metrics.currentWeekQuoteContactsCount} orcamento(s) nasceram de ${metrics.currentWeekProfileViews} visualizacao(oes) nesta semana.`
-                  : 'Assim que o perfil registrar visualizacoes nesta semana, o funil comercial passa a preencher automaticamente.'}
+                {metrics.periodProfileViewsCount > 0
+                  ? `${metrics.periodContactsCount} contato(s), ${metrics.periodVisitContactsCount} visita(s) e ${metrics.periodQuoteContactsCount} orcamento(s) nasceram de ${metrics.periodProfileViewsCount} visualizacao(oes) ${periodContextLabel}.`
+                  : `Assim que o perfil registrar visualizacoes ${periodContextLabel}, o funil comercial passa a preencher automaticamente.`}
               </p>
             </div>
           </li>

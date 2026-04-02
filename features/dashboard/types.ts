@@ -42,29 +42,31 @@ export type PainterSettingsForm = {
   dailySummaryEnabled: boolean;
 };
 
+export type AnalyticsPeriodDays = 7 | 30 | 90;
+
 export type DashboardMetrics = {
   portfolioCount: number;
   quoteCount: number;
   pendingQuoteCount: number;
-  profileViewsCount: number;
-  contactsCount: number;
-  chatContactsCount: number;
-  visitContactsCount: number;
-  quoteContactsCount: number;
-  currentWeekProfileViews: number;
-  currentWeekContactsCount: number;
-  currentWeekChatContactsCount: number;
-  currentWeekVisitContactsCount: number;
-  currentWeekQuoteContactsCount: number;
-  previousWeekProfileViews: number;
-  weeklyGrowthPercent: number;
+  totalProfileViewsCount: number;
+  totalContactsCount: number;
+  totalChatContactsCount: number;
+  totalVisitContactsCount: number;
+  totalQuoteContactsCount: number;
+  periodProfileViewsCount: number;
+  periodContactsCount: number;
+  periodChatContactsCount: number;
+  periodVisitContactsCount: number;
+  periodQuoteContactsCount: number;
+  previousPeriodProfileViewsCount: number;
+  periodGrowthPercent: number;
 };
 
 export type PainterProfileViewMetrics = {
   totalViews: number;
-  currentWeekViews: number;
-  previousWeekViews: number;
-  weeklyGrowthPercent: number;
+  currentPeriodViews: number;
+  previousPeriodViews: number;
+  periodGrowthPercent: number;
 };
 
 export type SavedVisitRequest = {
