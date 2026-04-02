@@ -55,6 +55,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     pendingQuoteCount: 0,
     profileViewsCount: 0,
     contactsCount: 0,
+    chatContactsCount: 0,
+    visitContactsCount: 0,
+    quoteContactsCount: 0,
     currentWeekProfileViews: 0,
     previousWeekProfileViews: 0,
     weeklyGrowthPercent: 0
@@ -247,12 +250,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   }, [setPage]);
 
   useEffect(() => {
+    const quoteContactsCount = quoteItems.length;
+    const visitContactsCount = visitItems.length;
+    const chatContactsCount = chatThreads.length;
+
     setMetrics({
       portfolioCount: portfolioItems.length,
-      quoteCount: quoteItems.length,
+      quoteCount: quoteContactsCount,
       pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length,
       profileViewsCount: profileViewMetrics.totalViews,
-      contactsCount: quoteItems.length + visitItems.length + chatThreads.length,
+      contactsCount: quoteContactsCount + visitContactsCount + chatContactsCount,
+      chatContactsCount,
+      visitContactsCount,
+      quoteContactsCount,
       currentWeekProfileViews: profileViewMetrics.currentWeekViews,
       previousWeekProfileViews: profileViewMetrics.previousWeekViews,
       weeklyGrowthPercent: profileViewMetrics.weeklyGrowthPercent

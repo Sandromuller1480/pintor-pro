@@ -48,6 +48,9 @@ export type DashboardMetrics = {
   pendingQuoteCount: number;
   profileViewsCount: number;
   contactsCount: number;
+  chatContactsCount: number;
+  visitContactsCount: number;
+  quoteContactsCount: number;
   currentWeekProfileViews: number;
   previousWeekProfileViews: number;
   weeklyGrowthPercent: number;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
+import { CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
 import { CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
@@ -64,6 +64,30 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   const weeklyGrowthLabel = metrics.weeklyGrowthPercent > 0
     ? `+${metrics.weeklyGrowthPercent}%`
     : `${metrics.weeklyGrowthPercent}%`;
+  const contactSources = [
+    {
+      label: 'Chat',
+      value: metrics.chatContactsCount,
+      icon: MessageSquare,
+      color: 'text-cyan-600',
+      bg: 'bg-cyan-50'
+    },
+    {
+      label: 'Visitas',
+      value: metrics.visitContactsCount,
+      icon: CalendarDays,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50'
+    },
+    {
+      label: 'Orcamentos',
+      value: metrics.quoteContactsCount,
+      icon: FileText,
+      color: 'text-[#9A077B]',
+      bg: 'bg-[#9A077B]/10'
+    }
+  ] as const;
+  const topContactSource = [...contactSources].sort((firstSource, secondSource) => secondSource.value - firstSource.value)[0];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -188,7 +212,7 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
           {
             label: 'Contatos Recebidos',
             value: String(metrics.contactsCount),
-            trend: `${metrics.quoteCount} orcamento(s), ${metrics.pendingQuoteCount} pendente(s) e ${Math.max(0, metrics.contactsCount - metrics.quoteCount)} outro(s) contato(s)`,
+            trend: `${metrics.chatContactsCount} chat(s), ${metrics.visitContactsCount} visita(s) e ${metrics.quoteContactsCount} orcamento(s)`,
             icon: MessageSquare,
             color: 'text-cyan-600',
             bg: 'bg-cyan-50'
@@ -223,6 +247,42 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
         ))}
       </div>
 
+      <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-black text-[#000747]">Origem dos Contatos</h3>
+            <p className="text-sm font-medium text-slate-500">Veja qual canal esta trazendo mais demanda para o seu perfil.</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Canal lider</p>
+            <p className="mt-1 text-sm font-black text-slate-700">
+              {topContactSource.value > 0 ? `${topContactSource.label} (${topContactSource.value})` : 'Sem contatos ainda'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {contactSources.map((source) => (
+            <div key={source.label} className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{source.label}</p>
+                  <p className="mt-2 text-3xl font-black text-slate-900">{source.value}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-500">
+                    {metrics.contactsCount > 0
+                      ? `${Math.round((source.value / metrics.contactsCount) * 100)}% dos contatos recebidos`
+                      : 'Aguardando os primeiros contatos'}
+                  </p>
+                </div>
+                <div className={`rounded-2xl p-3 ${source.bg} ${source.color}`}>
+                  <source.icon size={20} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
         <h3 className="text-xl font-black text-[#000747] mb-6 flex items-center">
           <TrendingUp className="mr-3 text-[#9A077B]" /> Insights & Proximos Passos
@@ -247,6 +307,17 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
                 {metrics.profileViewsCount > 0
                   ? `Seu perfil soma ${metrics.profileViewsCount} visualizacao(oes), com ${weeklyGrowthLabel} nesta comparacao semanal.`
                   : 'Seu perfil ainda nao registrou visualizacoes publicas suficientes para analise.'}
+              </p>
+            </div>
+          </li>
+          <li className="flex items-center p-4 bg-cyan-50 text-cyan-900 rounded-2xl border border-cyan-100">
+            <MessageSquare className="mr-4 flex-shrink-0 text-cyan-500" />
+            <div>
+              <p className="font-bold">Canal com mais retorno</p>
+              <p className="text-sm opacity-80">
+                {topContactSource.value > 0
+                  ? `${topContactSource.label} lidera com ${topContactSource.value} contato(s) recebido(s) ate agora.`
+                  : 'Assim que os primeiros contatos chegarem, mostramos aqui qual canal mais converte.'}
               </p>
             </div>
           </li>
