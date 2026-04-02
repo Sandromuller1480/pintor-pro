@@ -154,6 +154,12 @@ BEGIN
 END
 $$;
 
--- Exemplo de cadastro do dono da plataforma:
--- INSERT INTO public.admin_users (auth_user_id, full_name, email, role)
--- VALUES ('SEU-UUID-AQUI', 'Seu Nome', 'seu@email.com', 'owner');
+-- Cadastro inicial do dono da plataforma.
+-- A senha NAO entra neste SQL. Ela continua sendo gerida no Supabase Auth.
+INSERT INTO public.admin_users (full_name, email, role, is_active)
+VALUES ('Sandro Muller', 'sandromullerdesenhoarte@gmail.com', 'owner', true)
+ON CONFLICT (email) DO UPDATE
+SET
+  full_name = EXCLUDED.full_name,
+  role = EXCLUDED.role,
+  is_active = EXCLUDED.is_active;
