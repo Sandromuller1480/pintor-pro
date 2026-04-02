@@ -74,7 +74,7 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                 </span>
               </div>
 
-              <div className="flex shrink-0 items-center">
+              <div className="-mt-1 flex shrink-0 items-center self-start">
                 {mode === 'painter' && onEdit && (
                   <button
                     type="button"
