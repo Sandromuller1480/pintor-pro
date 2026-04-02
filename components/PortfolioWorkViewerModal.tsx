@@ -63,9 +63,9 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
       <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[36px] border border-white/15 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.38)]">
         <div className="relative overflow-hidden bg-gradient-to-r from-[#000747] to-[#9A077B] px-6 py-5 text-white">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at top left, rgba(255,255,255,0.35), transparent 35%)' }} />
-          <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-            <div className="min-w-0 max-w-3xl">
-              <div className="mb-3 flex flex-wrap gap-2">
+          <div className="relative">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-white/14 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-white">
                   {item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Concluido'}
                 </span>
@@ -73,6 +73,32 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                   {totalMediaCount} midia(s)
                 </span>
               </div>
+
+              <div className="flex shrink-0 items-center">
+                {mode === 'painter' && onEdit && (
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-[#000747] transition hover:bg-slate-100"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Edit3 size={16} />
+                      Editar obra
+                    </span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="ml-2 rounded-full bg-white/14 p-2.5 text-white transition hover:bg-white/22"
+                  aria-label="Fechar visualizacao da obra"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 min-w-0 max-w-3xl">
               <h3 className="text-2xl font-black leading-tight md:text-3xl">{item.title}</h3>
               <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold text-white/80">
                 <span className="flex items-center gap-2">
@@ -86,29 +112,6 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                   </span>
                 )}
               </div>
-            </div>
-
-            <div className="flex shrink-0 items-center self-center">
-              {mode === 'painter' && onEdit && (
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-[#000747] transition hover:bg-slate-100"
-                >
-                  <span className="flex items-center gap-2">
-                    <Edit3 size={16} />
-                    Editar obra
-                  </span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={onClose}
-                className="ml-2 rounded-full bg-white/14 p-2.5 text-white transition hover:bg-white/22"
-                aria-label="Fechar visualizacao da obra"
-              >
-                <X size={20} />
-              </button>
             </div>
           </div>
         </div>
