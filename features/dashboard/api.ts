@@ -1,5 +1,13 @@
 import { SavedObra } from '../../components/ObraModal';
 import { SavedOrcamento } from '../../components/OrcamentoModal';
+import {
+  DEFAULT_SERVICE_TIMEZONE,
+  DEFAULT_WORKING_HOURS_END,
+  DEFAULT_WORKING_HOURS_START,
+  normalizeServiceTimezone,
+  normalizeWorkingDays,
+  sanitizeWorkingTime
+} from '../../lib/painterAvailability';
 import { supabase } from '../../lib/supabase';
 import {
   buildPainterMediaPath,
@@ -191,23 +199,38 @@ export const fetchCurrentPainterProfile = async ({
     allowChat: application.allow_chat ?? true,
     allowVisitRequests: application.allow_visit_requests ?? true,
     pauseLeadIntake: application.pause_lead_intake ?? false,
+    businessHoursEnabled: application.business_hours_enabled ?? false,
+    workingDays: normalizeWorkingDays(application.working_days),
+    workingHoursStart: sanitizeWorkingTime(application.working_hours_start, DEFAULT_WORKING_HOURS_START),
+    workingHoursEnd: sanitizeWorkingTime(application.working_hours_end, DEFAULT_WORKING_HOURS_END),
+    serviceTimezone: normalizeServiceTimezone(application.service_timezone ?? DEFAULT_SERVICE_TIMEZONE),
     emailNotifications: application.email_notifications ?? true,
     dailySummaryEnabled: application.daily_summary_enabled ?? false
   };
 };
 
 export const updatePainterSettings = async (applicationId: string, settings: PainterSettingsForm): Promise<PainterSettingsForm> => {
+  const normalizedWorkingDays = normalizeWorkingDays(settings.workingDays);
+  const normalizedWorkingHoursStart = sanitizeWorkingTime(settings.workingHoursStart, DEFAULT_WORKING_HOURS_START);
+  const normalizedWorkingHoursEnd = sanitizeWorkingTime(settings.workingHoursEnd, DEFAULT_WORKING_HOURS_END);
+  const normalizedServiceTimezone = normalizeServiceTimezone(settings.serviceTimezone);
+
   const { data, error } = await supabase
     .from('applications')
     .update({
       allow_chat: settings.allowChat,
       allow_visit_requests: settings.allowVisitRequests,
       pause_lead_intake: settings.pauseLeadIntake,
+      business_hours_enabled: settings.businessHoursEnabled,
+      working_days: normalizedWorkingDays,
+      working_hours_start: normalizedWorkingHoursStart,
+      working_hours_end: normalizedWorkingHoursEnd,
+      service_timezone: normalizedServiceTimezone,
       email_notifications: settings.emailNotifications,
       daily_summary_enabled: settings.dailySummaryEnabled
     })
     .eq('id', applicationId)
-    .select('allow_chat, allow_visit_requests, pause_lead_intake, email_notifications, daily_summary_enabled')
+    .select('allow_chat, allow_visit_requests, pause_lead_intake, business_hours_enabled, working_days, working_hours_start, working_hours_end, service_timezone, email_notifications, daily_summary_enabled')
     .single();
 
   if (error) {
@@ -218,6 +241,11 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
     allowChat: data.allow_chat ?? true,
     allowVisitRequests: data.allow_visit_requests ?? true,
     pauseLeadIntake: data.pause_lead_intake ?? false,
+    businessHoursEnabled: data.business_hours_enabled ?? false,
+    workingDays: normalizeWorkingDays(data.working_days),
+    workingHoursStart: sanitizeWorkingTime(data.working_hours_start, DEFAULT_WORKING_HOURS_START),
+    workingHoursEnd: sanitizeWorkingTime(data.working_hours_end, DEFAULT_WORKING_HOURS_END),
+    serviceTimezone: normalizeServiceTimezone(data.service_timezone ?? DEFAULT_SERVICE_TIMEZONE),
     emailNotifications: data.email_notifications ?? true,
     dailySummaryEnabled: data.daily_summary_enabled ?? false
   };

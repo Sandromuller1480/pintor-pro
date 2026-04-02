@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
   BellRing,
   Briefcase,
+  CalendarDays,
   Clock3,
+  Globe2,
   Loader2,
   Mail,
   MessageSquare,
@@ -10,6 +12,13 @@ import {
   Save,
   ShieldCheck
 } from 'lucide-react';
+import {
+  BRAZIL_TIMEZONE_OPTIONS,
+  buildBusinessHoursSummary,
+  buildWorkingDaysSummary,
+  isWorkingHoursRangeValid,
+  WEEK_DAY_OPTIONS
+} from '../../../lib/painterAvailability';
 import { CurrentPainterProfile, FeedbackMessage, PainterSettingsForm } from '../types';
 import { getApplicationStatusLabel, getPlanLabel } from '../utils';
 
@@ -75,29 +84,73 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     allowChat: true,
     allowVisitRequests: true,
     pauseLeadIntake: false,
+    businessHoursEnabled: false,
+    workingDays: ['1', '2', '3', '4', '5'],
+    workingHoursStart: '08:00',
+    workingHoursEnd: '18:00',
+    serviceTimezone: 'America/Cuiaba',
     emailNotifications: true,
     dailySummaryEnabled: false
   });
+  const [localValidationError, setLocalValidationError] = useState('');
 
   useEffect(() => {
     if (!currentProfile) {
       return;
     }
 
+    setLocalValidationError('');
     setForm({
       allowChat: currentProfile.allowChat,
       allowVisitRequests: currentProfile.allowVisitRequests,
       pauseLeadIntake: currentProfile.pauseLeadIntake,
+      businessHoursEnabled: currentProfile.businessHoursEnabled,
+      workingDays: currentProfile.workingDays,
+      workingHoursStart: currentProfile.workingHoursStart,
+      workingHoursEnd: currentProfile.workingHoursEnd,
+      serviceTimezone: currentProfile.serviceTimezone,
       emailNotifications: currentProfile.emailNotifications,
       dailySummaryEnabled: currentProfile.dailySummaryEnabled
     });
   }, [currentProfile]);
 
   const updateField = <K extends keyof PainterSettingsForm>(field: K, value: PainterSettingsForm[K]) => {
+    setLocalValidationError('');
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value
     }));
+  };
+
+  const toggleWorkingDay = (dayValue: string) => {
+    setLocalValidationError('');
+    setForm((currentForm) => {
+      const nextWorkingDays = currentForm.workingDays.includes(dayValue)
+        ? currentForm.workingDays.filter((value) => value !== dayValue)
+        : [...currentForm.workingDays, dayValue].sort((first, second) => Number(first) - Number(second));
+
+      return {
+        ...currentForm,
+        workingDays: nextWorkingDays
+      };
+    });
+  };
+
+  const handleSaveClick = () => {
+    if (form.businessHoursEnabled) {
+      if (form.workingDays.length === 0) {
+        setLocalValidationError('Selecione pelo menos um dia de atendimento para ativar o expediente.');
+        return;
+      }
+
+      if (!isWorkingHoursRangeValid(form.workingHoursStart, form.workingHoursEnd)) {
+        setLocalValidationError('Defina um horario final maior do que o horario inicial.');
+        return;
+      }
+    }
+
+    setLocalValidationError('');
+    onSave(form);
   };
 
   const planLabel = getPlanLabel(currentProfile);
@@ -105,6 +158,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
   const locationLabel = currentProfile?.city
     ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
     : 'Localizacao nao informada';
+  const scheduleSummary = buildBusinessHoursSummary(form);
 
   return (
     <div className="animate-in fade-in duration-500 space-y-8">
@@ -120,7 +174,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => onSave(form)}
+            onClick={handleSaveClick}
             disabled={!currentProfile?.applicationId || isSaving}
             className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#EFC6E3] transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -128,6 +182,12 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
             {isSaving ? 'Salvando...' : 'Salvar alteracoes'}
           </button>
         </div>
+
+        {localValidationError && (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            {localValidationError}
+          </div>
+        )}
 
         {feedback && (
           <div
@@ -177,7 +237,95 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 checked={form.pauseLeadIntake}
                 onChange={(checked) => updateField('pauseLeadIntake', checked)}
               />
+              <SettingsToggleCard
+                icon={CalendarDays}
+                title="Restringir atendimento ao horario de expediente"
+                description="Quando ligado, clientes so conseguem iniciar contato dentro dos dias e horarios configurados abaixo."
+                checked={form.businessHoursEnabled}
+                onChange={(checked) => updateField('businessHoursEnabled', checked)}
+              />
             </div>
+
+            {form.businessHoursEnabled && (
+              <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/80 p-6">
+                <div className="mb-6">
+                  <h4 className="text-base font-black text-[#000747]">Expediente publicado</h4>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Escolha os dias, o intervalo de horas e o fuso usado para liberar chat e agendamentos.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Dias de atendimento</p>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEK_DAY_OPTIONS.map((day) => {
+                      const isSelected = form.workingDays.includes(day.value);
+
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => toggleWorkingDay(day.value)}
+                          className={`rounded-2xl px-4 py-2 text-sm font-black transition ${
+                            isSelected
+                              ? 'bg-[#000747] text-white shadow-lg shadow-[#000747]/15'
+                              : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700'
+                          }`}
+                        >
+                          {day.shortLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-xs font-medium text-slate-500">
+                    Dias ativos: <span className="font-black text-slate-700">{buildWorkingDaysSummary(form.workingDays)}</span>
+                  </p>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <label className="block">
+                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Inicio</span>
+                    <input
+                      type="time"
+                      value={form.workingHoursStart}
+                      onChange={(event) => updateField('workingHoursStart', event.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#9A077B]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Fim</span>
+                    <input
+                      type="time"
+                      value={form.workingHoursEnd}
+                      onChange={(event) => updateField('workingHoursEnd', event.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#9A077B]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Fuso horario</span>
+                    <div className="relative">
+                      <Globe2 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <select
+                        value={form.serviceTimezone}
+                        onChange={(event) => updateField('serviceTimezone', event.target.value)}
+                        className="w-full appearance-none rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none transition focus:border-[#9A077B]"
+                      >
+                        {BRAZIL_TIMEZONE_OPTIONS.map((timeZone) => (
+                          <option key={timeZone.value} value={timeZone.value}>
+                            {timeZone.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-[#9A077B]/10 bg-white px-4 py-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Resumo publico</p>
+                  <p className="mt-2 text-sm font-bold text-slate-700">{scheduleSummary}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
@@ -239,6 +387,9 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               </li>
               <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                 Leads novos: <span className="font-black text-white">{form.pauseLeadIntake ? 'Bloqueados' : 'Recebendo normalmente'}</span>
+              </li>
+              <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                Expediente: <span className="font-black text-white">{scheduleSummary}</span>
               </li>
             </ul>
           </div>

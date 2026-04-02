@@ -20,6 +20,11 @@ export type CurrentPainterProfile = {
   allowChat: boolean;
   allowVisitRequests: boolean;
   pauseLeadIntake: boolean;
+  businessHoursEnabled: boolean;
+  workingDays: string[];
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  serviceTimezone: string;
   emailNotifications: boolean;
   dailySummaryEnabled: boolean;
 };
@@ -28,6 +33,11 @@ export type PainterSettingsForm = {
   allowChat: boolean;
   allowVisitRequests: boolean;
   pauseLeadIntake: boolean;
+  businessHoursEnabled: boolean;
+  workingDays: string[];
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  serviceTimezone: string;
   emailNotifications: boolean;
   dailySummaryEnabled: boolean;
 };

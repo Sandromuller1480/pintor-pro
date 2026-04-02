@@ -15,6 +15,7 @@ import { PainterReviewsSection } from '../features/painter-profile/components/Pa
 import { PainterTabsNav } from '../features/painter-profile/components/PainterTabsNav';
 import { PainterProfileTab } from '../features/painter-profile/types';
 import { isUuid } from '../features/painter-profile/utils';
+import { getBusinessHoursAvailability } from '../lib/painterAvailability';
 import { NavigateToPage, Page, Painter, PainterReview, PortfolioItem } from '../types';
 
 interface PainterProfileProps {
@@ -38,6 +39,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
   const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | null>(null);
   const [activeTab, setActiveTab] = useState<PainterProfileTab>('portfolio');
+  const [availabilityNow, setAvailabilityNow] = useState(() => new Date());
 
   const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
   const publicApplicationId = painter?.applicationId;
@@ -45,9 +47,27 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const isLeadPaused = painter?.pauseLeadIntake === true;
   const allowsChat = painter?.allowChat !== false;
   const allowsVisitRequests = painter?.allowVisitRequests !== false;
+  const businessHoursAvailability = getBusinessHoursAvailability({
+    businessHoursEnabled: painter?.businessHoursEnabled,
+    workingDays: painter?.workingDays,
+    workingHoursStart: painter?.workingHoursStart,
+    workingHoursEnd: painter?.workingHoursEnd,
+    serviceTimezone: painter?.serviceTimezone
+  }, availabilityNow);
+  const isOutsideBusinessHours = businessHoursAvailability.withinBusinessHours === false;
   const hasSchedulableProfile = Boolean(publicApplicationId && isUuid(publicApplicationId));
-  const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests;
-  const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat;
+  const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
+  const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setAvailabilityNow(new Date());
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const openProtectedClientAction = (action: 'chat' | 'visit') => {
     if (action === 'chat') {
@@ -465,6 +485,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           <PainterActionsSidebar
             isPainterOffline={isPainterOffline}
             isLeadPaused={isLeadPaused}
+            isOutsideBusinessHours={isOutsideBusinessHours}
+            businessHoursMessage={businessHoursAvailability.message}
             allowsChat={allowsChat}
             allowsVisitRequests={allowsVisitRequests}
             canStartChat={canStartChat}

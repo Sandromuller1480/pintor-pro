@@ -1,5 +1,13 @@
 import { supabase } from '../supabase';
 import { Painter } from '../../types';
+import {
+    DEFAULT_SERVICE_TIMEZONE,
+    DEFAULT_WORKING_HOURS_END,
+    DEFAULT_WORKING_HOURS_START,
+    normalizeServiceTimezone,
+    normalizeWorkingDays,
+    sanitizeWorkingTime
+} from '../painterAvailability';
 
 const STORAGE_BUCKETS = {
     workPhotos: 'application-work-photos',
@@ -131,6 +139,21 @@ function mapPainterRowToPainter(item: any): Painter {
         pauseLeadIntake: typeof item.pause_lead_intake === 'boolean'
             ? item.pause_lead_intake
             : undefined,
+        businessHoursEnabled: typeof item.business_hours_enabled === 'boolean'
+            ? item.business_hours_enabled
+            : undefined,
+        workingDays: item.working_days != null
+            ? normalizeWorkingDays(item.working_days)
+            : undefined,
+        workingHoursStart: item.working_hours_start != null
+            ? sanitizeWorkingTime(item.working_hours_start, DEFAULT_WORKING_HOURS_START)
+            : undefined,
+        workingHoursEnd: item.working_hours_end != null
+            ? sanitizeWorkingTime(item.working_hours_end, DEFAULT_WORKING_HOURS_END)
+            : undefined,
+        serviceTimezone: item.service_timezone != null
+            ? normalizeServiceTimezone(item.service_timezone)
+            : DEFAULT_SERVICE_TIMEZONE,
         createdAt: item.created_at ?? undefined,
         coordinates: item.lat != null && item.lng != null
             ? { lat: item.lat, lng: item.lng }

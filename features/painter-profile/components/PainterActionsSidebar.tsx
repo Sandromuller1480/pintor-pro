@@ -4,6 +4,8 @@ import { Calendar, Info, Loader2, MessageSquare, Shield } from 'lucide-react';
 interface PainterActionsSidebarProps {
   isPainterOffline: boolean;
   isLeadPaused: boolean;
+  isOutsideBusinessHours: boolean;
+  businessHoursMessage: string;
   allowsChat: boolean;
   allowsVisitRequests: boolean;
   canStartChat: boolean;
@@ -15,6 +17,8 @@ interface PainterActionsSidebarProps {
 export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
   isPainterOffline,
   isLeadPaused,
+  isOutsideBusinessHours,
+  businessHoursMessage,
   allowsChat,
   allowsVisitRequests,
   canStartChat,
@@ -31,6 +35,8 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
     availabilityMessage = 'Este profissional esta offline agora.';
   } else if (isLeadPaused) {
     availabilityMessage = 'O recebimento de novos contatos foi pausado temporariamente.';
+  } else if (isOutsideBusinessHours) {
+    availabilityMessage = businessHoursMessage;
   } else if (!allowsChat && !allowsVisitRequests) {
     availabilityMessage = 'Chat e agendamento estao desativados neste momento.';
   } else if (!allowsChat) {
@@ -52,7 +58,11 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Agenda</span>
               <span className={`font-bold ${visitDisabled ? 'text-slate-500' : 'text-[#9A077B]'}`}>
-                {visitDisabled ? 'Indisponivel agora' : 'Disponivel em 10 dias'}
+                {isOutsideBusinessHours
+                  ? 'Fora do horario'
+                  : visitDisabled
+                    ? 'Indisponivel agora'
+                    : 'Disponivel em 10 dias'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

@@ -23,6 +23,11 @@ export interface Painter {
   allowChat?: boolean;
   allowVisitRequests?: boolean;
   pauseLeadIntake?: boolean;
+  businessHoursEnabled?: boolean;
+  workingDays?: string[];
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
+  serviceTimezone?: string;
   createdAt?: string;
   coordinates?: {
     lat: number;
