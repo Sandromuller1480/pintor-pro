@@ -23,6 +23,32 @@ interface PainterProfileProps {
   setPage?: NavigateToPage;
 }
 
+const PROFILE_VIEWER_KEY_STORAGE = 'pintorpro-public-viewer-key';
+
+const createViewerKey = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const getViewerKey = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const storedKey = window.localStorage.getItem(PROFILE_VIEWER_KEY_STORAGE);
+
+  if (storedKey) {
+    return storedKey;
+  }
+
+  const nextKey = createViewerKey();
+  window.localStorage.setItem(PROFILE_VIEWER_KEY_STORAGE, nextKey);
+  return nextKey;
+};
+
 export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPage }) => {
   const [checkingClientAction, setCheckingClientAction] = useState<'chat' | 'visit' | null>(null);
   const [painter, setPainter] = useState<Painter | null>(null);
@@ -68,6 +94,63 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       window.clearInterval(intervalId);
     };
   }, []);
+
+  useEffect(() => {
+    const targetApplicationId = publicApplicationId && isUuid(publicApplicationId)
+      ? publicApplicationId
+      : null;
+
+    if (!targetApplicationId || !painter) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const registerProfileView = async () => {
+      try {
+        const viewerKey = getViewerKey();
+
+        if (!viewerKey) {
+          return;
+        }
+
+        const {
+          data: { user }
+        } = await supabase.auth.getUser();
+
+        if (user?.id && painter.portfolioOwnerId && user.id === painter.portfolioOwnerId) {
+          return;
+        }
+
+        const todayBucket = new Date().toISOString().slice(0, 10);
+        const { error } = await supabase
+          .from('painter_profile_views')
+          .upsert({
+            application_id: targetApplicationId,
+            viewer_key: viewerKey,
+            view_bucket: todayBucket,
+            viewed_at: new Date().toISOString()
+          }, {
+            onConflict: 'application_id,viewer_key,view_bucket',
+            ignoreDuplicates: true
+          });
+
+        if (error && !cancelled) {
+          console.error('Erro ao registrar visualizacao publica do perfil:', error);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Erro ao preparar visualizacao publica do perfil:', error);
+        }
+      }
+    };
+
+    void registerProfileView();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [painter, publicApplicationId]);
 
   const openProtectedClientAction = (action: 'chat' | 'visit') => {
     if (action === 'chat') {

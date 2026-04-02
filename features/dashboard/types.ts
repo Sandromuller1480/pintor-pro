@@ -46,6 +46,18 @@ export type DashboardMetrics = {
   portfolioCount: number;
   quoteCount: number;
   pendingQuoteCount: number;
+  profileViewsCount: number;
+  contactsCount: number;
+  currentWeekProfileViews: number;
+  previousWeekProfileViews: number;
+  weeklyGrowthPercent: number;
+};
+
+export type PainterProfileViewMetrics = {
+  totalViews: number;
+  currentWeekViews: number;
+  previousWeekViews: number;
+  weeklyGrowthPercent: number;
 };
 
 export type SavedVisitRequest = {

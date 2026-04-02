@@ -15,7 +15,14 @@ import {
   getSignedLegacyMediaUrl,
   PAINTER_MEDIA_BUCKET
 } from './utils';
-import { CurrentPainterProfile, PainterSettingsForm, SavedChatMessage, SavedChatThread, SavedVisitRequest } from './types';
+import {
+  CurrentPainterProfile,
+  PainterProfileViewMetrics,
+  PainterSettingsForm,
+  SavedChatMessage,
+  SavedChatThread,
+  SavedVisitRequest
+} from './types';
 
 type FetchCurrentPainterProfileParams = {
   email: string;
@@ -117,6 +124,18 @@ export const buildVisitErrorMessage = (error: unknown) => {
   return message.includes('painter_visit_requests') || message.includes('does not exist')
     ? 'A tabela de visitas ainda nao foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
     : 'Nao foi possivel carregar sua agenda de visitas agora.';
+};
+
+const buildWeeklyGrowthPercent = (currentWeekViews: number, previousWeekViews: number) => {
+  if (currentWeekViews === 0 && previousWeekViews === 0) {
+    return 0;
+  }
+
+  if (previousWeekViews === 0) {
+    return 100;
+  }
+
+  return Math.round(((currentWeekViews - previousWeekViews) / previousWeekViews) * 100);
 };
 
 const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
@@ -248,6 +267,35 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
     serviceTimezone: normalizeServiceTimezone(data.service_timezone ?? DEFAULT_SERVICE_TIMEZONE),
     emailNotifications: data.email_notifications ?? true,
     dailySummaryEnabled: data.daily_summary_enabled ?? false
+  };
+};
+
+export const fetchPainterProfileViewMetrics = async (applicationId: string): Promise<PainterProfileViewMetrics> => {
+  const { data, error } = await supabase
+    .from('painter_profile_views')
+    .select('viewed_at')
+    .eq('application_id', applicationId);
+
+  if (error) {
+    throw error;
+  }
+
+  const nowMs = Date.now();
+  const currentWeekStartMs = nowMs - (7 * 24 * 60 * 60 * 1000);
+  const previousWeekStartMs = nowMs - (14 * 24 * 60 * 60 * 1000);
+
+  const viewedAtValues = (data ?? [])
+    .map((item) => new Date(item.viewed_at).getTime())
+    .filter((value) => !Number.isNaN(value));
+
+  const currentWeekViews = viewedAtValues.filter((value) => value >= currentWeekStartMs).length;
+  const previousWeekViews = viewedAtValues.filter((value) => value >= previousWeekStartMs && value < currentWeekStartMs).length;
+
+  return {
+    totalViews: viewedAtValues.length,
+    currentWeekViews,
+    previousWeekViews,
+    weeklyGrowthPercent: buildWeeklyGrowthPercent(currentWeekViews, previousWeekViews)
   };
 };
 

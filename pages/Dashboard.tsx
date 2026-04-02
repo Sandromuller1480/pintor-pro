@@ -11,6 +11,7 @@ import {
   fetchChatThreads,
   fetchCurrentPainterProfile,
   fetchPortfolioItems,
+  fetchPainterProfileViewMetrics,
   fetchQuoteItems,
   fetchVisitItems,
   normalizeChatMessagesError,
@@ -31,6 +32,7 @@ import {
   DashboardMetrics,
   DashboardTab,
   FeedbackMessage,
+  PainterProfileViewMetrics,
   PainterSettingsForm,
   SavedChatMessage,
   SavedChatThread,
@@ -50,7 +52,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     portfolioCount: 0,
     quoteCount: 0,
-    pendingQuoteCount: 0
+    pendingQuoteCount: 0,
+    profileViewsCount: 0,
+    contactsCount: 0,
+    currentWeekProfileViews: 0,
+    previousWeekProfileViews: 0,
+    weeklyGrowthPercent: 0
+  });
+  const [profileViewMetrics, setProfileViewMetrics] = useState<PainterProfileViewMetrics>({
+    totalViews: 0,
+    currentWeekViews: 0,
+    previousWeekViews: 0,
+    weeklyGrowthPercent: 0
   });
   const [isSignOut, setIsSignOut] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
@@ -237,9 +250,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setMetrics({
       portfolioCount: portfolioItems.length,
       quoteCount: quoteItems.length,
-      pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length
+      pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length,
+      profileViewsCount: profileViewMetrics.totalViews,
+      contactsCount: quoteItems.length + visitItems.length + chatThreads.length,
+      currentWeekProfileViews: profileViewMetrics.currentWeekViews,
+      previousWeekProfileViews: profileViewMetrics.previousWeekViews,
+      weeklyGrowthPercent: profileViewMetrics.weeklyGrowthPercent
     });
-  }, [portfolioItems, quoteItems]);
+  }, [portfolioItems, quoteItems, visitItems, chatThreads, profileViewMetrics]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfileViewMetrics = async () => {
+      if (!currentProfile?.applicationId) {
+        if (isMounted) {
+          setProfileViewMetrics({
+            totalViews: 0,
+            currentWeekViews: 0,
+            previousWeekViews: 0,
+            weeklyGrowthPercent: 0
+          });
+        }
+        return;
+      }
+
+      try {
+        const nextMetrics = await fetchPainterProfileViewMetrics(currentProfile.applicationId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfileViewMetrics(nextMetrics);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao carregar metricas de visualizacao do perfil:', error);
+        setProfileViewMetrics({
+          totalViews: 0,
+          currentWeekViews: 0,
+          previousWeekViews: 0,
+          weeklyGrowthPercent: 0
+        });
+      }
+    };
+
+    void loadProfileViewMetrics();
+
+    const handleWindowFocus = () => {
+      void loadProfileViewMetrics();
+    };
+
+    const refreshIntervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadProfileViewMetrics();
+      }
+    }, 30_000);
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshIntervalId);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [currentProfile?.applicationId]);
 
   useEffect(() => {
     let isMounted = true;

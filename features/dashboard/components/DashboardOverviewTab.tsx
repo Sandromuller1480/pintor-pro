@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Clock, Edit2, FileText, Loader2, Star, TrendingUp, Users } from 'lucide-react';
+import { Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
 import { CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
@@ -61,6 +61,9 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   ].filter(Boolean);
   const lastPortfolioEntry = portfolioItems[0];
   const canEditMedia = Boolean(currentProfile?.applicationId);
+  const weeklyGrowthLabel = metrics.weeklyGrowthPercent > 0
+    ? `+${metrics.weeklyGrowthPercent}%`
+    : `${metrics.weeklyGrowthPercent}%`;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -156,7 +159,7 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         {[
           {
             label: 'Obras no Portfolio',
@@ -173,6 +176,30 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
             icon: FileText,
             color: 'text-[#9A077B]',
             bg: 'bg-[#9A077B]/10'
+          },
+          {
+            label: 'Visualizacoes do Perfil',
+            value: String(metrics.profileViewsCount),
+            trend: `${metrics.currentWeekProfileViews} nesta semana`,
+            icon: Eye,
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-50'
+          },
+          {
+            label: 'Contatos Recebidos',
+            value: String(metrics.contactsCount),
+            trend: `${metrics.quoteCount} orcamento(s), ${metrics.pendingQuoteCount} pendente(s) e ${Math.max(0, metrics.contactsCount - metrics.quoteCount)} outro(s) contato(s)`,
+            icon: MessageSquare,
+            color: 'text-cyan-600',
+            bg: 'bg-cyan-50'
+          },
+          {
+            label: 'Crescimento Semanal',
+            value: weeklyGrowthLabel,
+            trend: `${metrics.currentWeekProfileViews} visualizacao(oes) vs ${metrics.previousWeekProfileViews} na semana anterior`,
+            icon: TrendingUp,
+            color: metrics.weeklyGrowthPercent >= 0 ? 'text-violet-600' : 'text-rose-600',
+            bg: metrics.weeklyGrowthPercent >= 0 ? 'bg-violet-50' : 'bg-rose-50'
           },
           {
             label: 'Plano Atual',
@@ -209,6 +236,17 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
                 {metrics.pendingQuoteCount > 0
                   ? `Voce tem ${metrics.pendingQuoteCount} orcamento(s) novos esperando resposta.`
                   : 'Nenhum novo orcamento pendente no momento.'}
+              </p>
+            </div>
+          </li>
+          <li className="flex items-center p-4 bg-emerald-50 text-emerald-900 rounded-2xl border border-emerald-100">
+            <Eye className="mr-4 flex-shrink-0 text-emerald-500" />
+            <div>
+              <p className="font-bold">Desempenho do perfil</p>
+              <p className="text-sm opacity-80">
+                {metrics.profileViewsCount > 0
+                  ? `Seu perfil soma ${metrics.profileViewsCount} visualizacao(oes), com ${weeklyGrowthLabel} nesta comparacao semanal.`
+                  : 'Seu perfil ainda nao registrou visualizacoes publicas suficientes para analise.'}
               </p>
             </div>
           </li>
