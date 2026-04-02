@@ -1034,6 +1034,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           isLoading={isLoadingPortfolio}
           errorMessage={portfolioError}
           onAdd={() => setIsObraModalOpen(true)}
+          onWorkSaved={handleObraSaved}
         />
       );
       break;

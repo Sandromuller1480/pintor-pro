@@ -16,6 +16,11 @@ import { PainterTabsNav } from '../features/painter-profile/components/PainterTa
 import { PainterProfileTab } from '../features/painter-profile/types';
 import { isUuid } from '../features/painter-profile/utils';
 import { getBusinessHoursAvailability } from '../lib/painterAvailability';
+import {
+  getPortfolioPreviewMedia,
+  getPortfolioTotalMediaCount,
+  normalizePortfolioStageMedia
+} from '../lib/portfolioStages';
 import { NavigateToPage, Page, Painter, PainterReview, PortfolioItem } from '../types';
 
 interface PainterProfileProps {
@@ -352,11 +357,28 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         return;
       }
 
-      const { data, error } = await supabase
+      const primaryQuery = await supabase
         .from('obras')
-        .select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
+        .select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, stage_media, created_at')
         .in('pintor_id', ownerIds)
         .order('created_at', { ascending: false });
+
+      let data = primaryQuery.data;
+      let error = primaryQuery.error;
+
+      if (error && String(error.message || '').toLowerCase().includes('stage_media')) {
+        const legacyQuery = await supabase
+          .from('obras')
+          .select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
+          .in('pintor_id', ownerIds)
+          .order('created_at', { ascending: false });
+
+        data = legacyQuery.data?.map((item) => ({
+          ...item,
+          stage_media: null
+        })) ?? null;
+        error = legacyQuery.error;
+      }
 
       if (cancelled) {
         return;
@@ -370,18 +392,31 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         return;
       }
 
-      setPortfolioItems((data ?? []).map((item: any) => ({
-        id: item.id,
-        painterId: item.pintor_id,
-        title: item.titulo,
-        location: item.local,
-        propertyType: item.tipo_imovel,
-        paintType: item.tipo_pintura,
-        status: item.status,
-        imageUrl: item.imagem_url,
-        videoUrl: item.video_url,
-        createdAt: item.created_at
-      })));
+      setPortfolioItems((data ?? []).map((item: any) => {
+        const stageMedia = normalizePortfolioStageMedia(item.stage_media, {
+          imageUrl: item.imagem_url,
+          videoUrl: item.video_url
+        });
+        const previewMedia = getPortfolioPreviewMedia(stageMedia, {
+          imageUrl: item.imagem_url,
+          videoUrl: item.video_url
+        });
+
+        return {
+          id: item.id,
+          painterId: item.pintor_id,
+          title: item.titulo,
+          location: item.local,
+          propertyType: item.tipo_imovel,
+          paintType: item.tipo_pintura,
+          status: item.status,
+          imageUrl: previewMedia.imageUrl,
+          videoUrl: previewMedia.videoUrl,
+          stageMedia,
+          totalMediaCount: getPortfolioTotalMediaCount(stageMedia),
+          createdAt: item.created_at
+        };
+      }));
       setPortfolioLoading(false);
     }
 

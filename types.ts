@@ -1,4 +1,6 @@
 
+import type { PortfolioStageMediaMap } from './lib/portfolioStages';
+
 export interface Painter {
   id: string;
   applicationId?: string;
@@ -45,6 +47,8 @@ export interface PortfolioItem {
   status: string;
   imageUrl: string | null;
   videoUrl: string | null;
+  stageMedia: PortfolioStageMediaMap;
+  totalMediaCount: number;
   createdAt: string;
 }
 

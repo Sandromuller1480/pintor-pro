@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS public.obras (
     tipo_pintura TEXT NOT NULL,
     status TEXT DEFAULT 'CONCLUÍDO', -- Pode ser 'CONCLUÍDO' ou 'EM ANDAMENTO'
     imagem_url TEXT, -- Caminho da imagem no storage
+    video_url TEXT, -- Caminho do video no storage
+    stage_media JSONB NOT NULL DEFAULT jsonb_build_object(
+      'preparo_reboco_fundo', jsonb_build_object('images', '[]'::jsonb, 'videos', '[]'::jsonb),
+      'massa_corrida_lixamento', jsonb_build_object('images', '[]'::jsonb, 'videos', '[]'::jsonb),
+      'pintura_acabamento', jsonb_build_object('images', '[]'::jsonb, 'videos', '[]'::jsonb)
+    ),
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

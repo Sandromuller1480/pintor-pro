@@ -8,6 +8,7 @@ import {
   normalizeWorkingDays,
   sanitizeWorkingTime
 } from '../../lib/painterAvailability';
+import { normalizePortfolioStageMedia } from '../../lib/portfolioStages';
 import { supabase } from '../../lib/supabase';
 import {
   buildPainterMediaPath,
@@ -32,17 +33,40 @@ type FetchCurrentPainterProfileParams = {
 };
 
 export const fetchPortfolioItems = async (userId: string) => {
-  const { data, error } = await supabase
+  const primaryQuery = await supabase
     .from('obras')
-    .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
+    .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, stage_media, created_at')
     .eq('pintor_id', userId)
     .order('created_at', { ascending: false });
+
+  let data = primaryQuery.data;
+  let error = primaryQuery.error;
+
+  if (error && String(error.message || '').toLowerCase().includes('stage_media')) {
+    const legacyQuery = await supabase
+      .from('obras')
+      .select('id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')
+      .eq('pintor_id', userId)
+      .order('created_at', { ascending: false });
+
+    data = legacyQuery.data?.map((item) => ({
+      ...item,
+      stage_media: null
+    })) ?? null;
+    error = legacyQuery.error;
+  }
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []) as SavedObra[];
+  return (data ?? []).map((item: any) => ({
+    ...item,
+    stage_media: normalizePortfolioStageMedia(item.stage_media, {
+      imageUrl: item.imagem_url,
+      videoUrl: item.video_url
+    })
+  })) as SavedObra[];
 };
 
 export const fetchQuoteItems = async (userId: string) => {
