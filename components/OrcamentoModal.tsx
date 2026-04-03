@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Camera, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { generateQuotePdf } from '../lib/quotePdf';
 
 interface OrcamentoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved?: (orcamento: SavedOrcamento) => void;
+  painterName?: string;
+  painterLocation?: string;
+  painterProfilePhotoUrl?: string | null;
 }
 
 type Ambiente = {
@@ -199,7 +203,14 @@ const buildQuoteWhatsappUrl = (phone: string, message: string) => {
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 };
 
-export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose, onSaved }) => {
+export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
+  isOpen,
+  onClose,
+  onSaved,
+  painterName,
+  painterLocation,
+  painterProfilePhotoUrl
+}) => {
   const [formData, setFormData] = useState<OrcamentoFormData>(INITIAL_FORM_DATA);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([INITIAL_AMBIENTE()]);
   const [prepServicos, setPrepServicos] = useState<string[]>([]);
@@ -328,9 +339,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
       }
 
       const painterDisplayName =
-        typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
-          ? user.user_metadata.full_name.trim()
-          : (user.email?.split('@')[0] ?? 'seu pintor');
+        painterName?.trim() ||
+        (
+          typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
+            ? user.user_metadata.full_name.trim()
+            : (user.email?.split('@')[0] ?? 'seu pintor')
+        );
 
       const ambientesValidos = ambientes.filter((ambiente) => (
         ambiente.nome.trim() ||
@@ -394,6 +408,46 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
         } catch (uploadError) {
           console.error('Erro ao enviar anexos do orcamento:', uploadError);
         }
+      }
+
+      try {
+        await generateQuotePdf({
+          quoteId: savedQuote.id,
+          createdAt: savedQuote.created_at,
+          painterName: painterDisplayName,
+          painterLocation: painterLocation?.trim() || undefined,
+          painterProfilePhotoUrl,
+          clientName: formData.clienteNome.trim(),
+          clientCpfCnpj: formData.clienteCpfCnpj.trim() || undefined,
+          clientPhone: formData.clienteTelefone.trim(),
+          clientEmail: formData.clienteEmail.trim().toLowerCase() || undefined,
+          clientType: formData.clienteTipo || undefined,
+          propertyAddress: formData.imovelEndereco.trim() || undefined,
+          propertyCityState: formData.imovelCidadeEstado.trim() || undefined,
+          propertyType: formData.imovelTipo || undefined,
+          propertySituation: formData.imovelSituacao || undefined,
+          propertyStatus: formData.imovelStatus || undefined,
+          serviceType: formData.pinturaTipoServico || undefined,
+          finishType: formData.pinturaAcabamento || undefined,
+          paintType: formData.pinturaTinta || undefined,
+          wallState: formData.prepSituacaoParede || undefined,
+          prepServices: prepServicos,
+          workHeight: formData.compAlturaTrabalho || undefined,
+          complexityNeeds: compNecessidade,
+          accessLevel: formData.compAcesso || undefined,
+          extraServices: servicosExtras,
+          colorsDefined: formData.coresJaDefinidas || undefined,
+          colorsQuantity: formData.coresQuantidade || undefined,
+          colorConsulting: formData.coresConsultoria || undefined,
+          startDate: formData.prazoDataInicio || undefined,
+          estimatedDeadline: formData.prazoEstimado.trim() || undefined,
+          urgency: formData.prazoUrgencia || undefined,
+          materialSupply: formData.fornecimentoMateriais || undefined,
+          observations: formData.observacoes.trim() || undefined,
+          ambientes: ambientesValidos
+        });
+      } catch (pdfError) {
+        console.error('Erro ao gerar PDF do orcamento:', pdfError);
       }
 
       const whatsappUrl = buildQuoteWhatsappUrl(formData.clienteTelefone, whatsappMessage);

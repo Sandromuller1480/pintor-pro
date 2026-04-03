@@ -1243,6 +1243,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         isOpen={isOrcamentoModalOpen}
         onClose={() => setIsOrcamentoModalOpen(false)}
         onSaved={handleOrcamentoSaved}
+        painterName={currentProfile?.fullName || userName}
+        painterLocation={[currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ')}
+        painterProfilePhotoUrl={currentProfile?.profilePhotoUrl ?? null}
       />
       <ObraModal
         isOpen={isObraModalOpen}
