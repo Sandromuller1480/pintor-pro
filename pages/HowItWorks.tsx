@@ -17,7 +17,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
     client: [
       { icon: <Search size={32} />, title: "Busca Inteligente", desc: "Filtre pintores por especialidade (ex: Laca, Airless, Cimento Queimado) e localização exata." },
       { icon: <ShieldCheck size={32} />, title: "Análise de Portfólio", desc: "Veja fotos reais de 'Antes e Depois' verificadas por nossa equipe. Leia depoimentos reais." },
-      { icon: <CreditCard size={32} />, title: "Pagamento Seguro", desc: "Sua obra é protegida. O pagamento fica retido e só é liberado conforme as etapas são concluídas." }
+      { icon: <CreditCard size={32} />, title: "Negociação Protegida", desc: "A negociação acontece pela plataforma, mas o pagamento é tratado diretamente entre cliente e pintor." }
     ],
     painter: [
       { icon: <Award size={32} />, title: "Credenciamento", desc: "Envie seus melhores trabalhos e certificações. Nossa curadoria avaliará seu padrão técnico." },
