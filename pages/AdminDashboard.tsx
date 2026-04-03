@@ -9,6 +9,7 @@ import {
   CreditCard,
   Eye,
   FileStack,
+  History,
   ImageOff,
   LayoutDashboard,
   Loader2,
@@ -20,6 +21,13 @@ import {
   XCircle
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import {
+  createAdminAuditLog,
+  formatAdminAuditValue,
+  getAdminAuditActionLabel,
+  getAdminAuditChangesList,
+  type AdminAuditLog
+} from '../lib/adminAudit';
 import { getCurrentAdminProfile, type CurrentAdminProfile } from '../lib/adminAccess';
 import { getPortfolioPreviewMedia, getPortfolioTotalMediaCount, normalizePortfolioStageMedia } from '../lib/portfolioStages';
 import { supabase } from '../lib/supabase';
@@ -29,7 +37,7 @@ type AdminDashboardProps = {
   setPage: NavigateToPage;
 };
 
-type AdminTab = 'overview' | 'applications' | 'painters' | 'subscriptions' | 'operations' | 'moderation';
+type AdminTab = 'overview' | 'applications' | 'painters' | 'subscriptions' | 'operations' | 'moderation' | 'audit';
 
 type AdminApplication = {
   id: string;
@@ -130,7 +138,8 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ cla
   { id: 'painters', label: 'Pintores', icon: ShieldCheck },
   { id: 'subscriptions', label: 'Assinaturas', icon: CreditCard },
   { id: 'operations', label: 'Operacao', icon: Activity },
-  { id: 'moderation', label: 'Moderacao', icon: FileStack }
+  { id: 'moderation', label: 'Moderacao', icon: FileStack },
+  { id: 'audit', label: 'Auditoria', icon: History }
 ];
 
 const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
@@ -236,11 +245,14 @@ const getPortfolioPublicUrl = (path?: string | null) => {
   return supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(path).data.publicUrl;
 };
 
+const buildAuditWarningMessage = (successMessage: string) => `${successMessage} Porem, a auditoria nao conseguiu registrar o evento.`;
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [adminProfile, setAdminProfile] = useState<CurrentAdminProfile | null>(null);
   const [applications, setApplications] = useState<AdminApplication[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<AdminPortfolioItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [recentChats, setRecentChats] = useState<AdminChat[]>([]);
   const [recentVisits, setRecentVisits] = useState<AdminVisit[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<AdminQuote[]>([]);
@@ -296,7 +308,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
     };
 
     try {
-      setAdminProfile(await getCurrentAdminProfile());
+      const currentAdminProfile = await getCurrentAdminProfile();
+      setAdminProfile(currentAdminProfile);
 
       const applicationsResult = await supabase
         .from('applications')
@@ -314,7 +327,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
       const fourteenDaysAgoIso = new Date(now - (14 * 24 * 60 * 60 * 1000)).toISOString();
       const thirtyDaysAgoIso = new Date(now - (30 * 24 * 60 * 60 * 1000)).toISOString();
 
-      const [activeClients, profileViewsLast30Days, totalChats, openChats, totalVisits, pendingVisits, totalQuotes, chats, visits, quotes, loadedPortfolioItems] = await Promise.all([
+      const [activeClients, profileViewsLast30Days, totalChats, openChats, totalVisits, pendingVisits, totalQuotes, chats, visits, quotes, loadedPortfolioItems, loadedAuditLogs] = await Promise.all([
         safeCount(supabase.from('clientes').select('*', { count: 'exact', head: true })),
         safeCount(supabase.from('painter_profile_views').select('*', { count: 'exact', head: true }).gte('viewed_at', thirtyDaysAgoIso)),
         safeCount(supabase.from('painter_chat_threads').select('*', { count: 'exact', head: true })),
@@ -325,13 +338,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
         safeList<AdminChat>(supabase.from('painter_chat_threads').select('id, application_id, client_name, status, last_message_preview, last_message_at').order('last_message_at', { ascending: false }).limit(8)),
         safeList<AdminVisit>(supabase.from('painter_visit_requests').select('id, application_id, client_name, preferred_date, preferred_time, location, status').order('created_at', { ascending: false }).limit(8)),
         safeList<AdminQuote>(supabase.from('orcamentos').select('id, pintor_id, cliente_nome, imovel_cidade_estado, status, created_at').order('created_at', { ascending: false }).limit(8)),
-        safeList<AdminPortfolioItem>(supabase.from('obras').select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, stage_media, created_at, is_publicly_visible, featured_in_showcase, admin_review_status, admin_review_notes, admin_reviewed_at').order('created_at', { ascending: false }).limit(80))
+        safeList<AdminPortfolioItem>(supabase.from('obras').select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, stage_media, created_at, is_publicly_visible, featured_in_showcase, admin_review_status, admin_review_notes, admin_reviewed_at').order('created_at', { ascending: false }).limit(80)),
+        safeList<AdminAuditLog>(supabase.from('admin_action_logs').select('id, admin_name, admin_email, action_type, target_table, target_id, target_label, metadata, created_at').order('created_at', { ascending: false }).limit(40))
       ]);
 
       setRecentChats(chats);
       setRecentVisits(visits);
       setRecentQuotes(quotes);
       setPortfolioItems(loadedPortfolioItems);
+      setAuditLogs(loadedAuditLogs);
 
       const acceptedPainters = loadedApplications.filter((item) => item.status === 'accepted');
       const subscriptionBase = acceptedPainters.filter((item) => item.subscription_status === 'active' || item.subscription_status === 'trialing' || Boolean(item.subscription_plan));
@@ -374,13 +389,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
     void loadDashboard();
   }, []);
 
-  const updateApplication = async (id: string, payload: Record<string, unknown>, successMessage: string, actionKey: string) => {
+  const registerAuditEvent = async (params: {
+    actionType: string;
+    targetTable: string;
+    targetId: string;
+    targetLabel: string;
+    previousRecord?: Record<string, unknown> | null;
+    nextRecord?: Record<string, unknown> | null;
+    metadata?: Record<string, unknown>;
+  }) => {
+    await createAdminAuditLog({
+      adminProfile,
+      actionType: params.actionType,
+      targetTable: params.targetTable,
+      targetId: params.targetId,
+      targetLabel: params.targetLabel,
+      previousRecord: params.previousRecord,
+      nextRecord: params.nextRecord,
+      metadata: params.metadata
+    });
+  };
+
+  const updateApplication = async (
+    id: string,
+    payload: Record<string, unknown>,
+    successMessage: string,
+    actionKey: string,
+    actionType: string
+  ) => {
     setBusyKey(actionKey);
     setFeedback(null);
+    const currentApplication = applications.find((item) => item.id === id) ?? null;
+
     try {
       const { error } = await supabase.from('applications').update(payload).eq('id', id);
       if (error) throw error;
-      setFeedback({ type: 'success', message: successMessage });
+
+      try {
+        await registerAuditEvent({
+          actionType,
+          targetTable: 'applications',
+          targetId: id,
+          targetLabel: currentApplication ? getApplicationName(currentApplication) : `Aplicacao ${id}`,
+          previousRecord: currentApplication,
+          nextRecord: payload,
+          metadata: {
+            entity: 'application'
+          }
+        });
+        setFeedback({ type: 'success', message: successMessage });
+      } catch (auditError) {
+        console.error('Erro ao registrar auditoria administrativa da aplicacao:', auditError);
+        setFeedback({ type: 'error', message: buildAuditWarningMessage(successMessage) });
+      }
+
       await loadDashboard('refresh');
     } catch (error) {
       console.error('Erro ao atualizar cadastro administrativo:', error);
@@ -390,16 +452,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
     }
   };
 
-  const updatePortfolioModeration = async (id: string, payload: Record<string, unknown>, successMessage: string, actionKey: string) => {
+  const updatePortfolioModeration = async (
+    id: string,
+    payload: Record<string, unknown>,
+    successMessage: string,
+    actionKey: string,
+    actionType: string
+  ) => {
     setBusyKey(actionKey);
     setFeedback(null);
+    const currentPortfolioItem = portfolioItems.find((item) => item.id === id) ?? null;
+
     try {
-      const { error } = await supabase.from('obras').update({
+      const updatePayload = {
         ...payload,
         admin_reviewed_at: new Date().toISOString()
-      }).eq('id', id);
+      };
+
+      const { error } = await supabase.from('obras').update(updatePayload).eq('id', id);
       if (error) throw error;
-      setFeedback({ type: 'success', message: successMessage });
+
+      try {
+        await registerAuditEvent({
+          actionType,
+          targetTable: 'obras',
+          targetId: id,
+          targetLabel: currentPortfolioItem?.titulo || `Obra ${id}`,
+          previousRecord: currentPortfolioItem,
+          nextRecord: updatePayload,
+          metadata: {
+            entity: 'portfolio'
+          }
+        });
+        setFeedback({ type: 'success', message: successMessage });
+      } catch (auditError) {
+        console.error('Erro ao registrar auditoria administrativa da obra:', auditError);
+        setFeedback({ type: 'error', message: buildAuditWarningMessage(successMessage) });
+      }
+
       await loadDashboard('refresh');
     } catch (error) {
       console.error('Erro ao moderar obra:', error);
@@ -441,6 +531,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
       painterName: painterByUserId[item.pintor_id ?? ''] || 'Pintor nao identificado'
     };
   });
+  const latestAuditLog = auditLogs[0] ?? null;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
@@ -500,9 +591,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button type="button" disabled={busyKey === `approve:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${selectedApplication.id}`)} className="rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar pintor</button>
-              <button type="button" disabled={busyKey === `pending:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'pending' }, 'Aplicacao voltou para pendencia.', `pending:${selectedApplication.id}`)} className="rounded-2xl bg-amber-500 px-5 py-4 text-sm font-black text-white transition hover:bg-amber-600 disabled:opacity-60">Voltar para pendencia</button>
-              <button type="button" disabled={busyKey === `reject:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${selectedApplication.id}`)} className="rounded-2xl bg-rose-600 px-5 py-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar cadastro</button>
+              <button type="button" disabled={busyKey === `approve:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${selectedApplication.id}`, 'application.approved')} className="rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar pintor</button>
+              <button type="button" disabled={busyKey === `pending:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'pending' }, 'Aplicacao voltou para pendencia.', `pending:${selectedApplication.id}`, 'application.pending')} className="rounded-2xl bg-amber-500 px-5 py-4 text-sm font-black text-white transition hover:bg-amber-600 disabled:opacity-60">Voltar para pendencia</button>
+              <button type="button" disabled={busyKey === `reject:${selectedApplication.id}`} onClick={() => void updateApplication(selectedApplication.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${selectedApplication.id}`, 'application.rejected')} className="rounded-2xl bg-rose-600 px-5 py-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar cadastro</button>
               <button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: selectedApplication.id })} className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B]">Abrir perfil publico</button>
             </div>
           </div>
@@ -575,8 +666,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                               <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-lg font-black text-[#000747]">{getApplicationName(item)}</p><p className="mt-1 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p><p className="mt-2 text-sm font-semibold text-slate-400">{getApplicationLocation(item)}</p></div><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span></div>
                               <div className="mt-4 flex flex-wrap gap-3">
                                 <button type="button" onClick={() => setSelectedApplication(item)} className="rounded-2xl border border-[#9A077B]/20 bg-white px-4 py-3 text-sm font-black text-[#9A077B] transition hover:border-[#9A077B] hover:bg-[#FDF1FA]">Revisar cadastro</button>
-                                <button type="button" disabled={busyKey === `approve:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${item.id}`)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button>
-                                <button type="button" disabled={busyKey === `reject:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${item.id}`)} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar</button>
+                                <button type="button" disabled={busyKey === `approve:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${item.id}`, 'application.approved')} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button>
+                                <button type="button" disabled={busyKey === `reject:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${item.id}`, 'application.rejected')} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar</button>
                               </div>
                             </div>
                           ))}
@@ -599,8 +690,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                           <div className="text-right"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Criado em</p><p className="mt-2 text-sm font-bold text-[#000747]">{formatDate(item.created_at)}</p></div>
                         </div>
                         <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr,1.1fr,0.8fr]">
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Categoria operacional</p><select value={item.category_level ?? ''} onChange={(event) => void updateApplication(item.id, { category_level: event.target.value || null }, 'Categoria atualizada.', `category:${item.id}`)} disabled={busyKey === `category:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{categoryOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem categoria'}</option>)}</select></div>
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Acoes de credenciamento</p><div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setSelectedApplication(item)} className="rounded-2xl border border-[#9A077B]/20 bg-white px-4 py-3 text-sm font-black text-[#9A077B] transition hover:border-[#9A077B] hover:bg-[#FDF1FA]">Revisar cadastro</button><button type="button" disabled={busyKey === `approve:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${item.id}`)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button><button type="button" disabled={busyKey === `pending:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'pending' }, 'Aplicacao voltou para pendencia.', `pending:${item.id}`)} className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white transition hover:bg-amber-600 disabled:opacity-60">Pendente</button><button type="button" disabled={busyKey === `reject:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${item.id}`)} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar</button></div></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Categoria operacional</p><select value={item.category_level ?? ''} onChange={(event) => void updateApplication(item.id, { category_level: event.target.value || null }, 'Categoria atualizada.', `category:${item.id}`, 'application.category_changed')} disabled={busyKey === `category:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{categoryOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem categoria'}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Acoes de credenciamento</p><div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setSelectedApplication(item)} className="rounded-2xl border border-[#9A077B]/20 bg-white px-4 py-3 text-sm font-black text-[#9A077B] transition hover:border-[#9A077B] hover:bg-[#FDF1FA]">Revisar cadastro</button><button type="button" disabled={busyKey === `approve:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'accepted' }, 'Aplicacao aprovada com sucesso.', `approve:${item.id}`, 'application.approved')} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button><button type="button" disabled={busyKey === `pending:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'pending' }, 'Aplicacao voltou para pendencia.', `pending:${item.id}`, 'application.pending')} className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white transition hover:bg-amber-600 disabled:opacity-60">Pendente</button><button type="button" disabled={busyKey === `reject:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'rejected' }, 'Aplicacao marcada como reprovada.', `reject:${item.id}`, 'application.rejected')} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar</button></div></div>
                           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Presenca atual</p><div className="mt-3 flex items-center justify-between gap-3"><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>{item.is_online ? 'Online' : 'Offline'}</span><span className="text-xs font-bold text-slate-500">{formatRelative(item.last_seen_at)}</span></div><button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: item.id })} className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#9A077B] transition hover:text-[#000747]"><Eye className="h-4 w-4" />Abrir perfil publico</button></div>
                         </div>
                       </div>
@@ -617,9 +708,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                           <button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: item.id })} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B]"><Eye className="h-4 w-4" />Ver perfil</button>
                         </div>
                         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                          <button type="button" disabled={busyKey === `toggle-leads:${item.id}`} onClick={() => void updateApplication(item.id, { pause_lead_intake: !item.pause_lead_intake }, item.pause_lead_intake ? 'Captacao de leads reativada.' : 'Captacao de leads pausada.', `toggle-leads:${item.id}`)} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.pause_lead_intake ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Captacao de leads</p><p className="mt-3 text-lg font-black text-[#000747]">{item.pause_lead_intake ? 'Pausada' : 'Ativa'}</p></button>
-                          <button type="button" disabled={busyKey === `toggle-chat:${item.id}`} onClick={() => void updateApplication(item.id, { allow_chat: !(item.allow_chat ?? true) }, item.allow_chat ? 'Chat desativado.' : 'Chat reativado.', `toggle-chat:${item.id}`)} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.allow_chat ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-100'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Chat</p><p className="mt-3 text-lg font-black text-[#000747]">{item.allow_chat ? 'Liberado' : 'Bloqueado'}</p></button>
-                          <button type="button" disabled={busyKey === `toggle-visits:${item.id}`} onClick={() => void updateApplication(item.id, { allow_visit_requests: !(item.allow_visit_requests ?? true) }, item.allow_visit_requests ? 'Agendamentos desativados.' : 'Agendamentos reativados.', `toggle-visits:${item.id}`)} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.allow_visit_requests ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-100'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Visitas</p><p className="mt-3 text-lg font-black text-[#000747]">{item.allow_visit_requests ? 'Liberadas' : 'Bloqueadas'}</p></button>
+                          <button type="button" disabled={busyKey === `toggle-leads:${item.id}`} onClick={() => void updateApplication(item.id, { pause_lead_intake: !item.pause_lead_intake }, item.pause_lead_intake ? 'Captacao de leads reativada.' : 'Captacao de leads pausada.', `toggle-leads:${item.id}`, item.pause_lead_intake ? 'application.leads_resumed' : 'application.leads_paused')} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.pause_lead_intake ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Captacao de leads</p><p className="mt-3 text-lg font-black text-[#000747]">{item.pause_lead_intake ? 'Pausada' : 'Ativa'}</p></button>
+                          <button type="button" disabled={busyKey === `toggle-chat:${item.id}`} onClick={() => void updateApplication(item.id, { allow_chat: !(item.allow_chat ?? true) }, item.allow_chat ? 'Chat desativado.' : 'Chat reativado.', `toggle-chat:${item.id}`, item.allow_chat ? 'application.chat_disabled' : 'application.chat_enabled')} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.allow_chat ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-100'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Chat</p><p className="mt-3 text-lg font-black text-[#000747]">{item.allow_chat ? 'Liberado' : 'Bloqueado'}</p></button>
+                          <button type="button" disabled={busyKey === `toggle-visits:${item.id}`} onClick={() => void updateApplication(item.id, { allow_visit_requests: !(item.allow_visit_requests ?? true) }, item.allow_visit_requests ? 'Agendamentos desativados.' : 'Agendamentos reativados.', `toggle-visits:${item.id}`, item.allow_visit_requests ? 'application.visits_disabled' : 'application.visits_enabled')} className={`rounded-[24px] border px-5 py-5 text-left transition ${item.allow_visit_requests ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-100'} disabled:opacity-60`}><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Visitas</p><p className="mt-3 text-lg font-black text-[#000747]">{item.allow_visit_requests ? 'Liberadas' : 'Bloqueadas'}</p></button>
                         </div>
                       </div>
                     ))}
@@ -638,8 +729,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
                         <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.subscription_status)}`}>{getStatusLabel(item.subscription_status)}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
                         <div className="mt-6 grid gap-4 md:grid-cols-2">
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><select value={item.subscription_plan ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_plan: event.target.value || null }, 'Plano atualizado.', `plan:${item.id}`)} disabled={busyKey === `plan:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{planOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem plano'}</option>)}</select></div>
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status da assinatura</p><select value={item.subscription_status ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_status: event.target.value || null }, 'Status da assinatura atualizado.', `subscription:${item.id}`)} disabled={busyKey === `subscription:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{subscriptionStatusOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'nao informado'}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><select value={item.subscription_plan ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_plan: event.target.value || null }, 'Plano atualizado.', `plan:${item.id}`, 'subscription.plan_changed')} disabled={busyKey === `plan:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{planOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem plano'}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status da assinatura</p><select value={item.subscription_status ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_status: event.target.value || null }, 'Status da assinatura atualizado.', `subscription:${item.id}`, 'subscription.status_changed')} disabled={busyKey === `subscription:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{subscriptionStatusOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'nao informado'}</option>)}</select></div>
                         </div>
                       </div>
                     ))}
@@ -661,9 +752,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                             <div className="flex flex-wrap items-start justify-between gap-4">
                               <div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{item.titulo}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getPortfolioStatusClass(item.admin_review_status)}`}>{getPortfolioStatusLabel(item.admin_review_status)}</span><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_publicly_visible === false ? 'bg-slate-200 text-slate-600 border border-slate-300' : 'bg-[#EEF3FF] text-[#000747] border border-[#cdd7ff]'}`}>{item.is_publicly_visible === false ? 'Oculta' : 'Publica'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.painterName}</p><p className="mt-2 text-sm font-semibold text-slate-400">{item.local}</p></div>
                               <div className="flex flex-wrap gap-2">
-                                <button type="button" disabled={busyKey === `obra-approved:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'approved' }, 'Obra aprovada para exibicao publica.', `obra-approved:${item.id}`)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button>
-                                <button type="button" disabled={busyKey === `obra-blocked:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'blocked', is_publicly_visible: false }, 'Obra bloqueada da vitrine publica.', `obra-blocked:${item.id}`)} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Bloquear</button>
-                                <button type="button" disabled={busyKey === `obra-visible:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { is_publicly_visible: item.is_publicly_visible === false }, item.is_publicly_visible === false ? 'Obra voltou para a vitrine.' : 'Obra ocultada da vitrine.', `obra-visible:${item.id}`)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B] disabled:opacity-60">{item.is_publicly_visible === false ? 'Mostrar' : 'Ocultar'}</button>
+                                <button type="button" disabled={busyKey === `obra-approved:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'approved' }, 'Obra aprovada para exibicao publica.', `obra-approved:${item.id}`, 'portfolio.approved')} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button>
+                                <button type="button" disabled={busyKey === `obra-blocked:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'blocked', is_publicly_visible: false }, 'Obra bloqueada da vitrine publica.', `obra-blocked:${item.id}`, 'portfolio.blocked')} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Bloquear</button>
+                                <button type="button" disabled={busyKey === `obra-visible:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { is_publicly_visible: item.is_publicly_visible === false }, item.is_publicly_visible === false ? 'Obra voltou para a vitrine.' : 'Obra ocultada da vitrine.', `obra-visible:${item.id}`, item.is_publicly_visible === false ? 'portfolio.shown' : 'portfolio.hidden')} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B] disabled:opacity-60">{item.is_publicly_visible === false ? 'Mostrar' : 'Ocultar'}</button>
                               </div>
                             </div>
                             <div className="mt-5 grid gap-4 md:grid-cols-4">
@@ -672,11 +763,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                               <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Midias</p><p className="mt-2 text-sm font-black text-[#000747]">{item.mediaCount} arquivo(s)</p></div>
                               <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Revisado em</p><p className="mt-2 text-sm font-black text-[#000747]">{formatDate(item.admin_reviewed_at || item.created_at)}</p></div>
                             </div>
-                            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status de moderacao</p><div className="mt-3 flex flex-wrap gap-2">{portfolioReviewStatusOptions.map((status) => <button key={status} type="button" disabled={busyKey === `obra-status:${item.id}:${status}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: status }, `Status da obra atualizado para ${getPortfolioStatusLabel(status)}.`, `obra-status:${item.id}:${status}`)} className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${item.admin_review_status === status ? 'bg-[#000747] text-white' : 'bg-white text-slate-600 hover:text-[#9A077B]'}`}>{getPortfolioStatusLabel(status)}</button>)}</div></div>
+                            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status de moderacao</p><div className="mt-3 flex flex-wrap gap-2">{portfolioReviewStatusOptions.map((status) => <button key={status} type="button" disabled={busyKey === `obra-status:${item.id}:${status}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: status }, `Status da obra atualizado para ${getPortfolioStatusLabel(status)}.`, `obra-status:${item.id}:${status}`, 'portfolio.status_changed')} className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${item.admin_review_status === status ? 'bg-[#000747] text-white' : 'bg-white text-slate-600 hover:text-[#9A077B]'}`}>{getPortfolioStatusLabel(status)}</button>)}</div></div>
                           </div>
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {activeTab === 'audit' && (
+                  <div className="space-y-6">
+                    <div className="grid gap-5 md:grid-cols-3">
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6">
+                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Eventos carregados</p>
+                        <p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{auditLogs.length}</p>
+                        <p className="mt-2 text-sm font-medium text-slate-500">Leitura rapida dos ultimos eventos administrativos.</p>
+                      </div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6">
+                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Ultima acao</p>
+                        <p className="mt-3 text-xl font-black tracking-tight text-[#000747]">{latestAuditLog ? getAdminAuditActionLabel(latestAuditLog.action_type) : 'Sem registros'}</p>
+                        <p className="mt-2 text-sm font-medium text-slate-500">{latestAuditLog ? formatDateTime(latestAuditLog.created_at) : 'A tabela ainda nao recebeu eventos.'}</p>
+                      </div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6">
+                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Ultimo operador</p>
+                        <p className="mt-3 text-xl font-black tracking-tight text-[#000747]">{latestAuditLog?.admin_name || 'Sem operador'}</p>
+                        <p className="mt-2 text-sm font-medium text-slate-500">{latestAuditLog?.admin_email || 'Nenhum evento registrado ainda.'}</p>
+                      </div>
+                    </div>
+
+                    {auditLogs.length === 0 ? (
+                      <div className="rounded-[32px] border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+                        <p className="text-lg font-black text-[#000747]">Nenhum evento auditado ainda</p>
+                        <p className="mt-2 text-sm font-medium text-slate-500">Rode o SQL add_admin_audit_logs.sql no Supabase e execute uma acao administrativa para começar a trilha de auditoria.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {auditLogs.map((log) => {
+                          const changes = getAdminAuditChangesList(log.metadata);
+
+                          return (
+                            <div key={log.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
+                              <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-3">
+                                    <h3 className="text-2xl font-black tracking-tight text-[#000747]">{getAdminAuditActionLabel(log.action_type)}</h3>
+                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">{log.target_table}</span>
+                                  </div>
+                                  <p className="mt-2 text-sm font-medium text-slate-500">{log.target_label || log.target_id}</p>
+                                </div>
+                                <div className="rounded-[22px] bg-slate-50 px-4 py-3 text-right">
+                                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Registrado em</p>
+                                  <p className="mt-2 text-sm font-black text-[#000747]">{formatDateTime(log.created_at)}</p>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Administrador</p>
+                                  <p className="mt-2 text-sm font-black text-[#000747]">{log.admin_name}</p>
+                                  <p className="mt-1 text-sm font-medium text-slate-500">{log.admin_email}</p>
+                                </div>
+                                <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Alvo</p>
+                                  <p className="mt-2 text-sm font-black text-[#000747]">{log.target_label || log.target_id}</p>
+                                  <p className="mt-1 text-sm font-medium text-slate-500">ID: {log.target_id}</p>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Campos alterados</p>
+                                {changes.length === 0 ? (
+                                  <p className="mt-3 text-sm font-medium text-slate-500">Sem diff disponivel para este evento.</p>
+                                ) : (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {changes.map((change) => (
+                                      <span key={`${log.id}:${change.field}`} className="inline-flex flex-wrap items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600">
+                                        <span className="uppercase tracking-[0.12em] text-[#000747]">{change.field}</span>
+                                        <span className="text-slate-400">{formatAdminAuditValue(change.from)}</span>
+                                        <span className="text-slate-300">→</span>
+                                        <span className="text-[#9A077B]">{formatAdminAuditValue(change.to)}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 

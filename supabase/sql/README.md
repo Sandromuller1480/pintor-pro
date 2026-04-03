@@ -43,6 +43,7 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 5. `add_applications_rls_and_onboarding_storage.sql`
 6. `admin_dashboard_schema.sql`
 7. `add_portfolio_admin_moderation.sql`
+8. `add_admin_audit_logs.sql`
 
 ## Scripts legados ou situacionais
 

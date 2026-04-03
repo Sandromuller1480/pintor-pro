@@ -21,6 +21,9 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - `supabase/sql/add_profile_cover_bucket.sql`
   - `supabase/sql/add_portfolio_stage_media.sql`
   - `supabase/sql/add_applications_rls_and_onboarding_storage.sql`
+  - `supabase/sql/admin_dashboard_schema.sql`
+  - `supabase/sql/add_portfolio_admin_moderation.sql`
+  - `supabase/sql/add_admin_audit_logs.sql`
 - Validar se os buckets existem:
   - `portfolio-obras`
   - `orcamentos-media`
@@ -63,6 +66,7 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - login do admin
   - leitura de aplicacoes, operacao e assinaturas
   - moderacao de portfolio
+  - trilha de auditoria apos aprovar, reprovar, bloquear ou alterar plano
 - Chat interno entre cliente e pintor.
 - Agendamento de visita ate aparecer no painel do pintor.
 - Checkout de plano e webhook do Stripe.
