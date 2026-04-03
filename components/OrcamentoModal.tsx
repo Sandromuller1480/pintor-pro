@@ -133,6 +133,66 @@ const buildQuoteAttachmentPath = (userId: string, quoteId: string, file: File, i
   return `${userId}/${quoteId}/${uniqueId}-${fileBaseName}.${extension}`;
 };
 
+const normalizeWhatsappPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+
+  if (!digits) {
+    return '';
+  }
+
+  if (digits.startsWith('55')) {
+    return digits;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return `55${digits}`;
+  }
+
+  return digits;
+};
+
+const buildQuoteWhatsappMessage = (formData: OrcamentoFormData, ambientesValidos: Ambiente[]) => {
+  const messageLines = [
+    `Ola, ${formData.clienteNome.trim()}!`,
+    'Seu orcamento foi gerado pela Pintor Pro.',
+    '',
+    `Tipo de servico: ${formData.pinturaTipoServico || 'A combinar'}`,
+    `Imovel: ${formData.imovelTipo || 'Nao informado'}`,
+    `Local: ${formData.imovelCidadeEstado.trim() || 'Nao informado'}`,
+    `Urgencia: ${formData.prazoUrgencia || 'Nao informada'}`
+  ];
+
+  if (ambientesValidos.length > 0) {
+    const ambienteNames = ambientesValidos
+      .map((ambiente, index) => ambiente.nome.trim() || `Ambiente ${index + 1}`)
+      .join(', ');
+
+    messageLines.push(`Ambientes: ${ambienteNames}`);
+  }
+
+  if (formData.prazoDataInicio) {
+    messageLines.push(`Inicio ideal: ${formData.prazoDataInicio}`);
+  }
+
+  if (formData.observacoes.trim()) {
+    messageLines.push('', `Observacoes: ${formData.observacoes.trim()}`);
+  }
+
+  messageLines.push('', 'Se quiser, posso ajustar algum detalhe antes do envio final.');
+
+  return messageLines.join('\n');
+};
+
+const buildQuoteWhatsappUrl = (phone: string, message: string) => {
+  const normalizedPhone = normalizeWhatsappPhone(phone);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+};
+
 export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose, onSaved }) => {
   const [formData, setFormData] = useState<OrcamentoFormData>(INITIAL_FORM_DATA);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([INITIAL_AMBIENTE()]);
@@ -240,6 +300,11 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
       return;
     }
 
+    const normalizedClientWhatsapp = normalizeWhatsappPhone(formData.clienteTelefone);
+    const whatsappDraftWindow = normalizedClientWhatsapp && typeof window !== 'undefined'
+      ? window.open('', '_blank')
+      : null;
+
     setIsSubmitting(true);
 
     try {
@@ -261,6 +326,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
         ambiente.area.trim() ||
         ambiente.superficie.trim()
       ));
+      const whatsappMessage = buildQuoteWhatsappMessage(formData, ambientesValidos);
 
       const { data: savedQuote, error: insertError } = await supabase
         .from('orcamentos')
@@ -319,10 +385,26 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
         }
       }
 
+      const whatsappUrl = buildQuoteWhatsappUrl(formData.clienteTelefone, whatsappMessage);
+
+      if (whatsappUrl) {
+        if (whatsappDraftWindow) {
+          whatsappDraftWindow.location.href = whatsappUrl;
+        } else if (typeof window !== 'undefined') {
+          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        }
+      } else if (whatsappDraftWindow) {
+        whatsappDraftWindow.close();
+      }
+
       onSaved?.(savedQuote);
       resetForm();
       onClose();
     } catch (error) {
+      if (whatsappDraftWindow && !whatsappDraftWindow.closed) {
+        whatsappDraftWindow.close();
+      }
+
       console.error('Erro ao salvar orcamento:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel salvar o orcamento.');
       setIsSubmitting(false);
