@@ -77,14 +77,14 @@ const normalizeWhatsappPhone = (value: string | null | undefined) => {
   return digits;
 };
 
-const buildPainterWhatsappUrl = (phone: string | null | undefined) => {
+const buildPainterWhatsappUrl = (phone: string | null | undefined, profileUrl: string) => {
   const normalizedPhone = normalizeWhatsappPhone(phone);
 
   if (!normalizedPhone) {
     return null;
   }
 
-  const introMessage = encodeURIComponent('Olá! Encontrei você na Pintor Pro!');
+  const introMessage = encodeURIComponent(`Olá! Encontrei você na Pintor Pro!\n${profileUrl}`);
 
   return `https://wa.me/${normalizedPhone}?text=${introMessage}`;
 };
@@ -140,7 +140,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const hasSchedulableProfile = Boolean(publicApplicationId && isUuid(publicApplicationId));
   const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
   const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
-  const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp);
+  const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp, getCurrentProfileUrl());
   const painterInstagramUrl = painter?.instagramUrl ?? null;
   const painterFacebookUrl = painter?.facebookUrl ?? null;
   const currentClientReview = useMemo(() => (
