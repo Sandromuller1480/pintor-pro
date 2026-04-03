@@ -36,6 +36,20 @@ const createEmptyShareChannels = () => ({
   instagram: 0
 });
 
+const normalizeSocialProfileUrl = (value: string | null | undefined) => {
+  const trimmedValue = (value ?? '').trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  return `https://${trimmedValue}`;
+};
+
 const normalizeShareChannel = (channel: string | null | undefined): keyof ReturnType<typeof createEmptyShareChannels> => {
   switch ((channel ?? '').trim().toLowerCase()) {
     case 'copy_link':
@@ -329,7 +343,9 @@ export const fetchCurrentPainterProfile = async ({
     workingHoursEnd: sanitizeWorkingTime(application.working_hours_end, DEFAULT_WORKING_HOURS_END),
     serviceTimezone: normalizeServiceTimezone(application.service_timezone ?? DEFAULT_SERVICE_TIMEZONE),
     emailNotifications: application.email_notifications ?? true,
-    dailySummaryEnabled: application.daily_summary_enabled ?? false
+    dailySummaryEnabled: application.daily_summary_enabled ?? false,
+    instagramUrl: normalizeSocialProfileUrl(application.instagram_url),
+    facebookUrl: normalizeSocialProfileUrl(application.facebook_url)
   };
 };
 
@@ -351,10 +367,12 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
       working_hours_end: normalizedWorkingHoursEnd,
       service_timezone: normalizedServiceTimezone,
       email_notifications: settings.emailNotifications,
-      daily_summary_enabled: settings.dailySummaryEnabled
+      daily_summary_enabled: settings.dailySummaryEnabled,
+      instagram_url: normalizeSocialProfileUrl(settings.instagramUrl),
+      facebook_url: normalizeSocialProfileUrl(settings.facebookUrl)
     })
     .eq('id', applicationId)
-    .select('allow_chat, allow_visit_requests, pause_lead_intake, business_hours_enabled, working_days, working_hours_start, working_hours_end, service_timezone, email_notifications, daily_summary_enabled')
+    .select('allow_chat, allow_visit_requests, pause_lead_intake, business_hours_enabled, working_days, working_hours_start, working_hours_end, service_timezone, email_notifications, daily_summary_enabled, instagram_url, facebook_url')
     .single();
 
   if (error) {
@@ -371,7 +389,9 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
     workingHoursEnd: sanitizeWorkingTime(data.working_hours_end, DEFAULT_WORKING_HOURS_END),
     serviceTimezone: normalizeServiceTimezone(data.service_timezone ?? DEFAULT_SERVICE_TIMEZONE),
     emailNotifications: data.email_notifications ?? true,
-    dailySummaryEnabled: data.daily_summary_enabled ?? false
+    dailySummaryEnabled: data.daily_summary_enabled ?? false,
+    instagramUrl: normalizeSocialProfileUrl(data.instagram_url),
+    facebookUrl: normalizeSocialProfileUrl(data.facebook_url)
   };
 };
 

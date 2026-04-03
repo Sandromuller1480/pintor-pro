@@ -4,7 +4,9 @@ import {
   Briefcase,
   CalendarDays,
   Clock3,
+  Facebook,
   Globe2,
+  Instagram,
   Loader2,
   Mail,
   MessageSquare,
@@ -90,7 +92,9 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     workingHoursEnd: '18:00',
     serviceTimezone: 'America/Cuiaba',
     emailNotifications: true,
-    dailySummaryEnabled: false
+    dailySummaryEnabled: false,
+    instagramUrl: '',
+    facebookUrl: ''
   });
   const [localValidationError, setLocalValidationError] = useState('');
 
@@ -110,7 +114,9 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
       workingHoursEnd: currentProfile.workingHoursEnd,
       serviceTimezone: currentProfile.serviceTimezone,
       emailNotifications: currentProfile.emailNotifications,
-      dailySummaryEnabled: currentProfile.dailySummaryEnabled
+      dailySummaryEnabled: currentProfile.dailySummaryEnabled,
+      instagramUrl: currentProfile.instagramUrl,
+      facebookUrl: currentProfile.facebookUrl
     });
   }, [currentProfile]);
 
@@ -354,6 +360,54 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 checked={form.dailySummaryEnabled}
                 onChange={(checked) => updateField('dailySummaryEnabled', checked)}
               />
+            </div>
+          </div>
+
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                <Globe2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#000747]">Redes sociais</h3>
+                <p className="text-sm font-medium text-slate-500">Cadastre os links do seu Instagram e Facebook para futuras exibicoes e integracoes do seu perfil.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <label className="block">
+                <span className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  <Instagram size={14} className="text-[#9A077B]" />
+                  Instagram
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  value={form.instagramUrl}
+                  onChange={(event) => updateField('instagramUrl', event.target.value)}
+                  placeholder="https://instagram.com/seuperfil"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#9A077B] focus:bg-white"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  <Facebook size={14} className="text-[#000747]" />
+                  Facebook
+                </span>
+                <input
+                  type="url"
+                  inputMode="url"
+                  value={form.facebookUrl}
+                  onChange={(event) => updateField('facebookUrl', event.target.value)}
+                  placeholder="https://facebook.com/seuperfil"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#9A077B] focus:bg-white"
+                />
+              </label>
+
+              <p className="text-xs font-medium leading-relaxed text-slate-500">
+                Dica: cole o link completo do seu perfil. Se voce digitar sem `https://`, a plataforma completa isso automaticamente ao salvar.
+              </p>
             </div>
           </div>
         </section>

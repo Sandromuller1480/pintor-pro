@@ -27,6 +27,8 @@ export type CurrentPainterProfile = {
   serviceTimezone: string;
   emailNotifications: boolean;
   dailySummaryEnabled: boolean;
+  instagramUrl: string;
+  facebookUrl: string;
 };
 
 export type PainterSettingsForm = {
@@ -40,6 +42,8 @@ export type PainterSettingsForm = {
   serviceTimezone: string;
   emailNotifications: boolean;
   dailySummaryEnabled: boolean;
+  instagramUrl: string;
+  facebookUrl: string;
 };
 
 export type AnalyticsPeriodDays = 7 | 30 | 90;

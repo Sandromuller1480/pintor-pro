@@ -265,6 +265,12 @@ ADD COLUMN IF NOT EXISTS working_hours_end TEXT NOT NULL DEFAULT '18:00';
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS service_timezone TEXT NOT NULL DEFAULT 'America/Cuiaba';
 
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS instagram_url TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS facebook_url TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_applications_last_seen_at
   ON public.applications(last_seen_at DESC);
 
