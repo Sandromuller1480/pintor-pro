@@ -113,7 +113,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const [isScheduleVisitModalOpen, setIsScheduleVisitModalOpen] = useState(false);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
-  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | 'whatsapp' | 'share' | 'favorite' | 'facebook' | 'instagram' | null>(null);
+  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | 'whatsapp' | 'share' | 'favorite' | null>(null);
   const [activeTab, setActiveTab] = useState<PainterProfileTab>('portfolio');
   const [availabilityNow, setAvailabilityNow] = useState(() => new Date());
   const [isFavorite, setIsFavorite] = useState(false);
@@ -140,6 +140,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
   const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
   const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp, painter?.name ?? 'Pintor');
+  const painterInstagramUrl = painter?.instagramUrl ?? null;
+  const painterFacebookUrl = painter?.facebookUrl ?? null;
   const currentClientReview = useMemo(() => (
     currentClientProfile
       ? reviewItems.find((item) => item.clientAuthUserId === currentClientProfile.authUserId) ?? null
@@ -381,12 +383,6 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       case 'favorite':
         void handleFavoriteAction(true);
         return;
-      case 'facebook':
-        void handleFacebookShare(true);
-        return;
-      case 'instagram':
-        void handleInstagramShare(true);
-        return;
       default:
         break;
     }
@@ -446,7 +442,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   };
 
   const requireClientSessionForAction = async (
-    action: 'share' | 'favorite' | 'facebook' | 'instagram',
+    action: 'share' | 'favorite',
     callback: () => Promise<void> | void,
     continueAfterLogin = true
   ) => {
@@ -509,48 +505,15 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     await requireClientSessionForAction('share', executeShare);
   };
 
-  const handleFacebookShare = async (skipGuard = false) => {
-    const executeShare = async () => {
-      try {
-        const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
-        const profileUrl = encodeURIComponent(getCurrentProfileUrl());
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${profileUrl}`, '_blank', 'noopener,noreferrer');
-        await logProfileShare('facebook', resolvedClientProfile);
-        showActionFeedback('success', 'Abrindo o compartilhamento no Facebook.');
-      } catch (error) {
-        console.error('Erro ao compartilhar no Facebook:', error);
-        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel compartilhar no Facebook agora.');
-      }
-    };
+  const handleOpenSocialProfile = (network: 'facebook' | 'instagram') => {
+    const socialUrl = network === 'facebook' ? painterFacebookUrl : painterInstagramUrl;
 
-    if (skipGuard) {
-      await executeShare();
+    if (!socialUrl) {
+      showActionFeedback('error', `O perfil de ${network === 'facebook' ? 'Facebook' : 'Instagram'} deste pintor ainda nao foi informado.`);
       return;
     }
 
-    await requireClientSessionForAction('facebook', executeShare);
-  };
-
-  const handleInstagramShare = async (skipGuard = false) => {
-    const executeShare = async () => {
-      try {
-        const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
-        await copyTextToClipboard(getCurrentProfileUrl());
-        window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
-        await logProfileShare('instagram', resolvedClientProfile);
-        showActionFeedback('success', 'Link copiado. Cole no Instagram para compartilhar este perfil.');
-      } catch (error) {
-        console.error('Erro ao preparar compartilhamento no Instagram:', error);
-        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel preparar o compartilhamento para o Instagram.');
-      }
-    };
-
-    if (skipGuard) {
-      await executeShare();
-      return;
-    }
-
-    await requireClientSessionForAction('instagram', executeShare);
+    window.open(socialUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleFavoriteAction = async (skipGuard = false) => {
@@ -1086,17 +1049,19 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
               </button>
               <button
                 type="button"
-                onClick={() => void handleFacebookShare()}
-                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
-                aria-label="Compartilhar no Facebook"
+                onClick={() => handleOpenSocialProfile('facebook')}
+                disabled={!painterFacebookUrl}
+                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Abrir Facebook do pintor"
               >
                 <img src={facebookIcon} alt="Facebook" className="h-5 w-5 brightness-0 invert" />
               </button>
               <button
                 type="button"
-                onClick={() => void handleInstagramShare()}
-                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
-                aria-label="Compartilhar no Instagram"
+                onClick={() => handleOpenSocialProfile('instagram')}
+                disabled={!painterInstagramUrl}
+                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Abrir Instagram do pintor"
               >
                 <img src={instagramIcon} alt="Instagram" className="h-5 w-5 brightness-0 invert" />
               </button>

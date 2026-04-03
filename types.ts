@@ -7,6 +7,8 @@ export interface Painter {
   name: string;
   gender?: 'feminino' | 'masculino';
   whatsapp?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
   location: string;
   rating: number;
   reviewsCount: number;

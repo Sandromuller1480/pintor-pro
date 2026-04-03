@@ -329,7 +329,9 @@ SELECT
   COALESCE(a.working_hours_start, '08:00'::text) AS working_hours_start,
   COALESCE(a.working_hours_end, '18:00'::text) AS working_hours_end,
   COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone,
-  a.whatsapp AS whatsapp
+  a.whatsapp AS whatsapp,
+  a.instagram_url AS instagram_url,
+  a.facebook_url AS facebook_url
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

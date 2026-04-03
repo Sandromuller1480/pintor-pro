@@ -88,6 +88,20 @@ function isAbsoluteUrl(value: string | null | undefined) {
     return typeof value === 'string' && /^https?:\/\//i.test(value);
 }
 
+function normalizeExternalProfileUrl(value: string | null | undefined) {
+    const trimmedValue = (value ?? '').trim();
+
+    if (!trimmedValue) {
+        return undefined;
+    }
+
+    if (isAbsoluteUrl(trimmedValue)) {
+        return trimmedValue;
+    }
+
+    return `https://${trimmedValue}`;
+}
+
 function getPublicPainterMediaUrl(path: string | null | undefined, fallback: string) {
     if (!path) {
         return fallback;
@@ -127,6 +141,8 @@ function mapPainterRowToPainter(item: any): Painter {
         whatsapp: typeof item.whatsapp === 'string' && item.whatsapp.trim()
             ? item.whatsapp.trim()
             : undefined,
+        instagramUrl: normalizeExternalProfileUrl(item.instagram_url),
+        facebookUrl: normalizeExternalProfileUrl(item.facebook_url),
         location: item.location,
         rating: Number(item.rating ?? 0),
         reviewsCount: Number(item.reviews_count ?? 0),
