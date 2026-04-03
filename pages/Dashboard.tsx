@@ -7,6 +7,7 @@ import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModa
 import { supabase } from '../lib/supabase';
 import {
   buildVisitErrorMessage,
+  deleteVisitRequest,
   fetchChatMessages,
   fetchChatThreads,
   fetchCurrentPainterProfile,
@@ -756,6 +757,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     return updatedVisit;
   };
 
+  const handleVisitDeleted = async (visitId: string) => {
+    await deleteVisitRequest(visitId);
+
+    setVisitItems((currentItems) => currentItems.filter((item) => item.id !== visitId));
+    setVisitsError('');
+  };
+
   const openEditProfileModal = () => {
     if (!currentProfile?.applicationId) {
       setProfileFeedback({
@@ -1029,6 +1037,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           isLoading={isLoadingVisits}
           errorMessage={visitsError}
           onUpdateVisit={(visitId, updates) => handleVisitUpdated(visitId, updates)}
+          onDeleteVisit={(visitId) => handleVisitDeleted(visitId)}
         />
       );
       break;

@@ -141,6 +141,17 @@ export const updateVisitRequest = async (
   return data as SavedVisitRequest;
 };
 
+export const deleteVisitRequest = async (visitId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('painter_visit_requests')
+    .delete()
+    .eq('id', visitId);
+
+  if (error) {
+    throw error;
+  }
+};
+
 export const fetchChatThreads = async (applicationId: string) => {
   const { data, error } = await supabase
     .from('painter_chat_threads')

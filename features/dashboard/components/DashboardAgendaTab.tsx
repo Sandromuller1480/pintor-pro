@@ -10,6 +10,7 @@ import {
   PencilLine,
   Phone,
   Save,
+  Trash2,
   XCircle
 } from 'lucide-react';
 import { FeedbackMessage, SavedVisitRequest, UpdateVisitRequestInput } from '../types';
@@ -25,6 +26,7 @@ interface DashboardAgendaTabProps {
   isLoading: boolean;
   errorMessage: string;
   onUpdateVisit: (visitId: string, updates: UpdateVisitRequestInput) => Promise<SavedVisitRequest | void>;
+  onDeleteVisit: (visitId: string) => Promise<void>;
 }
 
 const FINAL_VISIT_STATUSES = new Set(['completed', 'cancelled', 'no_show']);
@@ -54,7 +56,8 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
   items,
   isLoading,
   errorMessage,
-  onUpdateVisit
+  onUpdateVisit,
+  onDeleteVisit
 }) => {
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [draft, setDraft] = useState<UpdateVisitRequestInput | null>(null);
@@ -174,6 +177,40 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
       setFeedback({
         type: 'error',
         message: 'Nao foi possivel salvar os ajustes dessa visita agora.'
+      });
+    } finally {
+      setSavingVisitId(null);
+    }
+  };
+
+  const handleDeleteVisit = async (visit: SavedVisitRequest) => {
+    const confirmed = window.confirm(
+      `Excluir o agendamento de ${visit.client_name}? Essa acao remove o registro do banco de dados e nao pode ser desfeita.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSavingVisitId(visit.id);
+    setFeedback(null);
+
+    try {
+      await onDeleteVisit(visit.id);
+
+      if (editingVisitId === visit.id) {
+        closeEditPanel();
+      }
+
+      setFeedback({
+        type: 'success',
+        message: 'Agendamento excluido com sucesso.'
+      });
+    } catch (error) {
+      console.error('Erro ao excluir visita:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Nao foi possivel excluir esse agendamento agora.'
       });
     } finally {
       setSavingVisitId(null);
@@ -362,6 +399,18 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                         </span>
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteVisit(visit)}
+                      disabled={isSaving}
+                      className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <span className="flex items-center gap-2">
+                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        Excluir
+                      </span>
+                    </button>
                   </div>
 
                   {isEditing && draft && (
