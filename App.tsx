@@ -1,20 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Layout } from './components/Layout';
 import { getPainterApplicationId, getSessionRoleContext, type SessionRole } from './lib/authSession';
 import { getCurrentAdminProfile } from './lib/adminAccess';
 import { buildPathForRoute, getInitialRoute } from './lib/routes';
 import { supabase } from './lib/supabase';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { About } from './pages/About';
-import { Dashboard } from './pages/Dashboard';
-import { FindPainter } from './pages/FindPainter';
-import { Home } from './pages/Home';
-import { HowItWorks } from './pages/HowItWorks';
-import { Login } from './pages/Login';
-import { PainterProfile } from './pages/PainterProfile';
-import { Plans } from './pages/Plans';
-import { Register } from './pages/Register';
 import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
+
+const HomePage = lazy(() => import('./pages/Home').then((module) => ({ default: module.Home })));
+const FindPainterPage = lazy(() => import('./pages/FindPainter').then((module) => ({ default: module.FindPainter })));
+const PainterProfilePage = lazy(() => import('./pages/PainterProfile').then((module) => ({ default: module.PainterProfile })));
+const RegisterPage = lazy(() => import('./pages/Register').then((module) => ({ default: module.Register })));
+const HowItWorksPage = lazy(() => import('./pages/HowItWorks').then((module) => ({ default: module.HowItWorks })));
+const PlansPage = lazy(() => import('./pages/Plans').then((module) => ({ default: module.Plans })));
+const AboutPage = lazy(() => import('./pages/About').then((module) => ({ default: module.About })));
+const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })));
+const DashboardPage = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+
+const getPageLoadingMessage = (page: Page) => {
+  switch (page) {
+    case Page.Dashboard:
+      return 'Carregando painel do pintor...';
+    case Page.Admin:
+      return 'Carregando painel admin...';
+    case Page.PainterProfile:
+      return 'Carregando perfil...';
+    case Page.FindPainter:
+      return 'Carregando busca...';
+    default:
+      return 'Carregando pagina...';
+  }
+};
+
+const PageLoadingState = ({ message }: { message: string }) => (
+  <div className="py-24 text-center max-w-xl mx-auto px-4">
+    <p className="text-slate-500 font-black uppercase tracking-widest">{message}</p>
+  </div>
+);
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(getInitialRoute);
@@ -167,42 +189,40 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     if (route.page === Page.Dashboard && !isAuthReady) {
-      return (
-        <div className="py-24 text-center max-w-xl mx-auto px-4">
-          <p className="text-slate-500 font-black uppercase tracking-widest">Verificando acesso...</p>
-        </div>
-      );
+      return <PageLoadingState message="Verificando acesso..." />;
     }
 
     switch (route.page) {
       case Page.Home:
-        return <Home setPage={navigateToPage} />;
+        return <HomePage setPage={navigateToPage} />;
       case Page.FindPainter:
-        return <FindPainter setPage={navigateToPage} />;
+        return <FindPainterPage setPage={navigateToPage} />;
       case Page.PainterProfile:
-        return <PainterProfile painterId={route.painterId} setPage={navigateToPage} />;
+        return <PainterProfilePage painterId={route.painterId} setPage={navigateToPage} />;
       case Page.Register:
-        return <Register setPage={navigateToPage} />;
+        return <RegisterPage setPage={navigateToPage} />;
       case Page.HowItWorks:
-        return <HowItWorks setPage={navigateToPage} />;
+        return <HowItWorksPage setPage={navigateToPage} />;
       case Page.Plans:
-        return <Plans setPage={navigateToPage} />;
+        return <PlansPage setPage={navigateToPage} />;
       case Page.About:
-        return <About />;
+        return <AboutPage />;
       case Page.Login:
-        return <Login setPage={navigateToPage} />;
+        return <LoginPage setPage={navigateToPage} />;
       case Page.Dashboard:
-        return <Dashboard setPage={navigateToPage} />;
+        return <DashboardPage setPage={navigateToPage} />;
       case Page.Admin:
-        return <AdminDashboard setPage={navigateToPage} />;
+        return <AdminDashboardPage setPage={navigateToPage} />;
       default:
-        return <Home setPage={navigateToPage} />;
+        return <HomePage setPage={navigateToPage} />;
     }
   };
 
   return (
     <Layout currentPage={route.page} setPage={navigateToPage}>
-      {renderPage()}
+      <Suspense fallback={<PageLoadingState message={getPageLoadingMessage(route.page)} />}>
+        {renderPage()}
+      </Suspense>
     </Layout>
   );
 };
