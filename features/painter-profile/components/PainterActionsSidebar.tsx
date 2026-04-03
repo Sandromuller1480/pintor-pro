@@ -66,8 +66,8 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Meios de Pagamento</span>
-              <span className="font-bold">Cartao, Pix, Boleto</span>
+              <span className="text-slate-500">Pagamento</span>
+              <span className="font-bold">Direto entre as partes</span>
             </div>
           </div>
           <div className="space-y-3">
@@ -120,7 +120,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
           )}
 
           <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold flex items-center justify-center">
-            <Shield className="w-3 h-3 mr-1" /> Contratacao Segura PINTOR PRO
+            <Shield className="w-3 h-3 mr-1" /> Negociacao Protegida PINTOR PRO
           </p>
         </div>
 
@@ -130,9 +130,9 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
               <Info className="w-5 h-5" />
               <span className="font-bold text-sm uppercase tracking-widest">Dica Premium</span>
             </div>
-            <h4 className="font-black text-lg mb-4">Protecao de Pagamento</h4>
+            <h4 className="font-black text-lg mb-4">Pagamento Direto</h4>
             <p className="text-slate-400 text-xs leading-relaxed mb-6">
-              Contrate atraves da plataforma e garanta que seu dinheiro so seja liberado apos a conclusao da obra.
+              A negociacao fica protegida na plataforma, mas o pagamento e combinado diretamente entre cliente e pintor.
             </p>
             <button className="text-sm font-bold border-b border-[#C93EA6] text-[#C93EA6]">Saiba mais como funciona</button>
           </div>
