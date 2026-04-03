@@ -46,6 +46,8 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 ## 3. Fluxos manuais obrigatorios
 
 - Cadastro e login de pintor.
+- Cadastro de pintor com `confirmacao de e-mail desabilitada` no Supabase.
+- Cadastro de pintor com `confirmacao de e-mail habilitada` no Supabase.
 - Cadastro e login de cliente.
 - Busca publica com filtros por cidade, especialidade e online.
 - Perfil publico com:
@@ -57,6 +59,10 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - agenda com mudanca de status
   - configuracoes com disponibilidade, horario e notificacoes
   - visao geral com funil, periodo e origem dos contatos
+- Dashboard admin:
+  - login do admin
+  - leitura de aplicacoes, operacao e assinaturas
+  - moderacao de portfolio
 - Chat interno entre cliente e pintor.
 - Agendamento de visita ate aparecer no painel do pintor.
 - Checkout de plano e webhook do Stripe.
@@ -78,3 +84,5 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 - O projeto ainda usa Tailwind via CDN no `index.html`.
 - Ainda nao existe suite de testes automatizados.
 - O build ainda gera aviso de chunk grande, mas sem falha funcional.
+- O credenciamento do pintor ainda depende de suporte publico controlado na tabela `applications`
+  e nos buckets de onboarding enquanto esse fluxo nao for migrado para Edge Function.

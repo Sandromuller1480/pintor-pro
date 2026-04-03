@@ -55,3 +55,14 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 ## Observacao
 
 Sempre revise o diff antes de aplicar em producao. Para a reta final da plataforma, use tambem o checklist em `docs/plataforma-go-live-checklist.md`.
+
+## Nota sobre RLS no credenciamento do pintor
+
+O fluxo atual de credenciamento agora prefere operar com sessao autenticada quando o `signUp`
+do Supabase ja retorna `session`, reduzindo a dependencia da policy anonima de `UPDATE`
+em `public.applications`.
+
+Ainda assim, mantenha `add_applications_rls_and_onboarding_storage.sql` aplicado, porque ele
+continua sendo necessario para cenarios em que o `signUp` nao devolve sessao imediatamente
+(por exemplo, confirmacao de e-mail habilitada). O desenho ideal de longo prazo continua sendo
+migrar esse onboarding para uma Edge Function.

@@ -266,118 +266,120 @@ export const paintersService = {
             .map((item) => item.trim())
             .filter(Boolean);
         let authUserId: string | null = null;
+        let shouldRestorePublicContextAfterSubmission = false;
 
-        if (formData.password) {
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: normalizedEmail,
-                password: formData.password,
-                options: {
-                    data: { full_name: normalizedFullName }
+        try {
+            if (formData.password) {
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: normalizedEmail,
+                    password: formData.password,
+                    options: {
+                        data: { full_name: normalizedFullName }
+                    }
+                });
+
+                authUserId = authData.user?.id ?? null;
+                shouldRestorePublicContextAfterSubmission = Boolean(authData.session);
+
+                const authErrorMessage = authError?.message?.toLowerCase() ?? '';
+                const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
+
+                if (authError && !isExistingUserError) {
+                    console.error('Erro de autenticacao:', authError);
+                    throw new Error(`Erro ao criar acesso: ${authError.message}`);
                 }
-            });
-            authUserId = authData.user?.id ?? null;
-
-            const authErrorMessage = authError?.message?.toLowerCase() ?? '';
-            const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
-
-            if (authError && !isExistingUserError) {
-                console.error('Erro de autenticacao:', authError);
-                throw new Error(`Erro ao criar acesso: ${authError.message}`);
             }
 
-            // Quando o Supabase cria sessao imediatamente, o client passa a usar o role
-            // authenticated. O cadastro publico abaixo precisa continuar operando sem sessao.
-            if (authData.session) {
+            const { data, error } = await supabase
+                .from('applications')
+                .insert([{
+                    auth_user_id: authUserId,
+                    full_name: normalizedFullName,
+                    gender: normalizedGender,
+                    cep: normalizedCep,
+                    city: normalizedCity,
+                    uf: normalizedUf,
+                    whatsapp: normalizedWhatsapp,
+                    email: normalizedEmail,
+                    experience_time: normalizedExperienceTime,
+                    specialties: normalizedSpecialties,
+                    status: 'pending'
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erro ao inserir aplicacao:', error);
+                throw new Error(`Falha ao salvar cadastro: ${error.message}`);
+            }
+
+            const [profilePhotoPaths, workPhotoPaths, certificationPaths] = await Promise.all([
+                formData.profilePhoto ? this.uploadApplicationFiles(data.id, [formData.profilePhoto], STORAGE_BUCKETS.workPhotos, 'profile-photo') : Promise.resolve([]),
+                this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
+                this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
+            ]);
+
+            const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
+            const profilePhotoPath = profilePhotoPaths[0] ?? finalWorkPhotos.find((path) => path.includes('/profile-photo/')) ?? null;
+
+            const { error: filesUpdateError } = await supabase
+                .from('applications')
+                .update({
+                    profile_photo_path: profilePhotoPath,
+                    work_photo_paths: finalWorkPhotos,
+                    certification_paths: certificationPaths,
+                    work_photo_count: finalWorkPhotos.length,
+                    certification_count: certificationPaths.length
+                })
+                .eq('id', data.id);
+
+            if (filesUpdateError) {
+                console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
+                throw new Error(`Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`);
+            }
+
+            let processingResult: ApplicationProcessingResult | null = null;
+            let processingWarning: string | null = null;
+
+            try {
+                processingResult = await this.processAutomatedAnalysis({
+                    applicationId: data.id,
+                    applicant: {
+                        fullName: normalizedFullName,
+                        email: normalizedEmail,
+                        city: normalizedCity,
+                        experienceTime: normalizedExperienceTime
+                    },
+                    uploadedFiles: {
+                        workPhotoCount: workPhotoPaths.length,
+                        certificationCount: certificationPaths.length
+                    },
+                    specialties: normalizedSpecialties,
+                    specialtiesCount: normalizedSpecialties.length
+                });
+            } catch (processingError) {
+                console.error('Erro no processamento da aplicacao:', processingError);
+                processingWarning = processingError instanceof Error
+                    ? processingError.message
+                    : 'Falha ao concluir a analise automatica.';
+            }
+
+            return {
+                id: data.id,
+                work_photo_paths: finalWorkPhotos,
+                certification_paths: certificationPaths,
+                processingResult,
+                processingWarning
+            };
+        } finally {
+            if (shouldRestorePublicContextAfterSubmission) {
                 const { error: signOutError } = await supabase.auth.signOut();
 
                 if (signOutError) {
-                    console.error('Erro ao restaurar contexto publico apos signUp:', signOutError);
-                    throw new Error('Nao foi possivel concluir o cadastro apos criar o acesso. Tente novamente.');
+                    console.error('Erro ao restaurar contexto publico apos concluir o credenciamento:', signOutError);
                 }
             }
         }
-
-        const { data, error } = await supabase
-            .from('applications')
-            .insert([{
-                auth_user_id: authUserId,
-                full_name: normalizedFullName,
-                gender: normalizedGender,
-                cep: normalizedCep,
-                city: normalizedCity,
-                uf: normalizedUf,
-                whatsapp: normalizedWhatsapp,
-                email: normalizedEmail,
-                experience_time: normalizedExperienceTime,
-                specialties: normalizedSpecialties,
-                status: 'pending'
-            }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Erro ao inserir aplicacao:', error);
-            throw new Error(`Falha ao salvar cadastro: ${error.message}`);
-        }
-
-        const [profilePhotoPaths, workPhotoPaths, certificationPaths] = await Promise.all([
-            formData.profilePhoto ? this.uploadApplicationFiles(data.id, [formData.profilePhoto], STORAGE_BUCKETS.workPhotos, 'profile-photo') : Promise.resolve([]),
-            this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
-            this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
-        ]);
-
-        const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
-        const profilePhotoPath = profilePhotoPaths[0] ?? finalWorkPhotos.find((path) => path.includes('/profile-photo/')) ?? null;
-
-        const { error: filesUpdateError } = await supabase
-            .from('applications')
-            .update({
-                profile_photo_path: profilePhotoPath,
-                work_photo_paths: finalWorkPhotos,
-                certification_paths: certificationPaths,
-                work_photo_count: finalWorkPhotos.length,
-                certification_count: certificationPaths.length
-            })
-            .eq('id', data.id);
-
-        if (filesUpdateError) {
-            console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
-            throw new Error(`Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`);
-        }
-
-        let processingResult: ApplicationProcessingResult | null = null;
-        let processingWarning: string | null = null;
-
-        try {
-            processingResult = await this.processAutomatedAnalysis({
-                applicationId: data.id,
-                applicant: {
-                    fullName: normalizedFullName,
-                    email: normalizedEmail,
-                    city: normalizedCity,
-                    experienceTime: normalizedExperienceTime
-                },
-                uploadedFiles: {
-                    workPhotoCount: workPhotoPaths.length,
-                    certificationCount: certificationPaths.length
-                },
-                specialties: normalizedSpecialties,
-                specialtiesCount: normalizedSpecialties.length
-            });
-        } catch (processingError) {
-            console.error('Erro no processamento da aplicacao:', processingError);
-            processingWarning = processingError instanceof Error
-                ? processingError.message
-                : 'Falha ao concluir a analise automatica.';
-        }
-
-        return {
-            id: data.id,
-            work_photo_paths: finalWorkPhotos,
-            certification_paths: certificationPaths,
-            processingResult,
-            processingWarning
-        };
     },
 
     async uploadApplicationFiles(
