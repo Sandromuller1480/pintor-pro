@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Heart, Loader2, MapPin, Share2, Shield, Star } from 'lucide-react';
 import { MOCK_PAINTERS } from '../constants';
 import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
 import { StartChatModal } from '../components/StartChatModal';
 import { ClientLoginModal } from '../features/client-auth/components/ClientLoginModal';
 import { ClientSignupModal } from '../features/client-auth/components/ClientSignupModal';
+import facebookIcon from '../imagens/facebook.png';
+import instagramIcon from '../imagens/instagram.png';
 import whatsappIcon from '../imagens/ícone whatsapp.png';
 import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
@@ -88,6 +90,14 @@ const buildPainterWhatsappUrl = (phone: string | null | undefined, painterName: 
   return `https://wa.me/${normalizedPhone}?text=${introMessage}`;
 };
 
+const getCurrentProfileUrl = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.location.href;
+};
+
 export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPage }) => {
   const [checkingClientAction, setCheckingClientAction] = useState<'chat' | 'visit' | null>(null);
   const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
@@ -103,9 +113,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const [isScheduleVisitModalOpen, setIsScheduleVisitModalOpen] = useState(false);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
-  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | 'whatsapp' | null>(null);
+  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | 'whatsapp' | 'share' | 'favorite' | 'facebook' | 'instagram' | null>(null);
   const [activeTab, setActiveTab] = useState<PainterProfileTab>('portfolio');
   const [availabilityNow, setAvailabilityNow] = useState(() => new Date());
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
   const publicApplicationId = painter?.applicationId;
@@ -125,6 +140,11 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
   const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
   const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp, painter?.name ?? 'Pintor');
+  const currentClientReview = useMemo(() => (
+    currentClientProfile
+      ? reviewItems.find((item) => item.clientAuthUserId === currentClientProfile.authUserId) ?? null
+      : null
+  ), [currentClientProfile, reviewItems]);
 
   const refreshClientSession = async () => {
     try {
@@ -144,6 +164,41 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     window.location.assign(painterWhatsappUrl);
   };
 
+  const showActionFeedback = (type: 'success' | 'error', message: string) => {
+    setActionFeedback({ type, message });
+  };
+
+  const copyTextToClipboard = async (value: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = value;
+    tempTextArea.style.position = 'fixed';
+    tempTextArea.style.opacity = '0';
+    document.body.appendChild(tempTextArea);
+    tempTextArea.focus();
+    tempTextArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempTextArea);
+  };
+
+  const updatePainterReviewStats = (nextReviewItems: PainterReview[]) => {
+    const validReviewItems = nextReviewItems.filter((item) => item.rating > 0);
+    const totalReviews = validReviewItems.length;
+    const averageRating = totalReviews > 0
+      ? validReviewItems.reduce((sum, item) => sum + item.rating, 0) / totalReviews
+      : 0;
+
+    setPainter((currentPainter) => currentPainter ? {
+      ...currentPainter,
+      reviewsCount: totalReviews,
+      rating: averageRating
+    } : currentPainter);
+  };
+
   useEffect(() => {
     void refreshClientSession();
 
@@ -157,6 +212,20 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!actionFeedback) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setActionFeedback(null);
+    }, 3200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [actionFeedback]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -273,12 +342,29 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const actionToOpen = pendingClientAction;
     setPendingClientAction(null);
 
-    if (actionToOpen === 'whatsapp') {
-      openPainterWhatsapp();
-      return;
+    switch (actionToOpen) {
+      case 'whatsapp':
+        openPainterWhatsapp();
+        return;
+      case 'share':
+        void handleShareProfile(true);
+        return;
+      case 'favorite':
+        void handleFavoriteAction(true);
+        return;
+      case 'facebook':
+        void handleFacebookShare(true);
+        return;
+      case 'instagram':
+        void handleInstagramShare(true);
+        return;
+      default:
+        break;
     }
 
-    openProtectedClientAction(actionToOpen);
+    if (actionToOpen === 'chat' || actionToOpen === 'visit') {
+      openProtectedClientAction(actionToOpen);
+    }
   };
 
   const handleProtectedClientAction = async (action: 'chat' | 'visit') => {
@@ -327,6 +413,249 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       console.error('Erro ao verificar acesso do cliente para contato por WhatsApp:', error);
       setPendingClientAction('whatsapp');
       setIsClientLoginModalOpen(true);
+    }
+  };
+
+  const requireClientSessionForAction = async (
+    action: 'share' | 'favorite' | 'facebook' | 'instagram',
+    callback: () => Promise<void> | void,
+    continueAfterLogin = true
+  ) => {
+    try {
+      const nextClientProfile = await getCurrentClientProfile();
+
+      if (nextClientProfile) {
+        setCurrentClientProfile(nextClientProfile);
+        await callback();
+        return;
+      }
+
+      if (continueAfterLogin) {
+        setPendingClientAction(action);
+      }
+
+      setIsClientLoginModalOpen(true);
+    } catch (error) {
+      console.error('Erro ao validar sessao do cliente para acao protegida:', error);
+
+      if (continueAfterLogin) {
+        setPendingClientAction(action);
+      }
+
+      setIsClientLoginModalOpen(true);
+    }
+  };
+
+  const handleShareProfile = async (skipGuard = false) => {
+    const executeShare = async () => {
+      const profileUrl = getCurrentProfileUrl();
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: painter?.name ?? 'Pintor Pro',
+            text: `Veja o perfil de ${painter?.name ?? 'este pintor'} na Pintor Pro.`,
+            url: profileUrl
+          });
+          showActionFeedback('success', 'Perfil compartilhado com sucesso.');
+          return;
+        }
+
+        await copyTextToClipboard(profileUrl);
+        showActionFeedback('success', 'Link do perfil copiado para compartilhamento.');
+      } catch (error) {
+        console.error('Erro ao compartilhar perfil:', error);
+        showActionFeedback('error', 'Nao foi possivel compartilhar este perfil agora.');
+      }
+    };
+
+    if (skipGuard) {
+      await executeShare();
+      return;
+    }
+
+    await requireClientSessionForAction('share', executeShare);
+  };
+
+  const handleFacebookShare = async (skipGuard = false) => {
+    const executeShare = async () => {
+      const profileUrl = encodeURIComponent(getCurrentProfileUrl());
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${profileUrl}`, '_blank', 'noopener,noreferrer');
+      showActionFeedback('success', 'Abrindo o compartilhamento no Facebook.');
+    };
+
+    if (skipGuard) {
+      await executeShare();
+      return;
+    }
+
+    await requireClientSessionForAction('facebook', executeShare);
+  };
+
+  const handleInstagramShare = async (skipGuard = false) => {
+    const executeShare = async () => {
+      try {
+        await copyTextToClipboard(getCurrentProfileUrl());
+        window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+        showActionFeedback('success', 'Link copiado. Cole no Instagram para compartilhar este perfil.');
+      } catch (error) {
+        console.error('Erro ao preparar compartilhamento no Instagram:', error);
+        showActionFeedback('error', 'Nao foi possivel preparar o compartilhamento para o Instagram.');
+      }
+    };
+
+    if (skipGuard) {
+      await executeShare();
+      return;
+    }
+
+    await requireClientSessionForAction('instagram', executeShare);
+  };
+
+  const handleFavoriteAction = async (skipGuard = false) => {
+    const executeFavorite = async () => {
+      const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
+
+      if (resolvedClientProfile && !currentClientProfile) {
+        setCurrentClientProfile(resolvedClientProfile);
+      }
+
+      if (!resolvedClientProfile || !publicApplicationId) {
+        showActionFeedback('error', 'Nao foi possivel identificar o cliente ou o pintor para favoritar.');
+        return;
+      }
+
+      setFavoriteLoading(true);
+
+      try {
+        if (isFavorite) {
+          const { error } = await supabase
+            .from('client_favorite_painters')
+            .delete()
+            .eq('client_auth_user_id', resolvedClientProfile.authUserId)
+            .eq('application_id', publicApplicationId);
+
+          if (error) {
+            throw error;
+          }
+
+          setIsFavorite(false);
+          showActionFeedback('success', 'Pintor removido dos seus favoritos.');
+        } else {
+          const { error } = await supabase
+            .from('client_favorite_painters')
+            .upsert({
+              client_auth_user_id: resolvedClientProfile.authUserId,
+              application_id: publicApplicationId
+            }, {
+              onConflict: 'client_auth_user_id,application_id'
+            });
+
+          if (error) {
+            throw error;
+          }
+
+          setIsFavorite(true);
+          showActionFeedback('success', 'Pintor salvo nos seus favoritos.');
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar favorito do cliente:', error);
+        showActionFeedback('error', 'Nao foi possivel atualizar seus favoritos agora.');
+      } finally {
+        setFavoriteLoading(false);
+      }
+    };
+
+    if (skipGuard) {
+      await executeFavorite();
+      return;
+    }
+
+    await requireClientSessionForAction('favorite', executeFavorite);
+  };
+
+  const handleRequireClientReviewAccess = () => {
+    setPendingClientAction(null);
+    setIsClientLoginModalOpen(true);
+  };
+
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!currentClientProfile || !publicApplicationId) {
+      setIsClientLoginModalOpen(true);
+      return;
+    }
+
+    if (rating < 1 || rating > 5) {
+      setReviewFeedback({
+        type: 'error',
+        message: 'Selecione de 1 a 5 estrelas antes de publicar a avaliacao.'
+      });
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setReviewFeedback(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('painter_reviews')
+        .upsert({
+          application_id: publicApplicationId,
+          client_auth_user_id: currentClientProfile.authUserId,
+          client_name: currentClientProfile.fullName,
+          client_avatar_url: null,
+          rating,
+          comment: comment.trim()
+        }, {
+          onConflict: 'application_id,client_auth_user_id'
+        })
+        .select('id, application_id, client_auth_user_id, client_name, client_avatar_url, rating, comment, created_at')
+        .single();
+
+      if (error) {
+        const normalizedMessage = String(error.message || '').toLowerCase();
+        throw new Error(
+          normalizedMessage.includes('client_auth_user_id')
+            ? 'O banco ainda nao recebeu a escrita segura de avaliacoes. Rode o SQL add_client_profile_engagement.sql no Supabase.'
+            : error.message
+        );
+      }
+
+      const nextReview: PainterReview = {
+        id: data.id,
+        applicationId: data.application_id,
+        clientAuthUserId: data.client_auth_user_id ?? null,
+        clientName: data.client_name,
+        clientAvatarUrl: data.client_avatar_url ?? null,
+        rating: Number(data.rating ?? 0),
+        comment: data.comment ?? '',
+        createdAt: data.created_at
+      };
+
+      setReviewItems((currentItems) => {
+        const nextItems = [
+          nextReview,
+          ...currentItems.filter((item) => item.id !== nextReview.id && item.clientAuthUserId !== nextReview.clientAuthUserId)
+        ];
+
+        updatePainterReviewStats(nextItems);
+        return nextItems;
+      });
+
+      setReviewFeedback({
+        type: 'success',
+        message: currentClientReview ? 'Sua avaliacao foi atualizada com sucesso.' : 'Sua avaliacao foi publicada com sucesso.'
+      });
+    } catch (error) {
+      console.error('Erro ao publicar avaliacao do cliente:', error);
+      setReviewFeedback({
+        type: 'error',
+        message: error instanceof Error && error.message
+          ? error.message
+          : 'Nao foi possivel publicar sua avaliacao agora.'
+      });
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -421,6 +750,47 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       void supabase.removeChannel(presenceChannel);
     };
   }, [painterId, publicApplicationId]);
+
+  useEffect(() => {
+    if (!currentClientProfile || !publicApplicationId) {
+      setIsFavorite(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadFavoriteState = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('client_favorite_painters')
+          .select('id')
+          .eq('client_auth_user_id', currentClientProfile.authUserId)
+          .eq('application_id', publicApplicationId)
+          .maybeSingle();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (error) {
+          throw error;
+        }
+
+        setIsFavorite(Boolean(data?.id));
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Erro ao carregar favorito do cliente:', error);
+          setIsFavorite(false);
+        }
+      }
+    };
+
+    void loadFavoriteState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentClientProfile, publicApplicationId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -553,7 +923,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
       const { data, error } = await supabase
         .from('painter_reviews')
-        .select('id, application_id, client_name, client_avatar_url, rating, comment, created_at')
+        .select('id, application_id, client_auth_user_id, client_name, client_avatar_url, rating, comment, created_at')
         .eq('application_id', painter.id)
         .order('created_at', { ascending: false });
 
@@ -572,6 +942,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       setReviewItems((data ?? []).map((item: any) => ({
         id: item.id,
         applicationId: item.application_id,
+        clientAuthUserId: item.client_auth_user_id ?? null,
         clientName: item.client_name,
         clientAvatarUrl: item.client_avatar_url ?? null,
         rating: Number(item.rating ?? 0),
@@ -649,12 +1020,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                   {hasRealReviews ? (
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      {painter.rating.toFixed(1)} ({painter.reviewsCount} avaliacoes)
+                      {painter.rating.toFixed(1)} ({painter.reviewsCount} avaliações)
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-white/70" />
-                      Sem avaliacoes ainda
+                      Sem avaliações ainda
                     </span>
                   )}
                   <span className="flex items-center gap-1">
@@ -664,16 +1035,55 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
               </div>
             </div>
             <div className="hidden lg:flex gap-3 mb-2">
-              <button className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition">
+              <button
+                type="button"
+                onClick={() => void handleShareProfile()}
+                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
+                aria-label="Compartilhar perfil"
+              >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition">
-                <Heart className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => void handleFacebookShare()}
+                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
+                aria-label="Compartilhar no Facebook"
+              >
+                <img src={facebookIcon} alt="Facebook" className="h-5 w-5 brightness-0 invert" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleInstagramShare()}
+                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
+                aria-label="Compartilhar no Instagram"
+              >
+                <img src={instagramIcon} alt="Instagram" className="h-5 w-5 brightness-0 invert" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleFavoriteAction()}
+                disabled={favoriteLoading}
+                className={`bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 transition hover:bg-white/20 ${isFavorite ? 'text-[#FF7AAF]' : 'text-white'}`}
+                aria-label={isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
+              >
+                {favoriteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {actionFeedback && (
+        <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className={`rounded-3xl border px-6 py-4 text-sm font-bold ${
+            actionFeedback.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}>
+            {actionFeedback.message}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -701,6 +1111,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                 items={reviewItems}
                 isLoading={reviewsLoading}
                 errorMessage={reviewsError}
+                currentClientProfile={currentClientProfile}
+                currentClientReview={currentClientReview}
+                isSubmittingReview={isSubmittingReview}
+                reviewFeedback={reviewFeedback}
+                onSubmitReview={handleSubmitReview}
+                onRequireClientAccess={handleRequireClientReviewAccess}
               />
             )}
           </div>

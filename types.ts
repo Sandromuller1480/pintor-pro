@@ -56,6 +56,7 @@ export interface PortfolioItem {
 export interface PainterReview {
   id: string;
   applicationId: string;
+  clientAuthUserId?: string | null;
   clientName: string;
   clientAvatarUrl: string | null;
   rating: number;

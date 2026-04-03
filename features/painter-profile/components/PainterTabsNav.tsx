@@ -16,7 +16,7 @@ export const PainterTabsNav: React.FC<PainterTabsNavProps> = ({ activeTab, onCha
           activeTab === tab ? 'text-[#9A077B] border-b-2 border-[#9A077B]' : 'text-slate-400 hover:text-[#000747]'
         }`}
       >
-        {tab === 'portfolio' ? 'Portfolio' : tab === 'about' ? 'Sobre o Pintor' : 'Avaliacoes'}
+        {tab === 'portfolio' ? 'Portfolio' : tab === 'about' ? 'Sobre o Pintor' : 'Avaliações'}
       </button>
     ))}
   </div>

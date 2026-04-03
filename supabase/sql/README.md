@@ -47,6 +47,7 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 9. `add_admin_audit_logs.sql`
 10. `add_visit_request_delete_policy.sql`
 11. `add_public_painter_whatsapp.sql`
+12. `add_client_profile_engagement.sql`
 
 ## Scripts legados ou situacionais
 
