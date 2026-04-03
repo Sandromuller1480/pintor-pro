@@ -44,6 +44,13 @@ export type PainterSettingsForm = {
 
 export type AnalyticsPeriodDays = 7 | 30 | 90;
 
+export type ShareChannelBreakdown = {
+  native: number;
+  copyLink: number;
+  facebook: number;
+  instagram: number;
+};
+
 export type DashboardMetrics = {
   portfolioCount: number;
   quoteCount: number;
@@ -52,12 +59,14 @@ export type DashboardMetrics = {
   totalReviewsCount: number;
   averageRating: number;
   totalShareCount: number;
+  totalShareChannels: ShareChannelBreakdown;
   totalContactsCount: number;
   totalChatContactsCount: number;
   totalVisitContactsCount: number;
   totalQuoteContactsCount: number;
   periodProfileViewsCount: number;
   periodShareCount: number;
+  periodShareChannels: ShareChannelBreakdown;
   periodContactsCount: number;
   periodChatContactsCount: number;
   periodVisitContactsCount: number;
@@ -78,6 +87,8 @@ export type PainterProfileEngagementMetrics = {
   averageRating: number;
   totalShares: number;
   currentPeriodShares: number;
+  totalShareChannels: ShareChannelBreakdown;
+  currentPeriodShareChannels: ShareChannelBreakdown;
 };
 
 export type VisitRequestStatus =

@@ -29,6 +29,26 @@ import {
   SavedVisitRequest
 } from './types';
 
+const createEmptyShareChannels = () => ({
+  native: 0,
+  copyLink: 0,
+  facebook: 0,
+  instagram: 0
+});
+
+const normalizeShareChannel = (channel: string | null | undefined): keyof ReturnType<typeof createEmptyShareChannels> => {
+  switch ((channel ?? '').trim().toLowerCase()) {
+    case 'copy_link':
+      return 'copyLink';
+    case 'facebook':
+      return 'facebook';
+    case 'instagram':
+      return 'instagram';
+    default:
+      return 'native';
+  }
+};
+
 type FetchCurrentPainterProfileParams = {
   email: string;
   userId?: string;
@@ -398,7 +418,7 @@ export const fetchPainterProfileEngagementMetrics = async (
       .eq('application_id', applicationId),
     supabase
       .from('painter_profile_shares')
-      .select('shared_at')
+      .select('shared_at, channel')
       .eq('application_id', applicationId)
   ]);
 
@@ -419,16 +439,35 @@ export const fetchPainterProfileEngagementMetrics = async (
     : 0;
 
   const currentPeriodStartMs = Date.now() - (periodDays * 24 * 60 * 60 * 1000);
-  const shareTimestamps = (sharesResult.data ?? [])
-    .map((item) => new Date(item.shared_at).getTime())
-    .filter((value) => !Number.isNaN(value));
-  const currentPeriodShares = shareTimestamps.filter((value) => value >= currentPeriodStartMs).length;
+  const totalShareChannels = createEmptyShareChannels();
+  const currentPeriodShareChannels = createEmptyShareChannels();
+  let totalShares = 0;
+  let currentPeriodShares = 0;
+
+  for (const item of sharesResult.data ?? []) {
+    const sharedAtMs = new Date(item.shared_at).getTime();
+
+    if (Number.isNaN(sharedAtMs)) {
+      continue;
+    }
+
+    const normalizedChannel = normalizeShareChannel(item.channel);
+    totalShareChannels[normalizedChannel] += 1;
+    totalShares += 1;
+
+    if (sharedAtMs >= currentPeriodStartMs) {
+      currentPeriodShareChannels[normalizedChannel] += 1;
+      currentPeriodShares += 1;
+    }
+  }
 
   return {
     totalReviewsCount,
     averageRating,
-    totalShares: shareTimestamps.length,
-    currentPeriodShares
+    totalShares,
+    currentPeriodShares,
+    totalShareChannels,
+    currentPeriodShareChannels
   };
 };
 

@@ -62,12 +62,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     totalReviewsCount: 0,
     averageRating: 0,
     totalShareCount: 0,
+    totalShareChannels: {
+      native: 0,
+      copyLink: 0,
+      facebook: 0,
+      instagram: 0
+    },
     totalContactsCount: 0,
     totalChatContactsCount: 0,
     totalVisitContactsCount: 0,
     totalQuoteContactsCount: 0,
     periodProfileViewsCount: 0,
     periodShareCount: 0,
+    periodShareChannels: {
+      native: 0,
+      copyLink: 0,
+      facebook: 0,
+      instagram: 0
+    },
     periodContactsCount: 0,
     periodChatContactsCount: 0,
     periodVisitContactsCount: 0,
@@ -85,7 +97,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     totalReviewsCount: 0,
     averageRating: 0,
     totalShares: 0,
-    currentPeriodShares: 0
+    currentPeriodShares: 0,
+    totalShareChannels: {
+      native: 0,
+      copyLink: 0,
+      facebook: 0,
+      instagram: 0
+    },
+    currentPeriodShareChannels: {
+      native: 0,
+      copyLink: 0,
+      facebook: 0,
+      instagram: 0
+    }
   });
   const [analyticsPeriodDays, setAnalyticsPeriodDays] = useState<AnalyticsPeriodDays>(7);
   const [isSignOut, setIsSignOut] = useState(false);
@@ -293,12 +317,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       totalReviewsCount: profileEngagementMetrics.totalReviewsCount,
       averageRating: profileEngagementMetrics.averageRating,
       totalShareCount: profileEngagementMetrics.totalShares,
+      totalShareChannels: profileEngagementMetrics.totalShareChannels,
       totalContactsCount: quoteContactsCount + visitContactsCount + chatContactsCount,
       totalChatContactsCount: chatContactsCount,
       totalVisitContactsCount: visitContactsCount,
       totalQuoteContactsCount: quoteContactsCount,
       periodProfileViewsCount: profileViewMetrics.currentPeriodViews,
       periodShareCount: profileEngagementMetrics.currentPeriodShares,
+      periodShareChannels: profileEngagementMetrics.currentPeriodShareChannels,
       periodContactsCount,
       periodChatContactsCount,
       periodVisitContactsCount,
@@ -374,15 +400,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     const loadProfileEngagementMetrics = async () => {
       if (!currentProfile?.applicationId) {
         if (isMounted) {
-          setProfileEngagementMetrics({
-            totalReviewsCount: 0,
-            averageRating: 0,
-            totalShares: 0,
-            currentPeriodShares: 0
-          });
+            setProfileEngagementMetrics({
+              totalReviewsCount: 0,
+              averageRating: 0,
+              totalShares: 0,
+              currentPeriodShares: 0,
+              totalShareChannels: {
+                native: 0,
+                copyLink: 0,
+                facebook: 0,
+                instagram: 0
+              },
+              currentPeriodShareChannels: {
+                native: 0,
+                copyLink: 0,
+                facebook: 0,
+                instagram: 0
+              }
+            });
+          }
+          return;
         }
-        return;
-      }
 
       try {
         const nextMetrics = await fetchPainterProfileEngagementMetrics(currentProfile.applicationId, analyticsPeriodDays);

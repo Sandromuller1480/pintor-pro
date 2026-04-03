@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Share2, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Link2, Loader2, MessageSquare, Share2, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
 import { AnalyticsPeriodDays, CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
@@ -126,6 +126,41 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
       bg: 'bg-cyan-50'
     }
   ] as const;
+  const shareSources = [
+    {
+      label: 'Link do perfil',
+      value: metrics.periodShareChannels.copyLink,
+      total: metrics.totalShareChannels.copyLink,
+      icon: Link2,
+      color: 'text-sky-600',
+      bg: 'bg-sky-50'
+    },
+    {
+      label: 'Compart. nativo',
+      value: metrics.periodShareChannels.native,
+      total: metrics.totalShareChannels.native,
+      icon: Share2,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50'
+    },
+    {
+      label: 'Facebook',
+      value: metrics.periodShareChannels.facebook,
+      total: metrics.totalShareChannels.facebook,
+      icon: Users,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50'
+    },
+    {
+      label: 'Instagram',
+      value: metrics.periodShareChannels.instagram,
+      total: metrics.totalShareChannels.instagram,
+      icon: Camera,
+      color: 'text-fuchsia-600',
+      bg: 'bg-fuchsia-50'
+    }
+  ] as const;
+  const topShareSource = [...shareSources].sort((firstSource, secondSource) => secondSource.value - firstSource.value)[0];
   const safeFunnelPercent = (value: number, base: number) => {
     if (base <= 0 || value <= 0) {
       return 0;
@@ -384,6 +419,40 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 p-5">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Canais de compartilhamento</p>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Veja quais acoes estao espalhando mais o seu perfil no intervalo selecionado.
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Canal lider</p>
+              <p className="mt-1 text-sm font-black text-slate-700">
+                {topShareSource.value > 0 ? `${topShareSource.label} (${topShareSource.value})` : 'Sem compartilhamentos ainda'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {shareSources.map((source) => (
+              <div key={source.label} className="rounded-[24px] border border-slate-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{source.label}</p>
+                    <p className="mt-2 text-3xl font-black text-slate-900">{source.value}</p>
+                    <p className="mt-2 text-sm font-medium text-slate-500">{source.total} no total acumulado</p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${source.bg} ${source.color}`}>
+                    <source.icon size={18} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
