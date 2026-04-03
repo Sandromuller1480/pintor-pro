@@ -87,8 +87,12 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 
 - O projeto ainda usa Tailwind via CDN no `index.html`.
 - Ainda nao existe suite de testes automatizados.
-- O build ainda gera aviso de chunk grande, mas sem falha funcional.
+- O build de producao ja esta passando sem o aviso anterior de chunk grande apos o lazy loading por pagina,
+  mas ainda vale monitorar crescimento de bundle nos proximos ciclos.
 - O credenciamento do pintor ainda depende de suporte publico controlado na tabela `applications`
   e nos buckets de onboarding enquanto esse fluxo nao for migrado para Edge Function.
 - Rerodar `supabase/sql/add_applications_rls_and_onboarding_storage.sql` apos essa ultima revisao,
   porque o fluxo agora depende de `onboarding_token` e da funcao `finalize_painter_application_assets`.
+- A moderacao de obras ja funciona na tabela `obras`, mas o bucket `portfolio-obras` continua publico;
+  isso significa que a obra pode sumir da interface publica e ainda assim a midia permanecer acessivel
+  por URL direta ate migrarmos o portfolio para bucket privado com signed URLs.
