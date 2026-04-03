@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Heart, Loader2, MapPin, Share2, Shield, Star } from 'lucide-react';
 import { MOCK_PAINTERS } from '../constants';
 import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
@@ -7,6 +7,7 @@ import { ClientLoginModal } from '../features/client-auth/components/ClientLogin
 import { ClientSignupModal } from '../features/client-auth/components/ClientSignupModal';
 import facebookIcon from '../imagens/facebook.png';
 import instagramIcon from '../imagens/instagram.png';
+import pintorProLogo from '../imagens/Logo colorido PP.png';
 import whatsappIcon from '../imagens/ícone whatsapp.png';
 import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
@@ -76,16 +77,14 @@ const normalizeWhatsappPhone = (value: string | null | undefined) => {
   return digits;
 };
 
-const buildPainterWhatsappUrl = (phone: string | null | undefined, painterName: string) => {
+const buildPainterWhatsappUrl = (phone: string | null | undefined) => {
   const normalizedPhone = normalizeWhatsappPhone(phone);
 
   if (!normalizedPhone) {
     return null;
   }
 
-  const introMessage = encodeURIComponent(
-    `Ola, ${painterName}! Encontrei seu perfil na Pintor Pro e gostaria de falar sobre um servico.`
-  );
+  const introMessage = encodeURIComponent('Olá! Encontrei você na Pintor Pro!');
 
   return `https://wa.me/${normalizedPhone}?text=${introMessage}`;
 };
@@ -121,6 +120,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isWhatsappIntroCardVisible, setIsWhatsappIntroCardVisible] = useState(false);
+  const whatsappRedirectTimeoutRef = useRef<number | null>(null);
 
   const hasRealReviews = (painter?.reviewsCount ?? 0) > 0 && (painter?.rating ?? 0) > 0;
   const publicApplicationId = painter?.applicationId;
@@ -139,7 +140,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const hasSchedulableProfile = Boolean(publicApplicationId && isUuid(publicApplicationId));
   const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
   const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
-  const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp, painter?.name ?? 'Pintor');
+  const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp);
   const painterInstagramUrl = painter?.instagramUrl ?? null;
   const painterFacebookUrl = painter?.facebookUrl ?? null;
   const currentClientReview = useMemo(() => (
@@ -163,7 +164,15 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       return;
     }
 
-    window.location.assign(painterWhatsappUrl);
+    if (whatsappRedirectTimeoutRef.current) {
+      window.clearTimeout(whatsappRedirectTimeoutRef.current);
+    }
+
+    setIsWhatsappIntroCardVisible(true);
+
+    whatsappRedirectTimeoutRef.current = window.setTimeout(() => {
+      window.location.assign(painterWhatsappUrl);
+    }, 1150);
   };
 
   const showActionFeedback = (type: 'success' | 'error', message: string) => {
@@ -257,6 +266,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       window.clearTimeout(timeoutId);
     };
   }, [actionFeedback]);
+
+  useEffect(() => (
+    () => {
+      if (whatsappRedirectTimeoutRef.current) {
+        window.clearTimeout(whatsappRedirectTimeoutRef.current);
+      }
+    }
+  ), []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1167,6 +1184,23 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         onClose={handleCloseClientSignup}
         onSuccess={handleClientSignupSuccess}
       />
+      {isWhatsappIntroCardVisible && (
+        <div className="pointer-events-none fixed bottom-28 right-6 z-40 w-[320px] max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/95 p-5 shadow-[0_24px_60px_rgba(0,7,71,0.18)] backdrop-blur-xl">
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#000747] via-[#8D0B82] to-[#C01188]" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[22px] border border-slate-100 bg-white shadow-sm">
+                <img src={pintorProLogo} alt="Pintor Pro" className="h-11 w-11 object-contain" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9A077B]">Pintor Pro</p>
+                <p className="mt-1 text-base font-black leading-tight text-[#000747]">Olá! Encontrei você na Pintor Pro!</p>
+                <p className="mt-2 text-xs font-medium text-slate-500">Abrindo o WhatsApp automaticamente...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {painterWhatsappUrl && (
         <button
           type="button"
