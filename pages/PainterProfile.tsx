@@ -199,6 +199,35 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     } : currentPainter);
   };
 
+  const logProfileShare = async (
+    channel: 'native' | 'copy_link' | 'facebook' | 'instagram',
+    clientProfileOverride?: CurrentClientProfile | null
+  ) => {
+    const resolvedClientProfile = clientProfileOverride ?? currentClientProfile ?? await getCurrentClientProfile();
+
+    if (!resolvedClientProfile || !publicApplicationId) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('painter_profile_shares')
+      .insert({
+        application_id: publicApplicationId,
+        client_auth_user_id: resolvedClientProfile.authUserId,
+        channel
+      });
+
+    if (error) {
+      const normalizedMessage = String(error.message || '').toLowerCase();
+
+      if (normalizedMessage.includes('painter_profile_shares')) {
+        throw new Error('O banco ainda nao recebeu o rastreamento de compartilhamentos. Rode o SQL add_client_profile_engagement.sql no Supabase.');
+      }
+
+      throw error;
+    }
+  };
+
   useEffect(() => {
     void refreshClientSession();
 
@@ -449,6 +478,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const handleShareProfile = async (skipGuard = false) => {
     const executeShare = async () => {
       const profileUrl = getCurrentProfileUrl();
+      const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
 
       try {
         if (navigator.share) {
@@ -457,15 +487,17 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
             text: `Veja o perfil de ${painter?.name ?? 'este pintor'} na Pintor Pro.`,
             url: profileUrl
           });
+          await logProfileShare('native', resolvedClientProfile);
           showActionFeedback('success', 'Perfil compartilhado com sucesso.');
           return;
         }
 
         await copyTextToClipboard(profileUrl);
+        await logProfileShare('copy_link', resolvedClientProfile);
         showActionFeedback('success', 'Link do perfil copiado para compartilhamento.');
       } catch (error) {
         console.error('Erro ao compartilhar perfil:', error);
-        showActionFeedback('error', 'Nao foi possivel compartilhar este perfil agora.');
+        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel compartilhar este perfil agora.');
       }
     };
 
@@ -479,9 +511,16 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
   const handleFacebookShare = async (skipGuard = false) => {
     const executeShare = async () => {
-      const profileUrl = encodeURIComponent(getCurrentProfileUrl());
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${profileUrl}`, '_blank', 'noopener,noreferrer');
-      showActionFeedback('success', 'Abrindo o compartilhamento no Facebook.');
+      try {
+        const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
+        const profileUrl = encodeURIComponent(getCurrentProfileUrl());
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${profileUrl}`, '_blank', 'noopener,noreferrer');
+        await logProfileShare('facebook', resolvedClientProfile);
+        showActionFeedback('success', 'Abrindo o compartilhamento no Facebook.');
+      } catch (error) {
+        console.error('Erro ao compartilhar no Facebook:', error);
+        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel compartilhar no Facebook agora.');
+      }
     };
 
     if (skipGuard) {
@@ -495,12 +534,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const handleInstagramShare = async (skipGuard = false) => {
     const executeShare = async () => {
       try {
+        const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
         await copyTextToClipboard(getCurrentProfileUrl());
         window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+        await logProfileShare('instagram', resolvedClientProfile);
         showActionFeedback('success', 'Link copiado. Cole no Instagram para compartilhar este perfil.');
       } catch (error) {
         console.error('Erro ao preparar compartilhamento no Instagram:', error);
-        showActionFeedback('error', 'Nao foi possivel preparar o compartilhamento para o Instagram.');
+        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel preparar o compartilhamento para o Instagram.');
       }
     };
 

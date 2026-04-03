@@ -20,6 +20,7 @@ import { resolvePortfolioRecordMedia } from '../../lib/portfolioMedia';
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
+  PainterProfileEngagementMetrics,
   PainterProfileViewMetrics,
   PainterSettingsForm,
   UpdateVisitRequestInput,
@@ -216,6 +217,12 @@ const buildPeriodGrowthPercent = (currentPeriodViews: number, previousPeriodView
   return Math.round(((currentPeriodViews - previousPeriodViews) / previousPeriodViews) * 100);
 };
 
+const isMissingProfileSharesTableError = (error: { message?: string } | null) => {
+  const message = error?.message?.toLowerCase() ?? '';
+  return message.includes('painter_profile_shares')
+    && (message.includes('does not exist') || message.includes('schema cache') || message.includes('could not find the table'));
+};
+
 const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
   if (!applications.length) {
     return null;
@@ -377,6 +384,51 @@ export const fetchPainterProfileViewMetrics = async (
     currentPeriodViews,
     previousPeriodViews,
     periodGrowthPercent: buildPeriodGrowthPercent(currentPeriodViews, previousPeriodViews)
+  };
+};
+
+export const fetchPainterProfileEngagementMetrics = async (
+  applicationId: string,
+  periodDays: AnalyticsPeriodDays
+): Promise<PainterProfileEngagementMetrics> => {
+  const [reviewsResult, sharesResult] = await Promise.all([
+    supabase
+      .from('painter_reviews')
+      .select('rating')
+      .eq('application_id', applicationId),
+    supabase
+      .from('painter_profile_shares')
+      .select('shared_at')
+      .eq('application_id', applicationId)
+  ]);
+
+  if (reviewsResult.error) {
+    throw reviewsResult.error;
+  }
+
+  if (sharesResult.error && !isMissingProfileSharesTableError(sharesResult.error)) {
+    throw sharesResult.error;
+  }
+
+  const ratings = (reviewsResult.data ?? [])
+    .map((item) => Number(item.rating ?? 0))
+    .filter((value) => value > 0);
+  const totalReviewsCount = ratings.length;
+  const averageRating = totalReviewsCount > 0
+    ? Number((ratings.reduce((sum, value) => sum + value, 0) / totalReviewsCount).toFixed(1))
+    : 0;
+
+  const currentPeriodStartMs = Date.now() - (periodDays * 24 * 60 * 60 * 1000);
+  const shareTimestamps = (sharesResult.data ?? [])
+    .map((item) => new Date(item.shared_at).getTime())
+    .filter((value) => !Number.isNaN(value));
+  const currentPeriodShares = shareTimestamps.filter((value) => value >= currentPeriodStartMs).length;
+
+  return {
+    totalReviewsCount,
+    averageRating,
+    totalShares: shareTimestamps.length,
+    currentPeriodShares
   };
 };
 

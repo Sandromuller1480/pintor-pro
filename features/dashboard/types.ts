@@ -49,11 +49,15 @@ export type DashboardMetrics = {
   quoteCount: number;
   pendingQuoteCount: number;
   totalProfileViewsCount: number;
+  totalReviewsCount: number;
+  averageRating: number;
+  totalShareCount: number;
   totalContactsCount: number;
   totalChatContactsCount: number;
   totalVisitContactsCount: number;
   totalQuoteContactsCount: number;
   periodProfileViewsCount: number;
+  periodShareCount: number;
   periodContactsCount: number;
   periodChatContactsCount: number;
   periodVisitContactsCount: number;
@@ -67,6 +71,13 @@ export type PainterProfileViewMetrics = {
   currentPeriodViews: number;
   previousPeriodViews: number;
   periodGrowthPercent: number;
+};
+
+export type PainterProfileEngagementMetrics = {
+  totalReviewsCount: number;
+  averageRating: number;
+  totalShares: number;
+  currentPeriodShares: number;
 };
 
 export type VisitRequestStatus =

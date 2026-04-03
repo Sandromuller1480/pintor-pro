@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Camera, Clock, Edit2, Eye, FileText, Loader2, MessageSquare, Share2, Star, TrendingUp, Users } from 'lucide-react';
 import { SavedObra } from '../../../components/ObraModal';
 import { AnalyticsPeriodDays, CurrentPainterProfile, DashboardMetrics, FeedbackMessage } from '../types';
 import {
@@ -96,6 +96,36 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
     }
   ] as const;
   const topContactSource = [...contactSources].sort((firstSource, secondSource) => secondSource.value - firstSource.value)[0];
+  const reputationCards = [
+    {
+      label: 'Avaliações Públicas',
+      value: String(metrics.totalReviewsCount),
+      detail: metrics.totalReviewsCount > 0
+        ? `${metrics.averageRating.toFixed(1)} de nota media no perfil`
+        : 'Seu perfil ainda nao recebeu avaliacoes',
+      icon: Star,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50'
+    },
+    {
+      label: 'Nota Media',
+      value: metrics.totalReviewsCount > 0 ? metrics.averageRating.toFixed(1) : '--',
+      detail: metrics.totalReviewsCount > 0
+        ? `${metrics.totalReviewsCount} avaliacao(oes) publicadas`
+        : 'As estrelas aparecem apos a primeira avaliacao',
+      icon: TrendingUp,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50'
+    },
+    {
+      label: 'Compartilhamentos do Perfil',
+      value: String(metrics.periodShareCount),
+      detail: `${metrics.totalShareCount} no total acumulado`,
+      icon: Share2,
+      color: 'text-cyan-600',
+      bg: 'bg-cyan-50'
+    }
+  ] as const;
   const safeFunnelPercent = (value: number, base: number) => {
     if (base <= 0 || value <= 0) {
       return 0;
@@ -318,6 +348,43 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-black text-[#000747]">Reputação e Alcance</h3>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                Perfil Público
+              </span>
+            </div>
+            <p className="text-sm font-medium text-slate-500">
+              Acompanhe como os clientes estão avaliando e compartilhando o seu perfil.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Compartilhamentos no período</p>
+            <p className="mt-1 text-sm font-black text-slate-700">{metrics.periodShareCount}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {reputationCards.map((card) => (
+            <div key={card.label} className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
+                  <p className="mt-2 text-3xl font-black text-slate-900">{card.value}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-500">{card.detail}</p>
+                </div>
+                <div className={`rounded-2xl p-3 ${card.bg} ${card.color}`}>
+                  <card.icon size={20} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mb-8 rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">

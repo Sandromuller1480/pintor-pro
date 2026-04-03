@@ -11,6 +11,7 @@ import {
   fetchChatMessages,
   fetchChatThreads,
   fetchCurrentPainterProfile,
+  fetchPainterProfileEngagementMetrics,
   fetchPortfolioItems,
   fetchPainterProfileViewMetrics,
   fetchQuoteItems,
@@ -35,6 +36,7 @@ import {
   DashboardMetrics,
   DashboardTab,
   FeedbackMessage,
+  PainterProfileEngagementMetrics,
   PainterProfileViewMetrics,
   PainterSettingsForm,
   SavedChatMessage,
@@ -57,11 +59,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     quoteCount: 0,
     pendingQuoteCount: 0,
     totalProfileViewsCount: 0,
+    totalReviewsCount: 0,
+    averageRating: 0,
+    totalShareCount: 0,
     totalContactsCount: 0,
     totalChatContactsCount: 0,
     totalVisitContactsCount: 0,
     totalQuoteContactsCount: 0,
     periodProfileViewsCount: 0,
+    periodShareCount: 0,
     periodContactsCount: 0,
     periodChatContactsCount: 0,
     periodVisitContactsCount: 0,
@@ -74,6 +80,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     currentPeriodViews: 0,
     previousPeriodViews: 0,
     periodGrowthPercent: 0
+  });
+  const [profileEngagementMetrics, setProfileEngagementMetrics] = useState<PainterProfileEngagementMetrics>({
+    totalReviewsCount: 0,
+    averageRating: 0,
+    totalShares: 0,
+    currentPeriodShares: 0
   });
   const [analyticsPeriodDays, setAnalyticsPeriodDays] = useState<AnalyticsPeriodDays>(7);
   const [isSignOut, setIsSignOut] = useState(false);
@@ -278,11 +290,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       quoteCount: quoteContactsCount,
       pendingQuoteCount: quoteItems.filter((quote) => quote.status === 'novo').length,
       totalProfileViewsCount: profileViewMetrics.totalViews,
+      totalReviewsCount: profileEngagementMetrics.totalReviewsCount,
+      averageRating: profileEngagementMetrics.averageRating,
+      totalShareCount: profileEngagementMetrics.totalShares,
       totalContactsCount: quoteContactsCount + visitContactsCount + chatContactsCount,
       totalChatContactsCount: chatContactsCount,
       totalVisitContactsCount: visitContactsCount,
       totalQuoteContactsCount: quoteContactsCount,
       periodProfileViewsCount: profileViewMetrics.currentPeriodViews,
+      periodShareCount: profileEngagementMetrics.currentPeriodShares,
       periodContactsCount,
       periodChatContactsCount,
       periodVisitContactsCount,
@@ -290,7 +306,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       previousPeriodProfileViewsCount: profileViewMetrics.previousPeriodViews,
       periodGrowthPercent: profileViewMetrics.periodGrowthPercent
     });
-  }, [analyticsPeriodDays, portfolioItems, quoteItems, visitItems, chatThreads, profileViewMetrics]);
+  }, [analyticsPeriodDays, portfolioItems, quoteItems, visitItems, chatThreads, profileViewMetrics, profileEngagementMetrics]);
 
   useEffect(() => {
     let isMounted = true;
@@ -340,6 +356,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     const refreshIntervalId = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         void loadProfileViewMetrics();
+      }
+    }, 30_000);
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshIntervalId);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [analyticsPeriodDays, currentProfile?.applicationId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfileEngagementMetrics = async () => {
+      if (!currentProfile?.applicationId) {
+        if (isMounted) {
+          setProfileEngagementMetrics({
+            totalReviewsCount: 0,
+            averageRating: 0,
+            totalShares: 0,
+            currentPeriodShares: 0
+          });
+        }
+        return;
+      }
+
+      try {
+        const nextMetrics = await fetchPainterProfileEngagementMetrics(currentProfile.applicationId, analyticsPeriodDays);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfileEngagementMetrics(nextMetrics);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Erro ao carregar metricas de reputacao e compartilhamento:', error);
+        setProfileEngagementMetrics({
+          totalReviewsCount: 0,
+          averageRating: 0,
+          totalShares: 0,
+          currentPeriodShares: 0
+        });
+      }
+    };
+
+    void loadProfileEngagementMetrics();
+
+    const handleWindowFocus = () => {
+      void loadProfileEngagementMetrics();
+    };
+
+    const refreshIntervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadProfileEngagementMetrics();
       }
     }, 30_000);
 

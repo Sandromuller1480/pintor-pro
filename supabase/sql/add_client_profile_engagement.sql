@@ -94,3 +94,54 @@ USING (
 );
 
 GRANT SELECT, INSERT, DELETE ON public.client_favorite_painters TO authenticated;
+
+CREATE TABLE IF NOT EXISTS public.painter_profile_shares (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  application_id UUID NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
+  client_auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL DEFAULT 'native',
+  shared_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_painter_profile_shares_application_id
+  ON public.painter_profile_shares(application_id);
+
+CREATE INDEX IF NOT EXISTS idx_painter_profile_shares_shared_at
+  ON public.painter_profile_shares(shared_at DESC);
+
+ALTER TABLE public.painter_profile_shares ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Clients can insert own profile shares" ON public.painter_profile_shares;
+CREATE POLICY "Clients can insert own profile shares"
+ON public.painter_profile_shares FOR INSERT
+TO authenticated
+WITH CHECK (
+  client_auth_user_id = auth.uid()
+  AND EXISTS (
+    SELECT 1
+    FROM public.clientes AS c
+    WHERE c.auth_user_id = auth.uid()
+  )
+  AND EXISTS (
+    SELECT 1
+    FROM public.applications AS a
+    WHERE a.id = painter_profile_shares.application_id
+      AND a.status = 'accepted'
+      AND a.auth_user_id IS DISTINCT FROM auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Painters can read own profile shares" ON public.painter_profile_shares;
+CREATE POLICY "Painters can read own profile shares"
+ON public.painter_profile_shares FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1
+    FROM public.applications AS a
+    WHERE a.id = painter_profile_shares.application_id
+      AND a.auth_user_id = auth.uid()
+  )
+);
+
+GRANT INSERT, SELECT ON public.painter_profile_shares TO authenticated;
