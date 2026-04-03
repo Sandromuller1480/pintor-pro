@@ -12,6 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { buildPortfolioMediaPath, resolvePortfolioRecordMedia } from '../lib/portfolioMedia';
 import {
   createEmptyPortfolioStageMedia,
   getPortfolioPreviewMedia,
@@ -39,6 +40,9 @@ export type SavedObra = {
   imagem_url: string | null;
   video_url: string | null;
   stage_media: PortfolioStageMediaMap;
+  image_path: string | null;
+  video_path: string | null;
+  stage_media_paths: PortfolioStageMediaMap;
   created_at: string;
 };
 
@@ -47,6 +51,7 @@ type DraftMediaItem = {
   kind: 'existing' | 'new';
   mediaType: 'image' | 'video';
   url: string;
+  storedPath?: string;
   file?: File;
 };
 
@@ -78,26 +83,32 @@ const buildEmptyStageDraft = (): StageDraftMap => ({
 });
 
 const buildStageDraftFromSavedObra = (obra: SavedObra | null | undefined): StageDraftMap => {
-  const normalizedStageMedia = normalizePortfolioStageMedia(obra?.stage_media, {
+  const displayStageMedia = normalizePortfolioStageMedia(obra?.stage_media, {
     imageUrl: obra?.imagem_url ?? null,
     videoUrl: obra?.video_url ?? null
+  });
+  const storedStageMedia = normalizePortfolioStageMedia(obra?.stage_media_paths, {
+    imageUrl: obra?.image_path ?? null,
+    videoUrl: obra?.video_path ?? null
   });
 
   const nextDraft = buildEmptyStageDraft();
 
   for (const stageDefinition of PORTFOLIO_STAGE_DEFINITIONS) {
     nextDraft[stageDefinition.key] = [
-      ...normalizedStageMedia[stageDefinition.key].images.map((url) => ({
+      ...storedStageMedia[stageDefinition.key].images.map((storedPath, index) => ({
         id: createLocalUuid(),
         kind: 'existing' as const,
         mediaType: 'image' as const,
-        url
+        url: displayStageMedia[stageDefinition.key].images[index] ?? storedPath,
+        storedPath
       })),
-      ...normalizedStageMedia[stageDefinition.key].videos.map((url) => ({
+      ...storedStageMedia[stageDefinition.key].videos.map((storedPath, index) => ({
         id: createLocalUuid(),
         kind: 'existing' as const,
         mediaType: 'video' as const,
-        url
+        url: displayStageMedia[stageDefinition.key].videos[index] ?? storedPath,
+        storedPath
       }))
     ];
   }
@@ -115,12 +126,14 @@ const revokeDraftMediaUrls = (draftMap: StageDraftMap) => {
   }
 };
 
-const normalizeSavedObraRecord = (record: any): SavedObra => {
-  const normalizedStageMedia = normalizePortfolioStageMedia(record.stage_media, {
-    imageUrl: record.imagem_url,
-    videoUrl: record.video_url
-  });
-  const previewMedia = getPortfolioPreviewMedia(normalizedStageMedia, {
+const normalizeSavedObraRecord = async (record: any): Promise<SavedObra> => {
+  const {
+    rawStageMedia,
+    displayStageMedia,
+    rawPreviewMedia,
+    displayPreviewMedia
+  } = await resolvePortfolioRecordMedia({
+    stageMedia: record.stage_media,
     imageUrl: record.imagem_url,
     videoUrl: record.video_url
   });
@@ -132,29 +145,17 @@ const normalizeSavedObraRecord = (record: any): SavedObra => {
     tipo_imovel: record.tipo_imovel,
     tipo_pintura: record.tipo_pintura,
     status: record.status,
-    imagem_url: previewMedia.imageUrl,
-    video_url: previewMedia.videoUrl,
-    stage_media: normalizedStageMedia,
+    imagem_url: displayPreviewMedia.imageUrl,
+    video_url: displayPreviewMedia.videoUrl,
+    stage_media: displayStageMedia,
+    image_path: rawPreviewMedia.imageUrl,
+    video_path: rawPreviewMedia.videoUrl,
+    stage_media_paths: rawStageMedia,
     created_at: record.created_at
   };
 };
 
 const buildPortfolioStageMediaFromDraft = () => createEmptyPortfolioStageMedia();
-
-const buildFilePath = (obraId: string, userId: string, stageKey: PortfolioStageKey, file: File, mediaType: 'image' | 'video') => {
-  const fileExt = file.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
-  const fileSlug = file.name
-    .split('.')
-    .slice(0, -1)
-    .join('.')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'midia';
-
-  return `obras/${userId}/${obraId}/${stageKey}/${mediaType === 'video' ? 'videos' : 'imagens'}/${fileSlug}-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-};
 
 export const ObraModal: React.FC<ObraModalProps> = ({
   isOpen,
@@ -285,7 +286,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
       for (const stageDefinition of PORTFOLIO_STAGE_DEFINITIONS) {
         for (const mediaItem of stageDraft[stageDefinition.key]) {
           if (mediaItem.kind === 'existing') {
-            nextStageMedia[stageDefinition.key][mediaItem.mediaType === 'video' ? 'videos' : 'images'].push(mediaItem.url);
+            nextStageMedia[stageDefinition.key][mediaItem.mediaType === 'video' ? 'videos' : 'images'].push(mediaItem.storedPath ?? mediaItem.url);
             continue;
           }
 
@@ -295,7 +296,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
             continue;
           }
 
-          const filePath = buildFilePath(obraId, user.id, stageDefinition.key, file, mediaItem.mediaType);
+          const filePath = buildPortfolioMediaPath(obraId, user.id, stageDefinition.key, file, mediaItem.mediaType);
 
           const { error: uploadError } = await supabase.storage
             .from('portfolio-obras')
@@ -305,11 +306,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
             throw uploadError;
           }
 
-          const {
-            data: { publicUrl }
-          } = supabase.storage.from('portfolio-obras').getPublicUrl(filePath);
-
-          nextStageMedia[stageDefinition.key][mediaItem.mediaType === 'video' ? 'videos' : 'images'].push(publicUrl);
+          nextStageMedia[stageDefinition.key][mediaItem.mediaType === 'video' ? 'videos' : 'images'].push(filePath);
         }
       }
 
@@ -346,7 +343,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
         throw dbError;
       }
 
-      const normalizedSavedObra = normalizeSavedObraRecord(savedObra);
+      const normalizedSavedObra = await normalizeSavedObraRecord(savedObra);
       onSaved?.(normalizedSavedObra);
       setIsSuccess(true);
       setSuccessMessage(

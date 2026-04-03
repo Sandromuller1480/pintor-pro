@@ -30,6 +30,7 @@ import {
 } from '../lib/adminAudit';
 import { getCurrentAdminProfile, type CurrentAdminProfile } from '../lib/adminAccess';
 import { getPortfolioPreviewMedia, getPortfolioTotalMediaCount, normalizePortfolioStageMedia } from '../lib/portfolioStages';
+import { resolvePortfolioRecordMedia } from '../lib/portfolioMedia';
 import { supabase } from '../lib/supabase';
 import { type NavigateToPage, Page } from '../types';
 
@@ -111,6 +112,8 @@ type AdminPortfolioItem = {
   admin_review_status?: string | null;
   admin_review_notes?: string | null;
   admin_reviewed_at?: string | null;
+  preview_url?: string | null;
+  media_count?: number;
 };
 
 type AdminMetrics = {
@@ -146,7 +149,6 @@ const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
 const planOptions = ['', 'bronze', 'silver', 'prata', 'pro', 'ouro'];
 const subscriptionStatusOptions = ['', 'trialing', 'active', 'past_due', 'cancelled'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
-const PORTFOLIO_BUCKET = 'portfolio-obras';
 const planValueMap: Record<string, number> = { bronze: 0, silver: 49, prata: 49, pro: 97, ouro: 97 };
 
 const isOptionalReadError = (message: string) => (
@@ -238,12 +240,6 @@ const getApplicationName = (application: AdminApplication) => application.full_n
 const getApplicationLocation = (application: AdminApplication) => application.city && application.uf
   ? `${application.city} - ${application.uf}`
   : application.city || application.uf || 'Localizacao nao informada';
-
-const getPortfolioPublicUrl = (path?: string | null) => {
-  if (!path) return null;
-  if (/^https?:\/\//i.test(path)) return path;
-  return supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(path).data.publicUrl;
-};
 
 const buildAuditWarningMessage = (successMessage: string) => `${successMessage} Porem, a auditoria nao conseguiu registrar o evento.`;
 
@@ -342,10 +338,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
         safeList<AdminAuditLog>(supabase.from('admin_action_logs').select('id, admin_name, admin_email, action_type, target_table, target_id, target_label, metadata, created_at').order('created_at', { ascending: false }).limit(40))
       ]);
 
+      const resolvedPortfolioItems = await Promise.all(loadedPortfolioItems.map(async (item) => {
+        const { displayStageMedia, displayPreviewMedia } = await resolvePortfolioRecordMedia({
+          stageMedia: item.stage_media,
+          imageUrl: item.imagem_url,
+          videoUrl: item.video_url
+        });
+
+        return {
+          ...item,
+          preview_url: displayPreviewMedia.imageUrl ?? displayPreviewMedia.videoUrl,
+          media_count: getPortfolioTotalMediaCount(displayStageMedia)
+        };
+      }));
+
       setRecentChats(chats);
       setRecentVisits(visits);
       setRecentQuotes(quotes);
-      setPortfolioItems(loadedPortfolioItems);
+      setPortfolioItems(resolvedPortfolioItems);
       setAuditLogs(loadedAuditLogs);
 
       const acceptedPainters = loadedApplications.filter((item) => item.status === 'accepted');
@@ -523,11 +533,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
   const subscribedPainters = acceptedPainters.filter((item) => item.subscription_plan || item.subscription_status).slice(0, 24);
   const moderatedPortfolioItems = portfolioItems.map((item) => {
     const stageMedia = normalizePortfolioStageMedia(item.stage_media, { imageUrl: item.imagem_url, videoUrl: item.video_url });
-    const previewMedia = getPortfolioPreviewMedia(stageMedia, { imageUrl: item.imagem_url, videoUrl: item.video_url });
     return {
       ...item,
-      previewUrl: getPortfolioPublicUrl(previewMedia.imageUrl) || getPortfolioPublicUrl(previewMedia.videoUrl),
-      mediaCount: getPortfolioTotalMediaCount(stageMedia),
+      previewUrl: item.preview_url ?? null,
+      mediaCount: item.media_count ?? getPortfolioTotalMediaCount(stageMedia),
       painterName: painterByUserId[item.pintor_id ?? ''] || 'Pintor nao identificado'
     };
   });

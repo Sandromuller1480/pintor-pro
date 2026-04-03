@@ -20,6 +20,7 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - `supabase/sql/add_profile_media_columns.sql`
   - `supabase/sql/add_profile_cover_bucket.sql`
   - `supabase/sql/add_portfolio_stage_media.sql`
+  - `supabase/sql/add_portfolio_private_media.sql`
   - `supabase/sql/add_applications_rls_and_onboarding_storage.sql`
   - `supabase/sql/admin_dashboard_schema.sql`
   - `supabase/sql/add_portfolio_admin_moderation.sql`
@@ -93,6 +94,5 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   e nos buckets de onboarding enquanto esse fluxo nao for migrado para Edge Function.
 - Rerodar `supabase/sql/add_applications_rls_and_onboarding_storage.sql` apos essa ultima revisao,
   porque o fluxo agora depende de `onboarding_token` e da funcao `finalize_painter_application_assets`.
-- A moderacao de obras ja funciona na tabela `obras`, mas o bucket `portfolio-obras` continua publico;
-  isso significa que a obra pode sumir da interface publica e ainda assim a midia permanecer acessivel
-  por URL direta ate migrarmos o portfolio para bucket privado com signed URLs.
+- Confirmar que `supabase/sql/add_portfolio_private_media.sql` foi aplicado para o bucket
+  `portfolio-obras` ficar privado com leitura publica controlada por signed URL.

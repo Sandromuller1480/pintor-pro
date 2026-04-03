@@ -21,6 +21,7 @@ import {
   getPortfolioTotalMediaCount,
   normalizePortfolioStageMedia
 } from '../lib/portfolioStages';
+import { resolvePortfolioRecordMedia } from '../lib/portfolioMedia';
 import { NavigateToPage, Page, Painter, PainterReview, PortfolioItem } from '../types';
 
 interface PainterProfileProps {
@@ -396,12 +397,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         return;
       }
 
-      setPortfolioItems((data ?? []).map((item: any) => {
-        const stageMedia = normalizePortfolioStageMedia(item.stage_media, {
-          imageUrl: item.imagem_url,
-          videoUrl: item.video_url
-        });
-        const previewMedia = getPortfolioPreviewMedia(stageMedia, {
+      const nextPortfolioItems = await Promise.all((data ?? []).map(async (item: any) => {
+        const { displayStageMedia, displayPreviewMedia } = await resolvePortfolioRecordMedia({
+          stageMedia: item.stage_media,
           imageUrl: item.imagem_url,
           videoUrl: item.video_url
         });
@@ -414,13 +412,19 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           propertyType: item.tipo_imovel,
           paintType: item.tipo_pintura,
           status: item.status,
-          imageUrl: previewMedia.imageUrl,
-          videoUrl: previewMedia.videoUrl,
-          stageMedia,
-          totalMediaCount: getPortfolioTotalMediaCount(stageMedia),
+          imageUrl: displayPreviewMedia.imageUrl,
+          videoUrl: displayPreviewMedia.videoUrl,
+          stageMedia: displayStageMedia,
+          totalMediaCount: getPortfolioTotalMediaCount(displayStageMedia),
           createdAt: item.created_at
         };
       }));
+
+      if (cancelled) {
+        return;
+      }
+
+      setPortfolioItems(nextPortfolioItems);
       setPortfolioLoading(false);
     }
 

@@ -16,6 +16,7 @@ import {
   getSignedLegacyMediaUrl,
   PAINTER_MEDIA_BUCKET
 } from './utils';
+import { resolvePortfolioRecordMedia } from '../../lib/portfolioMedia';
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
@@ -60,13 +61,28 @@ export const fetchPortfolioItems = async (userId: string) => {
     throw error;
   }
 
-  return (data ?? []).map((item: any) => ({
-    ...item,
-    stage_media: normalizePortfolioStageMedia(item.stage_media, {
+  return Promise.all((data ?? []).map(async (item: any) => {
+    const {
+      rawStageMedia,
+      displayStageMedia,
+      rawPreviewMedia,
+      displayPreviewMedia
+    } = await resolvePortfolioRecordMedia({
+      stageMedia: item.stage_media,
       imageUrl: item.imagem_url,
       videoUrl: item.video_url
-    })
-  })) as SavedObra[];
+    });
+
+    return {
+      ...item,
+      imagem_url: displayPreviewMedia.imageUrl,
+      video_url: displayPreviewMedia.videoUrl,
+      stage_media: displayStageMedia,
+      image_path: rawPreviewMedia.imageUrl,
+      video_path: rawPreviewMedia.videoUrl,
+      stage_media_paths: rawStageMedia
+    };
+  })) as Promise<SavedObra[]>;
 };
 
 export const fetchQuoteItems = async (userId: string) => {

@@ -22,23 +22,23 @@ e quais riscos ainda existem no desenho atual.
 | Orcamentos do pintor | `orcamentos`, `orcamentos-media` | `Coberto` | O fluxo do painel do pintor esta alinhado com as policies de `INSERT`, `SELECT`, `UPDATE` e bucket privado por `auth.uid()`. |
 | Dashboard do pintor | `applications`, `obras`, `orcamentos`, `painter_visit_requests`, `painter_chat_threads`, `painter_chat_messages`, `painter_profile_views`, `painters-media` | `Coberto` | As queries do painel estao compatíveis com leitura/escrita do proprio pintor. |
 | Dashboard admin | `admin_users`, `admin_action_logs`, `applications`, `clientes`, `obras`, `orcamentos`, `painter_chat_threads`, `painter_visit_requests`, `painter_profile_views` | `Coberto` | O acesso administrativo atual esta coerente com `is_admin()` e as policies auxiliares. |
-| Moderacao publica do portfolio | `obras`, `portfolio-obras` | `Parcial` | A tabela `obras` ja respeita `is_publicly_visible` e `admin_review_status`, mas o bucket `portfolio-obras` continua publico por desenho. |
+| Moderacao publica do portfolio | `obras`, `portfolio-obras` | `Coberto` | A tabela `obras` ja respeita `is_publicly_visible` e `admin_review_status`, e o bucket pode ser fechado com `add_portfolio_private_media.sql` para servir a vitrine por signed URL. |
 | Assinaturas e cobranca | Edge Functions + tabelas de billing | `Pendente de teste real` | O fluxo depende de Stripe, webhooks e segredos do projeto. Precisa de validacao ponta a ponta com ambiente configurado. |
 
 ## Risco residual mais importante
 
 O ponto tecnico que ainda merece atencao antes de considerar a plataforma "blindada" e este:
 
-- o bucket `portfolio-obras` continua `public`;
-- por isso, a moderacao da obra funciona na interface e na tabela `obras`, mas a midia pode continuar acessivel por URL direta se alguem ja conhecer o caminho;
-- isso nao quebra o produto, mas significa que a moderacao de portfolio ainda nao esta 100% fechada no nivel do storage.
+- a migracao do portfolio para bucket privado depende de aplicar `supabase/sql/add_portfolio_private_media.sql` no ambiente alvo;
+- enquanto esse SQL nao for aplicado, o comportamento seguro novo fica pronto no codigo, mas o bucket antigo pode continuar exposto conforme o estado atual do banco;
+- depois de aplicar o SQL, a vitrine publica passa a depender de signed URLs e o gargalo principal volta a ser o teste real de producao com Stripe e webhooks.
 
 ## Caminho correto para eliminar esse risco
 
-1. mover a midia do portfolio para bucket privado;
-2. incluir `obra_id` na organizacao dos caminhos dos arquivos;
-3. servir a visualizacao publica com signed URLs ou por Edge Function;
-4. vincular a leitura da midia ao status da obra (`is_publicly_visible` e `admin_review_status`).
+1. aplicar `supabase/sql/add_portfolio_private_media.sql`;
+2. publicar pelo menos uma obra nova para validar o caminho `obras/{userId}/{obraId}/...`;
+3. confirmar que obra bloqueada some da vitrine e deixa de gerar signed URL publica;
+4. validar dashboard do pintor, perfil publico e moderacao admin no mesmo ambiente.
 
 ## Proximo teste obrigatorio
 

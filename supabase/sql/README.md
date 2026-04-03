@@ -40,10 +40,11 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 2. `add_profile_media_columns.sql`
 3. `add_profile_cover_bucket.sql`
 4. `add_portfolio_stage_media.sql`
-5. `add_applications_rls_and_onboarding_storage.sql`
-6. `admin_dashboard_schema.sql`
-7. `add_portfolio_admin_moderation.sql`
-8. `add_admin_audit_logs.sql`
+5. `add_portfolio_private_media.sql`
+6. `add_applications_rls_and_onboarding_storage.sql`
+7. `admin_dashboard_schema.sql`
+8. `add_portfolio_admin_moderation.sql`
+9. `add_admin_audit_logs.sql`
 
 ## Scripts legados ou situacionais
 
@@ -67,3 +68,11 @@ Ainda assim, mantenha `add_applications_rls_and_onboarding_storage.sql` aplicado
 continua sendo necessario para cenarios em que o `signUp` nao devolve sessao imediatamente
 (por exemplo, confirmacao de e-mail habilitada). O desenho ideal de longo prazo continua sendo
 migrar esse onboarding para uma Edge Function.
+
+## Nota sobre portfolio privado
+
+O portfolio agora foi preparado para bucket privado com signed URLs por obra.
+Para ambientes existentes, aplique `add_portfolio_private_media.sql`.
+
+O app continua aceitando obras antigas com URLs publicas ja gravadas no banco, mas novas obras
+passam a salvar `paths` no storage e resolvem a visualizacao em tempo real por signed URL.

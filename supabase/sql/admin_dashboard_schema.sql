@@ -127,6 +127,15 @@ WITH CHECK (
 
 GRANT SELECT, INSERT ON public.admin_action_logs TO authenticated;
 
+DROP POLICY IF EXISTS "Admins can read all portfolio media" ON storage.objects;
+CREATE POLICY "Admins can read all portfolio media"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'portfolio-obras'
+  AND public.is_admin()
+);
+
 DO $$
 BEGIN
   IF EXISTS (

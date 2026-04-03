@@ -41,6 +41,12 @@ USING (
   AND COALESCE(admin_review_status, 'approved') <> 'blocked'
 );
 
+DROP POLICY IF EXISTS "Pintores podem ver suas obras" ON public.obras;
+CREATE POLICY "Pintores podem ver suas obras"
+ON public.obras FOR SELECT
+TO authenticated
+USING (auth.uid() = pintor_id);
+
 -- O pintor logado pode criar, editar e deletar apenas as suas proprias obras
 DROP POLICY IF EXISTS "Pintores podem inserir suas obras" ON public.obras;
 CREATE POLICY "Pintores podem inserir suas obras"
@@ -59,16 +65,39 @@ USING (auth.uid() = pintor_id);
 
 -- Criacao do bucket de storage para as midias
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('portfolio-obras', 'portfolio-obras', true)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('portfolio-obras', 'portfolio-obras', false)
+ON CONFLICT (id) DO UPDATE
+SET public = EXCLUDED.public;
 
 -- Regras de seguranca (RLS) do storage
 
--- Qualquer pessoa pode baixar e visualizar as midias das obras
+-- Qualquer pessoa pode gerar signed URLs das midias apenas para obras publicas
 DROP POLICY IF EXISTS "Fotos do portfolio publicas" ON storage.objects;
 CREATE POLICY "Fotos do portfolio publicas"
 ON storage.objects FOR SELECT
-USING ( bucket_id = 'portfolio-obras' );
+TO anon, authenticated
+USING (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND EXISTS (
+    SELECT 1
+    FROM public.obras AS o
+    WHERE o.id::text = (storage.foldername(name))[3]
+      AND o.pintor_id::text = (storage.foldername(name))[2]
+      AND COALESCE(o.is_publicly_visible, true) = true
+      AND COALESCE(o.admin_review_status, 'approved') <> 'blocked'
+  )
+);
+
+DROP POLICY IF EXISTS "Pintores logados podem ler suas fotos" ON storage.objects;
+CREATE POLICY "Pintores logados podem ler suas fotos"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'portfolio-obras'
+  AND (storage.foldername(name))[1] = 'obras'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
 
 -- Apenas usuarios autenticados podem subir, editar ou apagar midias
 DROP POLICY IF EXISTS "Pintores logados podem subir fotos" ON storage.objects;
