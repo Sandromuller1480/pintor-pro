@@ -124,6 +124,9 @@ function mapPainterRowToPainter(item: any): Painter {
         gender: normalizedGender === 'feminino' || normalizedGender === 'masculino'
             ? normalizedGender
             : undefined,
+        whatsapp: typeof item.whatsapp === 'string' && item.whatsapp.trim()
+            ? item.whatsapp.trim()
+            : undefined,
         location: item.location,
         rating: Number(item.rating ?? 0),
         reviewsCount: Number(item.reviews_count ?? 0),

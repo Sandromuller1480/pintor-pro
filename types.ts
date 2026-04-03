@@ -6,6 +6,7 @@ export interface Painter {
   applicationId?: string;
   name: string;
   gender?: 'feminino' | 'masculino';
+  whatsapp?: string;
   location: string;
   rating: number;
   reviewsCount: number;

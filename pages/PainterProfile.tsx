@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, Loader2, MapPin, Share2, Shield, Star } from 'lucide-react';
+import { Heart, Loader2, MapPin, MessageCircle, Share2, Shield, Star } from 'lucide-react';
 import { MOCK_PAINTERS } from '../constants';
 import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
 import { StartChatModal } from '../components/StartChatModal';
 import { ClientLoginModal } from '../features/client-auth/components/ClientLoginModal';
 import { ClientSignupModal } from '../features/client-auth/components/ClientSignupModal';
-import { getCurrentClientProfile } from '../lib/services/clientSignupService';
+import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
 import { supabase } from '../lib/supabase';
 import { PainterAboutSection } from '../features/painter-profile/components/PainterAboutSection';
@@ -55,8 +55,41 @@ const getViewerKey = () => {
   return nextKey;
 };
 
+const normalizeWhatsappPhone = (value: string | null | undefined) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+
+  if (!digits) {
+    return '';
+  }
+
+  if (digits.startsWith('55')) {
+    return digits;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return `55${digits}`;
+  }
+
+  return digits;
+};
+
+const buildPainterWhatsappUrl = (phone: string | null | undefined, painterName: string) => {
+  const normalizedPhone = normalizeWhatsappPhone(phone);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const introMessage = encodeURIComponent(
+    `Ola, ${painterName}! Encontrei seu perfil na Pintor Pro e gostaria de falar sobre um servico.`
+  );
+
+  return `https://wa.me/${normalizedPhone}?text=${introMessage}`;
+};
+
 export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPage }) => {
   const [checkingClientAction, setCheckingClientAction] = useState<'chat' | 'visit' | null>(null);
+  const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
   const [painter, setPainter] = useState<Painter | null>(null);
   const [loading, setLoading] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -90,6 +123,31 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const hasSchedulableProfile = Boolean(publicApplicationId && isUuid(publicApplicationId));
   const canScheduleVisit = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsVisitRequests && !isOutsideBusinessHours;
   const canStartChat = hasSchedulableProfile && !isPainterOffline && !isLeadPaused && allowsChat && !isOutsideBusinessHours;
+  const painterWhatsappUrl = buildPainterWhatsappUrl(painter?.whatsapp, painter?.name ?? 'Pintor');
+
+  const refreshClientSession = async () => {
+    try {
+      const nextClientProfile = await getCurrentClientProfile();
+      setCurrentClientProfile(nextClientProfile);
+    } catch (error) {
+      console.error('Erro ao verificar sessao atual do cliente:', error);
+      setCurrentClientProfile(null);
+    }
+  };
+
+  useEffect(() => {
+    void refreshClientSession();
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(() => {
+      void refreshClientSession();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -197,6 +255,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
   const handleClientLoginSuccess = () => {
     setIsClientLoginModalOpen(false);
+    void refreshClientSession();
 
     if (!pendingClientAction) {
       return;
@@ -648,6 +707,22 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         onClose={handleCloseClientSignup}
         onSuccess={handleClientSignupSuccess}
       />
+      {currentClientProfile && painterWhatsappUrl && (
+        <a
+          href={painterWhatsappUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Falar com ${painter.name} no WhatsApp`}
+          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-3 rounded-full border border-emerald-300 bg-[#22C55E] px-4 py-3 text-sm font-black text-white shadow-[0_18px_45px_rgba(34,197,94,0.28)] transition hover:-translate-y-0.5 hover:bg-[#16A34A] hover:shadow-[0_22px_50px_rgba(22,163,74,0.32)]"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/16">
+            <MessageCircle className="h-6 w-6" />
+          </span>
+          <span className="hidden sm:block">
+            WhatsApp do Pintor
+          </span>
+        </a>
+      )}
     </div>
   );
 };
