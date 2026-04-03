@@ -103,7 +103,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   const [isScheduleVisitModalOpen, setIsScheduleVisitModalOpen] = useState(false);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
-  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | null>(null);
+  const [pendingClientAction, setPendingClientAction] = useState<'chat' | 'visit' | 'whatsapp' | null>(null);
   const [activeTab, setActiveTab] = useState<PainterProfileTab>('portfolio');
   const [availabilityNow, setAvailabilityNow] = useState(() => new Date());
 
@@ -134,6 +134,14 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       console.error('Erro ao verificar sessao atual do cliente:', error);
       setCurrentClientProfile(null);
     }
+  };
+
+  const openPainterWhatsapp = () => {
+    if (!painterWhatsappUrl) {
+      return;
+    }
+
+    window.location.assign(painterWhatsappUrl);
   };
 
   useEffect(() => {
@@ -264,6 +272,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
     const actionToOpen = pendingClientAction;
     setPendingClientAction(null);
+
+    if (actionToOpen === 'whatsapp') {
+      openPainterWhatsapp();
+      return;
+    }
+
     openProtectedClientAction(actionToOpen);
   };
 
@@ -290,6 +304,29 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       setIsClientLoginModalOpen(true);
     } finally {
       setCheckingClientAction(null);
+    }
+  };
+
+  const handleWhatsappAction = async () => {
+    if (!painterWhatsappUrl) {
+      return;
+    }
+
+    try {
+      const nextClientProfile = await getCurrentClientProfile();
+
+      if (nextClientProfile) {
+        setCurrentClientProfile(nextClientProfile);
+        openPainterWhatsapp();
+        return;
+      }
+
+      setPendingClientAction('whatsapp');
+      setIsClientLoginModalOpen(true);
+    } catch (error) {
+      console.error('Erro ao verificar acesso do cliente para contato por WhatsApp:', error);
+      setPendingClientAction('whatsapp');
+      setIsClientLoginModalOpen(true);
     }
   };
 
@@ -708,11 +745,10 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         onClose={handleCloseClientSignup}
         onSuccess={handleClientSignupSuccess}
       />
-      {currentClientProfile && painterWhatsappUrl && (
-        <a
-          href={painterWhatsappUrl}
-          target="_blank"
-          rel="noreferrer"
+      {painterWhatsappUrl && (
+        <button
+          type="button"
+          onClick={() => void handleWhatsappAction()}
           aria-label={`Falar com ${painter.name} no WhatsApp`}
           className="fixed bottom-6 right-6 z-40 block transition hover:-translate-y-0.5 hover:scale-[1.03]"
         >
@@ -721,7 +757,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
             alt="WhatsApp"
             className="h-16 w-16 drop-shadow-[0_16px_28px_rgba(34,197,94,0.28)]"
           />
-        </a>
+        </button>
       )}
     </div>
   );
