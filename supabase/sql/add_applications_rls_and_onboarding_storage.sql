@@ -11,6 +11,9 @@
 
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS onboarding_token UUID;
+
 DROP POLICY IF EXISTS "Public can create pending painter applications" ON public.applications;
 CREATE POLICY "Public can create pending painter applications"
 ON public.applications FOR INSERT
@@ -42,17 +45,45 @@ WITH CHECK (
 );
 
 DROP POLICY IF EXISTS "Public can update pending painter applications" ON public.applications;
-CREATE POLICY "Public can update pending painter applications"
-ON public.applications FOR UPDATE
-TO anon
-USING (
-  COALESCE(status, 'pending') = 'pending'
-)
-WITH CHECK (
-  COALESCE(status, 'pending') = 'pending'
-);
 
-GRANT INSERT, SELECT, UPDATE ON public.applications TO anon, authenticated;
+GRANT INSERT, SELECT ON public.applications TO anon, authenticated;
+GRANT UPDATE ON public.applications TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.finalize_painter_application_assets(
+  p_application_id UUID,
+  p_onboarding_token UUID,
+  p_profile_photo_path TEXT,
+  p_work_photo_paths TEXT[],
+  p_certification_paths TEXT[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.applications
+  SET
+    profile_photo_path = p_profile_photo_path,
+    work_photo_paths = COALESCE(p_work_photo_paths, ARRAY[]::text[]),
+    certification_paths = COALESCE(p_certification_paths, ARRAY[]::text[]),
+    work_photo_count = COALESCE(array_length(p_work_photo_paths, 1), 0),
+    certification_count = COALESCE(array_length(p_certification_paths, 1), 0)
+  WHERE id = p_application_id
+    AND onboarding_token = p_onboarding_token
+    AND (
+      status = 'pending'
+      OR auth_user_id = auth.uid()
+    );
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Aplicacao de onboarding nao encontrada ou token invalido.'
+      USING ERRCODE = 'P0001';
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.finalize_painter_application_assets(UUID, UUID, TEXT, TEXT[], TEXT[]) TO anon, authenticated;
 
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('application-work-photos', 'application-work-photos', false)
@@ -70,11 +101,12 @@ ON storage.objects FOR INSERT
 TO anon, authenticated
 WITH CHECK (
   bucket_id = 'application-work-photos'
-  AND (storage.foldername(name))[2] IN ('profile-photo', 'work-photos')
+  AND (storage.foldername(name))[3] IN ('profile-photo', 'work-photos')
   AND EXISTS (
     SELECT 1
     FROM public.applications AS a
     WHERE a.id::text = (storage.foldername(name))[1]
+      AND a.onboarding_token::text = (storage.foldername(name))[2]
       AND (
         a.status = 'pending'
         OR a.auth_user_id = auth.uid()
@@ -102,11 +134,12 @@ ON storage.objects FOR INSERT
 TO anon, authenticated
 WITH CHECK (
   bucket_id = 'application-certifications'
-  AND (storage.foldername(name))[2] = 'certifications'
+  AND (storage.foldername(name))[3] = 'certifications'
   AND EXISTS (
     SELECT 1
     FROM public.applications AS a
     WHERE a.id::text = (storage.foldername(name))[1]
+      AND a.onboarding_token::text = (storage.foldername(name))[2]
       AND (
         a.status = 'pending'
         OR a.auth_user_id = auth.uid()

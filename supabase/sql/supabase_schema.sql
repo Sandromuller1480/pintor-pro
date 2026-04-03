@@ -194,7 +194,10 @@ ON storage.objects FOR SELECT
 TO anon, authenticated
 USING (
   bucket_id = 'application-work-photos'
-  AND (storage.foldername(name))[2] = 'profile-photo'
+  AND (
+    (storage.foldername(name))[2] = 'profile-photo'
+    OR (storage.foldername(name))[3] = 'profile-photo'
+  )
   AND EXISTS (
     SELECT 1
     FROM public.applications AS a

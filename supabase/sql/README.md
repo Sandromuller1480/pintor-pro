@@ -60,8 +60,8 @@ Sempre revise o diff antes de aplicar em producao. Para a reta final da platafor
 ## Nota sobre RLS no credenciamento do pintor
 
 O fluxo atual de credenciamento agora prefere operar com sessao autenticada quando o `signUp`
-do Supabase ja retorna `session`, reduzindo a dependencia da policy anonima de `UPDATE`
-em `public.applications`.
+do Supabase ja retorna `session`, e usa `onboarding_token` + RPC `finalize_painter_application_assets`
+para fechar o fluxo de anexos com menos exposicao publica.
 
 Ainda assim, mantenha `add_applications_rls_and_onboarding_storage.sql` aplicado, porque ele
 continua sendo necessario para cenarios em que o `signUp` nao devolve sessao imediatamente

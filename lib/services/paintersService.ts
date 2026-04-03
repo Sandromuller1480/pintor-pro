@@ -26,6 +26,18 @@ const EXISTING_USER_ERROR_PATTERNS = [
     'user already exists'
 ];
 
+function createUuid() {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+        return crypto.randomUUID();
+    }
+
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+        const randomValue = Math.floor(Math.random() * 16);
+        const value = character === 'x' ? randomValue : ((randomValue & 0x3) | 0x8);
+        return value.toString(16);
+    });
+}
+
 export type ApplicationFormSubmission = {
     fullName: string,
     gender?: '' | 'feminino' | 'masculino',
@@ -267,6 +279,7 @@ export const paintersService = {
             .filter(Boolean);
         let authUserId: string | null = null;
         let shouldRestorePublicContextAfterSubmission = false;
+        const onboardingToken = createUuid();
 
         try {
             if (formData.password) {
@@ -294,6 +307,7 @@ export const paintersService = {
                 .from('applications')
                 .insert([{
                     auth_user_id: authUserId,
+                    onboarding_token: onboardingToken,
                     full_name: normalizedFullName,
                     gender: normalizedGender,
                     cep: normalizedCep,
@@ -314,28 +328,29 @@ export const paintersService = {
             }
 
             const [profilePhotoPaths, workPhotoPaths, certificationPaths] = await Promise.all([
-                formData.profilePhoto ? this.uploadApplicationFiles(data.id, [formData.profilePhoto], STORAGE_BUCKETS.workPhotos, 'profile-photo') : Promise.resolve([]),
-                this.uploadApplicationFiles(data.id, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
-                this.uploadApplicationFiles(data.id, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
+                formData.profilePhoto ? this.uploadApplicationFiles(data.id, onboardingToken, [formData.profilePhoto], STORAGE_BUCKETS.workPhotos, 'profile-photo') : Promise.resolve([]),
+                this.uploadApplicationFiles(data.id, onboardingToken, formData.workPhotos, STORAGE_BUCKETS.workPhotos, 'work-photos'),
+                this.uploadApplicationFiles(data.id, onboardingToken, formData.certifications, STORAGE_BUCKETS.certifications, 'certifications')
             ]);
 
             const finalWorkPhotos = [...profilePhotoPaths, ...workPhotoPaths];
             const profilePhotoPath = profilePhotoPaths[0] ?? finalWorkPhotos.find((path) => path.includes('/profile-photo/')) ?? null;
 
-            const { error: filesUpdateError } = await supabase
-                .from('applications')
-                .update({
-                    profile_photo_path: profilePhotoPath,
-                    work_photo_paths: finalWorkPhotos,
-                    certification_paths: certificationPaths,
-                    work_photo_count: finalWorkPhotos.length,
-                    certification_count: certificationPaths.length
-                })
-                .eq('id', data.id);
+            const { error: filesUpdateError } = await supabase.rpc('finalize_painter_application_assets', {
+                p_application_id: data.id,
+                p_onboarding_token: onboardingToken,
+                p_profile_photo_path: profilePhotoPath,
+                p_work_photo_paths: finalWorkPhotos,
+                p_certification_paths: certificationPaths
+            });
 
             if (filesUpdateError) {
                 console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
-                throw new Error(`Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`);
+                throw new Error(
+                    String(filesUpdateError.message || '').toLowerCase().includes('finalize_painter_application_assets')
+                        ? 'O banco ainda nao recebeu o fluxo seguro do onboarding. Rode o SQL add_applications_rls_and_onboarding_storage.sql no Supabase.'
+                        : `Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`
+                );
             }
 
             let processingResult: ApplicationProcessingResult | null = null;
@@ -384,6 +399,7 @@ export const paintersService = {
 
     async uploadApplicationFiles(
         applicationId: string,
+        onboardingToken: string,
         files: File[],
         bucket: (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS],
         folder: string
@@ -407,7 +423,7 @@ export const paintersService = {
                 ? crypto.randomUUID()
                 : `${Date.now()}-${index}`;
 
-            const filePath = `${applicationId}/${folder}/${uniqueId}-${safeBaseName}.${extension}`;
+            const filePath = `${applicationId}/${onboardingToken}/${folder}/${uniqueId}-${safeBaseName}.${extension}`;
 
             const { error } = await supabase.storage
                 .from(bucket)
