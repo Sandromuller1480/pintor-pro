@@ -151,11 +151,17 @@ const normalizeWhatsappPhone = (value: string) => {
   return digits;
 };
 
-const buildQuoteWhatsappMessage = (formData: OrcamentoFormData, ambientesValidos: Ambiente[]) => {
+const buildQuoteWhatsappMessage = (
+  painterName: string,
+  formData: OrcamentoFormData,
+  ambientesValidos: Ambiente[]
+) => {
   const messageLines = [
     `Ola, ${formData.clienteNome.trim()}!`,
-    'Seu orcamento foi gerado pela Pintor Pro.',
+    `Seu orcamento foi preparado por ${painterName || 'seu pintor'} pela plataforma Pintor Pro.`,
+    'Este atendimento conta com a organizacao, garantia e seguranca da Pintor Pro para proteger a negociacao entre as partes.',
     '',
+    'Resumo do orcamento:',
     `Tipo de servico: ${formData.pinturaTipoServico || 'A combinar'}`,
     `Imovel: ${formData.imovelTipo || 'Nao informado'}`,
     `Local: ${formData.imovelCidadeEstado.trim() || 'Nao informado'}`,
@@ -178,7 +184,7 @@ const buildQuoteWhatsappMessage = (formData: OrcamentoFormData, ambientesValidos
     messageLines.push('', `Observacoes: ${formData.observacoes.trim()}`);
   }
 
-  messageLines.push('', 'Se quiser, posso ajustar algum detalhe antes do envio final.');
+  messageLines.push('', 'Se quiser, posso ajustar algum detalhe para deixar a proposta ideal para voce.');
 
   return messageLines.join('\n');
 };
@@ -321,12 +327,17 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({ isOpen, onClose,
         throw new Error('Voce precisa estar autenticado para salvar um orcamento.');
       }
 
+      const painterDisplayName =
+        typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
+          ? user.user_metadata.full_name.trim()
+          : (user.email?.split('@')[0] ?? 'seu pintor');
+
       const ambientesValidos = ambientes.filter((ambiente) => (
         ambiente.nome.trim() ||
         ambiente.area.trim() ||
         ambiente.superficie.trim()
       ));
-      const whatsappMessage = buildQuoteWhatsappMessage(formData, ambientesValidos);
+      const whatsappMessage = buildQuoteWhatsappMessage(painterDisplayName, formData, ambientesValidos);
 
       const { data: savedQuote, error: insertError } = await supabase
         .from('orcamentos')
