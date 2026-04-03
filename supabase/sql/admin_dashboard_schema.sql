@@ -113,7 +113,9 @@ BEGIN
   ) THEN
     EXECUTE 'DROP POLICY IF EXISTS "Admins can read all obras" ON public.obras';
     EXECUTE 'CREATE POLICY "Admins can read all obras" ON public.obras FOR SELECT TO authenticated USING (public.is_admin())';
-    EXECUTE 'GRANT SELECT ON public.obras TO authenticated';
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can update all obras" ON public.obras';
+    EXECUTE 'CREATE POLICY "Admins can update all obras" ON public.obras FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin())';
+    EXECUTE 'GRANT SELECT, UPDATE ON public.obras TO authenticated';
   END IF;
 
   IF EXISTS (

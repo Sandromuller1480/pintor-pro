@@ -56,7 +56,7 @@ Resumo da ordem atual:
 
 1. Schemas base: `clientes_schema.sql`, `portfolio_schema.sql`, `orcamentos_schema.sql`, `agendamentos_visitas_schema.sql`, `chat_interno_schema.sql`, `avaliacoes_schema.sql`
 2. Publico, presenca e configuracoes: use `supabase_schema.sql` ou o conjunto modular equivalente descrito em `supabase/sql/README.md`
-3. Complementos atuais: `add_application_form_columns.sql`, `add_profile_media_columns.sql`, `add_profile_cover_bucket.sql`, `add_portfolio_stage_media.sql`, `add_applications_rls_and_onboarding_storage.sql`, `admin_dashboard_schema.sql`
+3. Complementos atuais: `add_application_form_columns.sql`, `add_profile_media_columns.sql`, `add_profile_cover_bucket.sql`, `add_portfolio_stage_media.sql`, `add_applications_rls_and_onboarding_storage.sql`, `admin_dashboard_schema.sql`, `add_portfolio_admin_moderation.sql`
 
 Importante:
 

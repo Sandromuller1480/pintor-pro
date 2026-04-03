@@ -361,12 +361,16 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         .from('obras')
         .select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, stage_media, created_at')
         .in('pintor_id', ownerIds)
+        .eq('is_publicly_visible', true)
+        .neq('admin_review_status', 'blocked')
         .order('created_at', { ascending: false });
 
       let data = primaryQuery.data;
       let error = primaryQuery.error;
 
-      if (error && String(error.message || '').toLowerCase().includes('stage_media')) {
+      const normalizedPortfolioError = String(error?.message || '').toLowerCase();
+
+      if (error && (normalizedPortfolioError.includes('stage_media') || normalizedPortfolioError.includes('is_publicly_visible') || normalizedPortfolioError.includes('admin_review_status'))) {
         const legacyQuery = await supabase
           .from('obras')
           .select('id, pintor_id, titulo, local, tipo_imovel, tipo_pintura, status, imagem_url, video_url, created_at')

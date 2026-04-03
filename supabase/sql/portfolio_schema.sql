@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS public.obras (
       'massa_corrida_lixamento', jsonb_build_object('images', '[]'::jsonb, 'videos', '[]'::jsonb),
       'pintura_acabamento', jsonb_build_object('images', '[]'::jsonb, 'videos', '[]'::jsonb)
     ),
+    is_publicly_visible BOOLEAN NOT NULL DEFAULT true,
+    featured_in_showcase BOOLEAN NOT NULL DEFAULT false,
+    admin_review_status TEXT NOT NULL DEFAULT 'approved',
+    admin_review_notes TEXT,
+    admin_reviewed_at TIMESTAMP WITH TIME ZONE,
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -31,7 +36,10 @@ ALTER TABLE public.obras ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Qualquer pessoa pode ver as obras" ON public.obras;
 CREATE POLICY "Qualquer pessoa pode ver as obras"
 ON public.obras FOR SELECT
-USING (true);
+USING (
+  COALESCE(is_publicly_visible, true) = true
+  AND COALESCE(admin_review_status, 'approved') <> 'blocked'
+);
 
 -- O pintor logado pode criar, editar e deletar apenas as suas proprias obras
 DROP POLICY IF EXISTS "Pintores podem inserir suas obras" ON public.obras;
