@@ -144,7 +144,7 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
           <div>
             <h3 className="text-xl font-black text-[#000747] sm:text-2xl">Cadastro do Cliente</h3>
             <p className="text-sm font-medium text-slate-500">
-              Crie seu acesso rapido para contratar com mais seguranca na plataforma.
+              Crie seu acesso rapido para conversar e negociar com mais protecao na plataforma.
             </p>
           </div>
           <button
