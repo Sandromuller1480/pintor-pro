@@ -18,11 +18,11 @@ export const Logo: React.FC<LogoProps> = ({ className = "h-12", color = "current
     normalizedColor === 'rgb(255,255,255)';
 
   return (
-    <div className={`flex items-center ${className}`}>
+    <div className={`inline-flex w-fit shrink-0 items-center ${className}`}>
       <img
         src={useWhiteLogo ? logoBrancoImage : logoImage}
         alt="PINTOR PRO"
-        className="h-full w-auto object-contain"
+        className="block h-full w-auto max-w-none shrink-0 object-contain"
       />
     </div>
   );
