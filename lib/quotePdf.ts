@@ -299,18 +299,18 @@ export const generateQuotePdf = async (
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED_TEXT);
-  doc.text(payload.painterLocation || 'Pintor Pro', headerTextX, y + 36);
+  doc.text(
+    `${payload.painterLocation || 'Pintor Pro'}  |  Emissao: ${formatDisplayDate(payload.createdAt)}`,
+    headerTextX,
+    y + 36
+  );
 
   doc.setFillColor(...LIGHT_PANEL);
   doc.roundedRect(pageWidth - 180, y, 136, 46, 12, 12, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(...BRAND_PINK);
-  doc.text('ORCAMENTO PROFISSIONAL', pageWidth - 168, y + 18);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...SLATE_TEXT);
-  doc.text(`Emissao: ${formatDisplayDate(payload.createdAt)}`, pageWidth - 168, y + 33);
+  doc.text('PINTOR PRO', pageWidth - 168, y + 26);
 
   y += 82;
 
