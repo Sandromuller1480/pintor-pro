@@ -921,17 +921,6 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
           </div>
         )}
 
-        {visibleMarkers.length === 0 && !isResolvingLocations && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/25">
-            <div className="max-w-sm rounded-3xl border border-white/10 bg-slate-900/85 px-6 py-5 text-center text-white shadow-2xl">
-              <p className="text-sm font-black uppercase tracking-[0.15em]">Nenhum pintor nesta area</p>
-              <p className="mt-2 text-sm text-slate-300">
-                Arraste o mapa ou ajuste o zoom para encontrar pintores em outras cidades.
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="absolute left-4 top-4 flex flex-col gap-2">
           <button
             type="button"
