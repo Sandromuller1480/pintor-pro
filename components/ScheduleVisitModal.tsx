@@ -10,12 +10,14 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import type { CurrentClientProfile } from '../lib/services/clientSignupService';
 
 type ScheduleVisitModalProps = {
   isOpen: boolean;
   painterId: string | null;
   painterName: string;
   painterLocation?: string;
+  currentClientProfile?: CurrentClientProfile | null;
   onClose: () => void;
 };
 
@@ -38,6 +40,16 @@ const INITIAL_FORM_DATA: FormData = {
   location: '',
   notes: ''
 };
+
+const buildInitialFormData = (currentClientProfile?: CurrentClientProfile | null): FormData => ({
+  clientName: currentClientProfile?.fullName ?? '',
+  clientPhone: currentClientProfile?.phone ?? '',
+  clientEmail: currentClientProfile?.email ?? '',
+  preferredDate: '',
+  preferredTime: '',
+  location: '',
+  notes: ''
+});
 
 const getTodayDate = () => {
   const now = new Date();
@@ -64,6 +76,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   painterId,
   painterName,
   painterLocation,
+  currentClientProfile,
   onClose
 }) => {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
@@ -76,10 +89,10 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       return;
     }
 
-    setFormData(INITIAL_FORM_DATA);
+    setFormData(buildInitialFormData(currentClientProfile));
     setErrorMessage('');
     setSuccessMessage('');
-  }, [isOpen]);
+  }, [currentClientProfile, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {

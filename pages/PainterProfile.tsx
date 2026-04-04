@@ -1164,6 +1164,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         painterId={canScheduleVisit ? publicApplicationId ?? null : null}
         painterName={painter.name}
         painterLocation={painter.location}
+        currentClientProfile={currentClientProfile}
         onClose={() => setIsScheduleVisitModalOpen(false)}
       />
       <StartChatModal
