@@ -292,14 +292,14 @@ export const generateQuotePdf = async (
   const headerTextX = PAGE_MARGIN + (headerImageSize?.width ?? 56) + 16;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(18);
   doc.setTextColor(...BRAND_BLUE);
-  doc.text(payload.painterName, headerTextX, y + 22);
+  doc.text(payload.painterName, headerTextX, y + 20);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
   doc.setTextColor(...MUTED_TEXT);
-  doc.text(payload.painterLocation || 'Pintor Pro', headerTextX, y + 40);
+  doc.text(payload.painterLocation || 'Pintor Pro', headerTextX, y + 36);
 
   doc.setFillColor(...LIGHT_PANEL);
   doc.roundedRect(pageWidth - 180, y, 136, 46, 12, 12, 'F');
