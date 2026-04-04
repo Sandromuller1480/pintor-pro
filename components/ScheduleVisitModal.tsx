@@ -585,7 +585,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       }}
     >
       <div
-        className="w-full max-w-2xl my-4 sm:my-6 max-h-[calc(100vh-2rem)] sm:max-h-[85vh] rounded-[32px] bg-white border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
+        className="relative w-full max-w-2xl my-4 sm:my-6 max-h-[calc(100vh-2rem)] sm:max-h-[85vh] rounded-[32px] bg-white text-slate-900 border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-4 shrink-0">
@@ -606,7 +606,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           </button>
         </div>
 
-        <div className="px-5 sm:px-6 py-5 sm:py-6 overflow-y-auto">
+        <div className="flex-1 min-h-0 px-5 sm:px-6 py-5 sm:py-6 overflow-y-auto">
           {isSuccess ? (
             <div className="py-8 text-center">
               <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
