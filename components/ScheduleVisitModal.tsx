@@ -97,6 +97,7 @@ type ViaCepStreetSuggestion = {
 };
 
 const municipalityCache = new Map<string, Promise<CitySuggestion[]>>();
+let allMunicipalitiesPromise: Promise<CitySuggestion[]> | null = null;
 
 const normalizeDigits = (value: string) => value.replace(/\D/g, '');
 
@@ -136,6 +137,37 @@ const fetchCitiesByUf = async (uf: string) => {
   }
 
   return municipalityCache.get(normalizedUf)!;
+};
+
+const fetchAllCities = async () => {
+  if (!allMunicipalitiesPromise) {
+    allMunicipalitiesPromise = fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome')
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Nao foi possivel carregar a base nacional de cidades.');
+        }
+
+        const data = await response.json() as Array<{
+          nome: string;
+          microrregiao?: {
+            mesorregiao?: {
+              UF?: {
+                sigla?: string;
+              };
+            };
+          };
+        }>;
+
+        return data
+          .map((item) => ({
+            city: item.nome,
+            uf: item.microrregiao?.mesorregiao?.UF?.sigla?.toUpperCase() ?? ''
+          }))
+          .filter((item) => item.city && item.uf);
+      });
+  }
+
+  return allMunicipalitiesPromise;
 };
 
 const fetchCepAddress = async (cep: string) => {
@@ -198,6 +230,19 @@ const buildVisitLocation = (formData: FormData) => {
   ].filter(Boolean);
 
   return [baseLocation, ...extras].filter(Boolean).join(' | ');
+};
+
+const parseCityAndState = (value: string) => {
+  const match = value.trim().match(/^(.*?)\s*-\s*([A-Za-z]{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    city: match[1].trim(),
+    uf: match[2].trim().toUpperCase()
+  };
 };
 
 const getTodayDate = () => {
@@ -307,7 +352,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     const cityTerm = formData.city.trim();
     const stateTerm = formData.state.trim().toUpperCase();
 
-    if (cityTerm.length < 2 || stateTerm.length !== 2) {
+    if (cityTerm.length < 2) {
       setCitySuggestions([]);
       return;
     }
@@ -316,7 +361,11 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     const timer = window.setTimeout(() => {
       setIsLoadingCities(true);
 
-      void fetchCitiesByUf(stateTerm)
+      const citySourcePromise = stateTerm.length === 2
+        ? fetchCitiesByUf(stateTerm)
+        : fetchAllCities();
+
+      void citySourcePromise
         .then((cities) => {
           if (cancelled) {
             return;
@@ -420,6 +469,17 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   };
 
   const handleCityChange = (value: string) => {
+    const parsedValue = parseCityAndState(value);
+
+    if (parsedValue) {
+      setFormData((currentData) => ({
+        ...currentData,
+        city: parsedValue.city,
+        state: parsedValue.uf
+      }));
+      return;
+    }
+
     updateField('city', value);
   };
 
@@ -448,6 +508,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
   const cityDatalistId = useMemo(() => `visit-city-suggestions-${painterId ?? 'public'}`, [painterId]);
   const streetDatalistId = useMemo(() => `visit-street-suggestions-${painterId ?? 'public'}`, [painterId]);
+  const citySuggestionOptions = useMemo(() => {
+    const hasExplicitUf = formData.state.trim().length === 2;
+
+    return citySuggestions.map((item) => ({
+      key: `${item.city}-${item.uf}`,
+      value: hasExplicitUf ? item.city : `${item.city} - ${item.uf}`
+    }));
+  }, [citySuggestions, formData.state]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -684,8 +752,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                         required
                       />
                       <datalist id={cityDatalistId}>
-                        {citySuggestions.map((item) => (
-                          <option key={`${item.city}-${item.uf}`} value={item.city} />
+                        {citySuggestionOptions.map((item) => (
+                          <option key={item.key} value={item.value} />
                         ))}
                       </datalist>
                     </div>
