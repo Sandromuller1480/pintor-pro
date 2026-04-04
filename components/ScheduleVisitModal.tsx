@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CalendarDays,
@@ -27,7 +27,14 @@ type FormData = {
   clientEmail: string;
   preferredDate: string;
   preferredTime: string;
-  location: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  reference: string;
   notes: string;
 };
 
@@ -37,7 +44,14 @@ const INITIAL_FORM_DATA: FormData = {
   clientEmail: '',
   preferredDate: '',
   preferredTime: '',
-  location: '',
+  cep: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+  reference: '',
   notes: ''
 };
 
@@ -47,9 +61,144 @@ const buildInitialFormData = (currentClientProfile?: CurrentClientProfile | null
   clientEmail: currentClientProfile?.email ?? '',
   preferredDate: '',
   preferredTime: '',
-  location: '',
+  cep: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+  reference: '',
   notes: ''
 });
+
+type CitySuggestion = {
+  city: string;
+  uf: string;
+};
+
+type ViaCepAddress = {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+};
+
+type ViaCepStreetSuggestion = {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+};
+
+const municipalityCache = new Map<string, Promise<CitySuggestion[]>>();
+
+const normalizeDigits = (value: string) => value.replace(/\D/g, '');
+
+const formatCep = (value: string) => {
+  const digits = normalizeDigits(value).slice(0, 8);
+
+  if (digits.length <= 5) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
+const fetchCitiesByUf = async (uf: string) => {
+  const normalizedUf = uf.trim().toUpperCase();
+
+  if (!normalizedUf || normalizedUf.length !== 2) {
+    return [];
+  }
+
+  if (!municipalityCache.has(normalizedUf)) {
+    municipalityCache.set(
+      normalizedUf,
+      fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${normalizedUf}/municipios?orderBy=nome`)
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Nao foi possivel carregar as cidades.');
+          }
+
+          const data = await response.json() as Array<{ nome: string }>;
+          return data.map((item) => ({
+            city: item.nome,
+            uf: normalizedUf
+          }));
+        })
+    );
+  }
+
+  return municipalityCache.get(normalizedUf)!;
+};
+
+const fetchCepAddress = async (cep: string) => {
+  const normalizedCep = normalizeDigits(cep);
+
+  if (normalizedCep.length !== 8) {
+    return null;
+  }
+
+  const response = await fetch(`https://viacep.com.br/ws/${normalizedCep}/json/`);
+
+  if (!response.ok) {
+    throw new Error('Nao foi possivel consultar o CEP informado.');
+  }
+
+  const data = await response.json() as ViaCepAddress;
+
+  if (data.erro) {
+    return null;
+  }
+
+  return data;
+};
+
+const fetchStreetSuggestions = async (uf: string, city: string, street: string) => {
+  const normalizedUf = uf.trim().toUpperCase();
+  const normalizedCity = city.trim();
+  const normalizedStreet = street.trim();
+
+  if (normalizedUf.length !== 2 || normalizedCity.length < 2 || normalizedStreet.length < 3) {
+    return [];
+  }
+
+  const response = await fetch(
+    `https://viacep.com.br/ws/${encodeURIComponent(normalizedUf)}/${encodeURIComponent(normalizedCity)}/${encodeURIComponent(normalizedStreet)}/json/`
+  );
+
+  if (!response.ok) {
+    throw new Error('Nao foi possivel buscar sugestoes de endereco.');
+  }
+
+  const data = await response.json() as ViaCepStreetSuggestion[] | { erro?: boolean };
+
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.slice(0, 8);
+};
+
+const buildVisitLocation = (formData: FormData) => {
+  const streetBlock = [formData.street.trim(), formData.number.trim()].filter(Boolean).join(', ');
+  const baseLocation = [streetBlock, formData.neighborhood.trim(), `${formData.city.trim()} - ${formData.state.trim().toUpperCase()}`]
+    .filter(Boolean)
+    .join(', ');
+  const extras = [
+    formData.cep.trim() ? `CEP ${formData.cep.trim()}` : '',
+    formData.complement.trim() ? `Compl.: ${formData.complement.trim()}` : '',
+    formData.reference.trim() ? `Ref.: ${formData.reference.trim()}` : ''
+  ].filter(Boolean);
+
+  return [baseLocation, ...extras].filter(Boolean).join(' | ');
+};
 
 const getTodayDate = () => {
   const now = new Date();
@@ -83,6 +232,11 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [isLoadingStreets, setIsLoadingStreets] = useState(false);
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
+  const [streetSuggestions, setStreetSuggestions] = useState<ViaCepStreetSuggestion[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -92,7 +246,150 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     setFormData(buildInitialFormData(currentClientProfile));
     setErrorMessage('');
     setSuccessMessage('');
+    setIsLookingUpCep(false);
+    setIsLoadingCities(false);
+    setIsLoadingStreets(false);
+    setCitySuggestions([]);
+    setStreetSuggestions([]);
   }, [currentClientProfile, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const cepDigits = normalizeDigits(formData.cep);
+
+    if (cepDigits.length !== 8) {
+      return;
+    }
+
+    let cancelled = false;
+    setIsLookingUpCep(true);
+
+    void fetchCepAddress(cepDigits)
+      .then((address) => {
+        if (cancelled || !address) {
+          return;
+        }
+
+        setFormData((currentData) => ({
+          ...currentData,
+          cep: formatCep(address.cep || cepDigits),
+          street: address.logradouro || currentData.street,
+          complement: address.complemento || currentData.complement,
+          neighborhood: address.bairro || currentData.neighborhood,
+          city: address.localidade || currentData.city,
+          state: address.uf || currentData.state
+        }));
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Erro ao consultar CEP:', error);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLookingUpCep(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.cep, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const cityTerm = formData.city.trim();
+    const stateTerm = formData.state.trim().toUpperCase();
+
+    if (cityTerm.length < 2 || stateTerm.length !== 2) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsLoadingCities(true);
+
+      void fetchCitiesByUf(stateTerm)
+        .then((cities) => {
+          if (cancelled) {
+            return;
+          }
+
+          const normalizedSearch = cityTerm.toLowerCase();
+          setCitySuggestions(
+            cities
+              .filter((item) => item.city.toLowerCase().includes(normalizedSearch))
+              .slice(0, 8)
+          );
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            console.error('Erro ao buscar cidades:', error);
+            setCitySuggestions([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingCities(false);
+          }
+        });
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [formData.city, formData.state, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const stateTerm = formData.state.trim().toUpperCase();
+    const cityTerm = formData.city.trim();
+    const streetTerm = formData.street.trim();
+
+    if (stateTerm.length !== 2 || cityTerm.length < 2 || streetTerm.length < 3) {
+      setStreetSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsLoadingStreets(true);
+
+      void fetchStreetSuggestions(stateTerm, cityTerm, streetTerm)
+        .then((suggestions) => {
+          if (!cancelled) {
+            setStreetSuggestions(suggestions);
+          }
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            console.error('Erro ao buscar logradouros:', error);
+            setStreetSuggestions([]);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingStreets(false);
+          }
+        });
+    }, 260);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [formData.city, formData.state, formData.street, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -122,6 +419,36 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }));
   };
 
+  const handleCityChange = (value: string) => {
+    updateField('city', value);
+  };
+
+  const handleStreetChange = (value: string) => {
+    updateField('street', value);
+  };
+
+  const applyStreetSuggestion = (selectedStreet: string) => {
+    const matchedSuggestion = streetSuggestions.find((item) => item.logradouro === selectedStreet);
+
+    if (!matchedSuggestion) {
+      updateField('street', selectedStreet);
+      return;
+    }
+
+    setFormData((currentData) => ({
+      ...currentData,
+      cep: formatCep(matchedSuggestion.cep || currentData.cep),
+      street: matchedSuggestion.logradouro || currentData.street,
+      neighborhood: matchedSuggestion.bairro || currentData.neighborhood,
+      city: matchedSuggestion.localidade || currentData.city,
+      state: matchedSuggestion.uf || currentData.state,
+      complement: currentData.complement || matchedSuggestion.complemento || ''
+    }));
+  };
+
+  const cityDatalistId = useMemo(() => `visit-city-suggestions-${painterId ?? 'public'}`, [painterId]);
+  const streetDatalistId = useMemo(() => `visit-street-suggestions-${painterId ?? 'public'}`, [painterId]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -130,8 +457,18 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       return;
     }
 
-    if (!formData.clientName.trim() || !formData.clientPhone.trim() || !formData.clientEmail.trim() || !formData.preferredDate || !formData.preferredTime || !formData.location.trim()) {
-      setErrorMessage('Preencha nome, telefone, e-mail, data, horario e local da visita.');
+    if (
+      !formData.clientName.trim() ||
+      !formData.clientPhone.trim() ||
+      !formData.clientEmail.trim() ||
+      !formData.preferredDate ||
+      !formData.preferredTime ||
+      !formData.street.trim() ||
+      !formData.neighborhood.trim() ||
+      !formData.city.trim() ||
+      !formData.state.trim()
+    ) {
+      setErrorMessage('Preencha nome, telefone, e-mail, data, horario, rua, bairro, cidade e UF da visita.');
       return;
     }
 
@@ -140,6 +477,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     setSuccessMessage('');
 
     try {
+      const composedLocation = buildVisitLocation(formData);
+
       const { error } = await supabase
         .from('painter_visit_requests')
         .insert({
@@ -149,7 +488,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           client_email: formData.clientEmail.trim().toLowerCase(),
           preferred_date: formData.preferredDate,
           preferred_time: formData.preferredTime,
-          location: formData.location.trim(),
+          location: composedLocation,
           notes: formData.notes.trim() || null
         });
 
@@ -293,20 +632,135 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     />
                   </div>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                    Endereco ou local da visita
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(event) => updateField('location', event.target.value)}
-                      className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                      placeholder="Rua, bairro, cidade ou ponto de referencia"
-                      required
-                    />
+                <div className="md:col-span-2 rounded-[26px] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Endereco da visita
+                    </label>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                      {isLookingUpCep ? 'Buscando CEP...' : isLoadingCities ? 'Buscando cidades...' : isLoadingStreets ? 'Buscando logradouros...' : 'Preenchimento inteligente'}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        CEP
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formData.cep}
+                        onChange={(event) => updateField('cep', formatCep(event.target.value))}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        UF
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.state}
+                        onChange={(event) => updateField('state', event.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2))}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 uppercase outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="MT"
+                        maxLength={2}
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Cidade
+                      </label>
+                      <input
+                        type="text"
+                        list={cityDatalistId}
+                        value={formData.city}
+                        onChange={(event) => handleCityChange(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Digite a cidade"
+                        required
+                      />
+                      <datalist id={cityDatalistId}>
+                        {citySuggestions.map((item) => (
+                          <option key={`${item.city}-${item.uf}`} value={item.city} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Rua / Logradouro
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          list={streetDatalistId}
+                          value={formData.street}
+                          onChange={(event) => handleStreetChange(event.target.value)}
+                          onBlur={(event) => applyStreetSuggestion(event.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                          placeholder="Digite a rua e escolha uma sugestao"
+                          required
+                        />
+                        <datalist id={streetDatalistId}>
+                          {streetSuggestions.map((item) => (
+                            <option key={`${item.cep}-${item.logradouro}`} value={item.logradouro} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Numero
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.number}
+                        onChange={(event) => updateField('number', event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Ex: 126 ou S/N"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Bairro
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.neighborhood}
+                        onChange={(event) => updateField('neighborhood', event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Bairro"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Complemento
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.complement}
+                        onChange={(event) => updateField('complement', event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Apto, bloco, fundo..."
+                      />
+                    </div>
+                    <div className="md:col-span-6">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Ponto de referencia
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.reference}
+                        onChange={(event) => updateField('reference', event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
+                        placeholder="Ex: proximo ao mercado, esquina, portao azul..."
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="md:col-span-2">
