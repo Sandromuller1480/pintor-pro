@@ -88,6 +88,31 @@ const blobToDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject
   reader.readAsDataURL(blob);
 });
 
+const getImageDimensions = async (src: string) => new Promise<{ width: number; height: number } | null>((resolve) => {
+  const image = new Image();
+  image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+  image.onerror = () => resolve(null);
+  image.src = src;
+});
+
+const getContainedImageSize = (
+  sourceWidth: number,
+  sourceHeight: number,
+  maxWidth: number,
+  maxHeight: number
+) => {
+  if (!sourceWidth || !sourceHeight) {
+    return { width: maxWidth, height: maxHeight };
+  }
+
+  const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+
+  return {
+    width: Math.max(1, sourceWidth * scale),
+    height: Math.max(1, sourceHeight * scale)
+  };
+};
+
 const fetchImageDataUrl = async (src: string | null | undefined) => {
   if (!src) {
     return null;
@@ -108,22 +133,47 @@ const fetchImageDataUrl = async (src: string | null | undefined) => {
   }
 };
 
-const drawFooter = async (doc: jsPDF, pageWidth: number, pageHeight: number, logoDataUrl: string | null) => {
+const drawFooter = async (
+  doc: jsPDF,
+  pageWidth: number,
+  pageHeight: number,
+  logoDataUrl: string | null,
+  logoDimensions: { width: number; height: number } | null
+) => {
   const footerY = pageHeight - 34;
 
   doc.setDrawColor(...LIGHT_BORDER);
   doc.line(PAGE_MARGIN, footerY - 14, pageWidth - PAGE_MARGIN, footerY - 14);
 
   if (logoDataUrl) {
-    doc.addImage(logoDataUrl, 'PNG', PAGE_MARGIN, footerY - 8, 18, 18, undefined, 'FAST');
+    const footerLogo = getContainedImageSize(
+      logoDimensions?.width ?? 1,
+      logoDimensions?.height ?? 1,
+      54,
+      18
+    );
+
+    doc.addImage(
+      logoDataUrl,
+      'PNG',
+      PAGE_MARGIN,
+      footerY - (footerLogo.height / 2) - 2,
+      footerLogo.width,
+      footerLogo.height,
+      undefined,
+      'FAST'
+    );
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED_TEXT);
+    doc.text('Documento profissional gerado pela plataforma.', PAGE_MARGIN + footerLogo.width + 14, footerY + 4);
+    return;
   }
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...MUTED_TEXT);
-  doc.text('PINTOR PRO', PAGE_MARGIN + 26, footerY + 4);
-
-  doc.setFont('helvetica', 'normal');
   doc.text('Documento profissional gerado pela plataforma.', PAGE_MARGIN + 82, footerY + 4);
 };
 
@@ -161,7 +211,9 @@ export const generateQuotePdf = async (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const brandLogoDataUrl = await fetchImageDataUrl(pintorProLogoUrl);
+  const brandLogoDimensions = brandLogoDataUrl ? await getImageDimensions(brandLogoDataUrl) : null;
   const painterHeaderImage = await fetchImageDataUrl(payload.painterProfilePhotoUrl) ?? brandLogoDataUrl;
+  const painterHeaderImageDimensions = painterHeaderImage ? await getImageDimensions(painterHeaderImage) : null;
 
   let y = PAGE_MARGIN;
 
@@ -170,7 +222,7 @@ export const generateQuotePdf = async (
       return;
     }
 
-    await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl);
+    await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl, brandLogoDimensions);
     doc.addPage();
     y = PAGE_MARGIN;
   };
@@ -215,19 +267,39 @@ export const generateQuotePdf = async (
   doc.setFillColor(...BRAND_PINK);
   doc.rect(pageWidth * 0.42, 0, pageWidth * 0.58, 16, 'F');
 
+  const headerImageSize = painterHeaderImage
+    ? getContainedImageSize(
+        painterHeaderImageDimensions?.width ?? 1,
+        painterHeaderImageDimensions?.height ?? 1,
+        96,
+        56
+      )
+    : null;
+
   if (painterHeaderImage) {
-    doc.addImage(painterHeaderImage, 'PNG', PAGE_MARGIN, y, 56, 56, undefined, 'FAST');
+    doc.addImage(
+      painterHeaderImage,
+      'PNG',
+      PAGE_MARGIN,
+      y + ((56 - headerImageSize!.height) / 2),
+      headerImageSize!.width,
+      headerImageSize!.height,
+      undefined,
+      'FAST'
+    );
   }
+
+  const headerTextX = PAGE_MARGIN + (headerImageSize?.width ?? 56) + 16;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(...BRAND_BLUE);
-  doc.text(payload.painterName, PAGE_MARGIN + 72, y + 22);
+  doc.text(payload.painterName, headerTextX, y + 22);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(...MUTED_TEXT);
-  doc.text(payload.painterLocation || 'Pintor Pro', PAGE_MARGIN + 72, y + 40);
+  doc.text(payload.painterLocation || 'Pintor Pro', headerTextX, y + 40);
 
   doc.setFillColor(...LIGHT_PANEL);
   doc.roundedRect(pageWidth - 180, y, 136, 46, 12, 12, 'F');
@@ -315,7 +387,7 @@ export const generateQuotePdf = async (
   doc.setTextColor(...SLATE_TEXT);
   doc.text('Negociacao organizada pela plataforma, com relacao direta entre cliente e pintor.', PAGE_MARGIN + 16, y + 36);
 
-  await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl);
+  await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl, brandLogoDimensions);
 
   const fileName = buildQuotePdfFileName(payload.painterName, payload.createdAt);
   const pdfBlob = doc.output('blob');
