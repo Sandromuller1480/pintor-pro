@@ -457,10 +457,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     };
   }, [isOpen, isSubmitting, onClose]);
 
-  if (!isOpen) {
-    return null;
-  }
-
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((currentData) => ({
       ...currentData,
@@ -516,6 +512,10 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       value: hasExplicitUf ? item.city : `${item.city} - ${item.uf}`
     }));
   }, [citySuggestions, formData.state]);
+
+  if (!isOpen) {
+    return null;
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
