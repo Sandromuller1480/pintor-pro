@@ -289,28 +289,24 @@ export const generateQuotePdf = async (
     );
   }
 
-  const headerTextX = PAGE_MARGIN + (headerImageSize?.width ?? 56) + 16;
+  const headerTextX = PAGE_MARGIN + (headerImageSize?.width ?? 56) + 20;
+  const headerContentWidth = pageWidth - headerTextX - PAGE_MARGIN;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...BRAND_BLUE);
-  doc.text(payload.painterName, headerTextX, y + 20);
+  const painterNameLines = doc.splitTextToSize(payload.painterName, headerContentWidth);
+  doc.text(painterNameLines, headerTextX, y + 20);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED_TEXT);
+  const metaLine = `${payload.painterLocation || 'Pintor Pro'}  |  Emissao: ${formatDisplayDate(payload.createdAt)}`;
   doc.text(
-    `${payload.painterLocation || 'Pintor Pro'}  |  Emissao: ${formatDisplayDate(payload.createdAt)}`,
+    doc.splitTextToSize(metaLine, headerContentWidth),
     headerTextX,
-    y + 36
+    y + 38
   );
-
-  doc.setFillColor(...LIGHT_PANEL);
-  doc.roundedRect(pageWidth - 180, y, 136, 46, 12, 12, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...BRAND_PINK);
-  doc.text('PINTOR PRO', pageWidth - 168, y + 26);
 
   y += 82;
 
