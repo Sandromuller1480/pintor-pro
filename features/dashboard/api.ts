@@ -29,6 +29,41 @@ import {
   SavedVisitRequest
 } from './types';
 
+const QUOTE_SELECT_FIELDS = [
+  'id',
+  'cliente_nome',
+  'cliente_cpf_cnpj',
+  'cliente_telefone',
+  'cliente_email',
+  'cliente_tipo',
+  'imovel_endereco',
+  'imovel_cidade_estado',
+  'imovel_tipo',
+  'imovel_situacao',
+  'imovel_status',
+  'ambientes',
+  'pintura_tipo_servico',
+  'pintura_acabamento',
+  'pintura_tinta',
+  'prep_situacao_parede',
+  'prep_servicos_necessarios',
+  'comp_altura_trabalho',
+  'comp_necessidade',
+  'comp_acesso',
+  'servicos_extras',
+  'cores_ja_definidas',
+  'cores_quantidade',
+  'cores_consultoria',
+  'prazo_data_inicio',
+  'prazo_estimado',
+  'prazo_urgencia',
+  'fornecimento_materiais',
+  'imagens_paths',
+  'observacoes',
+  'status',
+  'created_at'
+].join(', ');
+
 const createEmptyShareChannels = () => ({
   native: 0,
   copyLink: 0,
@@ -123,9 +158,7 @@ export const fetchPortfolioItems = async (userId: string) => {
 export const fetchQuoteItems = async (userId: string) => {
   const { data, error } = await supabase
     .from('orcamentos')
-    .select(
-      'id, cliente_nome, cliente_telefone, cliente_email, cliente_tipo, imovel_cidade_estado, imovel_tipo, pintura_tipo_servico, prazo_urgencia, status, created_at'
-    )
+    .select(QUOTE_SELECT_FIELDS)
     .eq('pintor_id', userId)
     .order('created_at', { ascending: false });
 
@@ -133,7 +166,32 @@ export const fetchQuoteItems = async (userId: string) => {
     throw error;
   }
 
-  return (data ?? []) as SavedOrcamento[];
+  return (data ?? []) as unknown as SavedOrcamento[];
+};
+
+export const deleteQuoteItem = async (quote: SavedOrcamento): Promise<void> => {
+  const attachmentPaths = Array.isArray(quote.imagens_paths)
+    ? quote.imagens_paths.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+
+  if (attachmentPaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from('orcamentos-media')
+      .remove(attachmentPaths);
+
+    if (storageError) {
+      console.error('Erro ao remover anexos do orcamento:', storageError);
+    }
+  }
+
+  const { error } = await supabase
+    .from('orcamentos')
+    .delete()
+    .eq('id', quote.id);
+
+  if (error) {
+    throw error;
+  }
 };
 
 export const fetchVisitItems = async (applicationId: string) => {

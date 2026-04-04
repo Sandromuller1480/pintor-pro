@@ -4,9 +4,11 @@ import { MessageSquare } from 'lucide-react';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
+import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
 import {
   buildVisitErrorMessage,
+  deleteQuoteItem,
   deleteVisitRequest,
   fetchChatMessages,
   fetchChatThreads,
@@ -116,6 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
   const [quoteItems, setQuoteItems] = useState<SavedOrcamento[]>([]);
+  const [editingQuote, setEditingQuote] = useState<SavedOrcamento | null>(null);
   const [visitItems, setVisitItems] = useState<SavedVisitRequest[]>([]);
   const [chatThreads, setChatThreads] = useState<SavedChatThread[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
@@ -852,6 +855,77 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setActiveTab('orcamentos');
   };
 
+  const handleQuoteViewPdf = async (quote: SavedOrcamento) => {
+    const painterDisplayName = currentProfile?.fullName || userName;
+    const painterDisplayLocation = [currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ');
+
+    try {
+      await generateQuotePdf(
+        {
+          quoteId: quote.id,
+          createdAt: quote.created_at,
+          painterName: painterDisplayName,
+          painterLocation: painterDisplayLocation || undefined,
+          painterProfilePhotoUrl: currentProfile?.profilePhotoUrl ?? null,
+          clientName: quote.cliente_nome,
+          clientCpfCnpj: quote.cliente_cpf_cnpj || undefined,
+          clientPhone: quote.cliente_telefone,
+          clientEmail: quote.cliente_email || undefined,
+          clientType: quote.cliente_tipo || undefined,
+          propertyAddress: quote.imovel_endereco || undefined,
+          propertyCityState: quote.imovel_cidade_estado || undefined,
+          propertyType: quote.imovel_tipo || undefined,
+          propertySituation: quote.imovel_situacao || undefined,
+          propertyStatus: quote.imovel_status || undefined,
+          serviceType: quote.pintura_tipo_servico || undefined,
+          finishType: quote.pintura_acabamento || undefined,
+          paintType: quote.pintura_tinta || undefined,
+          wallState: quote.prep_situacao_parede || undefined,
+          prepServices: Array.isArray(quote.prep_servicos_necessarios) ? quote.prep_servicos_necessarios : [],
+          workHeight: quote.comp_altura_trabalho || undefined,
+          complexityNeeds: Array.isArray(quote.comp_necessidade) ? quote.comp_necessidade : [],
+          accessLevel: quote.comp_acesso || undefined,
+          extraServices: Array.isArray(quote.servicos_extras) ? quote.servicos_extras : [],
+          colorsDefined: quote.cores_ja_definidas || undefined,
+          colorsQuantity: quote.cores_quantidade || undefined,
+          colorConsulting: quote.cores_consultoria || undefined,
+          startDate: quote.prazo_data_inicio || undefined,
+          estimatedDeadline: quote.prazo_estimado || undefined,
+          urgency: quote.prazo_urgencia || undefined,
+          materialSupply: quote.fornecimento_materiais || undefined,
+          observations: quote.observacoes || undefined,
+          ambientes: Array.isArray(quote.ambientes) ? quote.ambientes : []
+        },
+        { mode: 'open' }
+      );
+    } catch (error) {
+      console.error('Erro ao visualizar PDF do orcamento:', error);
+      setQuotesError('Nao foi possivel abrir o PDF desse orcamento agora.');
+    }
+  };
+
+  const handleQuoteEdit = (quote: SavedOrcamento) => {
+    setEditingQuote(quote);
+    setIsOrcamentoModalOpen(true);
+  };
+
+  const handleQuoteDelete = async (quote: SavedOrcamento) => {
+    const shouldDelete = window.confirm(`Excluir o orcamento "${quote.cliente_nome}"? Esta acao nao pode ser desfeita.`);
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      await deleteQuoteItem(quote);
+      setQuoteItems((currentItems) => currentItems.filter((item) => item.id !== quote.id));
+      setQuotesError('');
+    } catch (error) {
+      console.error('Erro ao excluir orcamento:', error);
+      setQuotesError('Nao foi possivel excluir esse orcamento agora.');
+    }
+  };
+
   const handleVisitUpdated = async (
     visitId: string,
     updates: {
@@ -1140,7 +1214,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           items={quoteItems}
           isLoading={isLoadingQuotes}
           errorMessage={quotesError}
-          onAdd={() => setIsOrcamentoModalOpen(true)}
+          painterName={currentProfile?.fullName || userName}
+          onAdd={() => {
+            setEditingQuote(null);
+            setIsOrcamentoModalOpen(true);
+          }}
+          onEdit={handleQuoteEdit}
+          onViewPdf={(quote) => void handleQuoteViewPdf(quote)}
+          onDelete={(quote) => void handleQuoteDelete(quote)}
         />
       );
       break;
@@ -1241,11 +1322,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
       <OrcamentoModal
         isOpen={isOrcamentoModalOpen}
-        onClose={() => setIsOrcamentoModalOpen(false)}
+        onClose={() => {
+          setIsOrcamentoModalOpen(false);
+          setEditingQuote(null);
+        }}
         onSaved={handleOrcamentoSaved}
         painterName={currentProfile?.fullName || userName}
         painterLocation={[currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ')}
         painterProfilePhotoUrl={currentProfile?.profilePhotoUrl ?? null}
+        initialQuote={editingQuote}
       />
       <ObraModal
         isOpen={isObraModalOpen}

@@ -44,6 +44,8 @@ type QuotePdfPayload = {
   ambientes: QuotePdfAmbiente[];
 };
 
+type QuotePdfMode = 'download' | 'open';
+
 const PAGE_MARGIN = 44;
 const BRAND_BLUE: [number, number, number] = [0, 7, 71];
 const BRAND_PINK: [number, number, number] = [154, 7, 123];
@@ -74,6 +76,10 @@ const sanitizeFileName = (value: string) => value
   .trim()
   .replace(/\s+/g, '-')
   .toLowerCase();
+
+export const buildQuotePdfFileName = (painterName: string, createdAt: string) => (
+  `orcamento-${sanitizeFileName(painterName || 'pintor')}-${formatDisplayDate(createdAt).replace(/\//g, '-')}.pdf`
+);
 
 const blobToDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
@@ -130,7 +136,22 @@ const downloadBlob = (blob: Blob, fileName: string) => {
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
 };
 
-export const generateQuotePdf = async (payload: QuotePdfPayload) => {
+const openBlobInNewTab = (blob: Blob) => {
+  const objectUrl = URL.createObjectURL(blob);
+  const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+
+  if (!openedWindow) {
+    return false;
+  }
+
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
+  return true;
+};
+
+export const generateQuotePdf = async (
+  payload: QuotePdfPayload,
+  options?: { mode?: QuotePdfMode }
+) => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
@@ -296,7 +317,19 @@ export const generateQuotePdf = async (payload: QuotePdfPayload) => {
 
   await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl);
 
-  const fileName = `orcamento-${sanitizeFileName(payload.painterName || 'pintor')}-${formatDisplayDate(payload.createdAt).replace(/\//g, '-')}.pdf`;
+  const fileName = buildQuotePdfFileName(payload.painterName, payload.createdAt);
   const pdfBlob = doc.output('blob');
+  const mode = options?.mode ?? 'download';
+
+  if (mode === 'open') {
+    const opened = openBlobInNewTab(pdfBlob);
+
+    if (!opened) {
+      downloadBlob(pdfBlob, fileName);
+    }
+
+    return;
+  }
+
   downloadBlob(pdfBlob, fileName);
 };

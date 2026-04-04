@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Plus, Trash2, Camera, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateQuotePdf } from '../lib/quotePdf';
@@ -10,6 +10,7 @@ interface OrcamentoModalProps {
   painterName?: string;
   painterLocation?: string;
   painterProfilePhotoUrl?: string | null;
+  initialQuote?: SavedOrcamento | null;
 }
 
 type Ambiente = {
@@ -52,18 +53,73 @@ type OrcamentoFormData = {
 export type SavedOrcamento = {
   id: string;
   cliente_nome: string;
+  cliente_cpf_cnpj?: string | null;
   cliente_telefone: string;
   cliente_email: string | null;
   cliente_tipo: string | null;
+  imovel_endereco?: string | null;
   imovel_cidade_estado: string | null;
   imovel_tipo: string | null;
+  imovel_situacao?: string | null;
+  imovel_status?: string | null;
+  ambientes?: Ambiente[] | null;
   pintura_tipo_servico: string | null;
+  pintura_acabamento?: string | null;
+  pintura_tinta?: string | null;
+  prep_situacao_parede?: string | null;
+  prep_servicos_necessarios?: string[] | null;
+  comp_altura_trabalho?: string | null;
+  comp_necessidade?: string[] | null;
+  comp_acesso?: string | null;
+  servicos_extras?: string[] | null;
+  cores_ja_definidas?: string | null;
+  cores_quantidade?: string | null;
+  cores_consultoria?: string | null;
+  prazo_data_inicio?: string | null;
+  prazo_estimado?: string | null;
   prazo_urgencia: string | null;
+  fornecimento_materiais?: string | null;
+  imagens_paths?: string[] | null;
+  observacoes?: string | null;
   status: string;
   created_at: string;
 };
 
 const QUOTE_MEDIA_BUCKET = 'orcamentos-media';
+const QUOTE_SELECT_FIELDS = [
+  'id',
+  'cliente_nome',
+  'cliente_cpf_cnpj',
+  'cliente_telefone',
+  'cliente_email',
+  'cliente_tipo',
+  'imovel_endereco',
+  'imovel_cidade_estado',
+  'imovel_tipo',
+  'imovel_situacao',
+  'imovel_status',
+  'ambientes',
+  'pintura_tipo_servico',
+  'pintura_acabamento',
+  'pintura_tinta',
+  'prep_situacao_parede',
+  'prep_servicos_necessarios',
+  'comp_altura_trabalho',
+  'comp_necessidade',
+  'comp_acesso',
+  'servicos_extras',
+  'cores_ja_definidas',
+  'cores_quantidade',
+  'cores_consultoria',
+  'prazo_data_inicio',
+  'prazo_estimado',
+  'prazo_urgencia',
+  'fornecimento_materiais',
+  'imagens_paths',
+  'observacoes',
+  'status',
+  'created_at'
+].join(', ');
 
 const INITIAL_FORM_DATA: OrcamentoFormData = {
   clienteNome: '',
@@ -203,13 +259,74 @@ const buildQuoteWhatsappUrl = (phone: string, message: string) => {
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 };
 
+const normalizeStoredStringArray = (value: unknown) => (
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : []
+);
+
+const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
+  if (!Array.isArray(value)) {
+    return [INITIAL_AMBIENTE()];
+  }
+
+  const normalizedItems = value
+    .filter((item) => item && typeof item === 'object')
+    .map((item, index) => {
+      const ambiente = item as Record<string, unknown>;
+      return {
+        id: typeof ambiente.id === 'string' && ambiente.id.trim()
+          ? ambiente.id
+          : `quote-ambiente-${index}-${Date.now()}`,
+        nome: typeof ambiente.nome === 'string' ? ambiente.nome : '',
+        area: typeof ambiente.area === 'string' ? ambiente.area : '',
+        peDireito: typeof ambiente.peDireito === 'string' && ambiente.peDireito.trim()
+          ? ambiente.peDireito
+          : 'Padrao',
+        superficie: typeof ambiente.superficie === 'string' ? ambiente.superficie : ''
+      };
+    });
+
+  return normalizedItems.length > 0 ? normalizedItems : [INITIAL_AMBIENTE()];
+};
+
+const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
+  clienteNome: quote.cliente_nome || '',
+  clienteCpfCnpj: quote.cliente_cpf_cnpj || '',
+  clienteTelefone: quote.cliente_telefone || '',
+  clienteEmail: quote.cliente_email || '',
+  clienteTipo: quote.cliente_tipo || '',
+  imovelEndereco: quote.imovel_endereco || '',
+  imovelCidadeEstado: quote.imovel_cidade_estado || '',
+  imovelTipo: quote.imovel_tipo || 'Casa',
+  imovelSituacao: quote.imovel_situacao || '',
+  imovelStatus: quote.imovel_status || '',
+  pinturaTipoServico: quote.pintura_tipo_servico || '',
+  pinturaAcabamento: quote.pintura_acabamento || '',
+  pinturaTinta: quote.pintura_tinta || '',
+  prepSituacaoParede: quote.prep_situacao_parede || '',
+  compAlturaTrabalho: quote.comp_altura_trabalho || '',
+  compAcesso: quote.comp_acesso || '',
+  coresJaDefinidas: quote.cores_ja_definidas || '',
+  coresQuantidade: quote.cores_quantidade || '1',
+  coresConsultoria: quote.cores_consultoria || '',
+  prazoDataInicio: quote.prazo_data_inicio || '',
+  prazoEstimado: quote.prazo_estimado || '',
+  prazoUrgencia: quote.prazo_urgencia || '',
+  fornecimentoMateriais: quote.fornecimento_materiais || '',
+  observacoes: quote.observacoes || '',
+  confirmacaoInformacoes: true,
+  autorizacaoContato: true
+});
+
 export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
   isOpen,
   onClose,
   onSaved,
   painterName,
   painterLocation,
-  painterProfilePhotoUrl
+  painterProfilePhotoUrl,
+  initialQuote
 }) => {
   const [formData, setFormData] = useState<OrcamentoFormData>(INITIAL_FORM_DATA);
   const [ambientes, setAmbientes] = useState<Ambiente[]>([INITIAL_AMBIENTE()]);
@@ -219,6 +336,34 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const isEditing = Boolean(initialQuote?.id);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (!initialQuote) {
+      setFormData(INITIAL_FORM_DATA);
+      setAmbientes([INITIAL_AMBIENTE()]);
+      setPrepServicos([]);
+      setCompNecessidade([]);
+      setServicosExtras([]);
+      setAttachments([]);
+      setErrorMessage('');
+      setIsSubmitting(false);
+      return;
+    }
+
+    setFormData(mapQuoteToFormData(initialQuote));
+    setAmbientes(normalizeStoredAmbientes(initialQuote.ambientes));
+    setPrepServicos(normalizeStoredStringArray(initialQuote.prep_servicos_necessarios));
+    setCompNecessidade(normalizeStoredStringArray(initialQuote.comp_necessidade));
+    setServicosExtras(normalizeStoredStringArray(initialQuote.servicos_extras));
+    setAttachments([]);
+    setErrorMessage('');
+    setIsSubmitting(false);
+  }, [initialQuote, isOpen]);
 
   if (!isOpen) return null;
 
@@ -317,7 +462,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       return;
     }
 
-    const normalizedClientWhatsapp = normalizeWhatsappPhone(formData.clienteTelefone);
+    const normalizedClientWhatsapp = !isEditing ? normalizeWhatsappPhone(formData.clienteTelefone) : '';
     const whatsappDraftWindow = normalizedClientWhatsapp && typeof window !== 'undefined'
       ? window.open('', '_blank')
       : null;
@@ -353,113 +498,135 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       ));
       const whatsappMessage = buildQuoteWhatsappMessage(painterDisplayName, formData, ambientesValidos);
 
-      const { data: savedQuote, error: insertError } = await supabase
-        .from('orcamentos')
-        .insert({
-          pintor_id: user.id,
-          cliente_nome: formData.clienteNome.trim(),
-          cliente_cpf_cnpj: formData.clienteCpfCnpj.trim() || null,
-          cliente_telefone: formData.clienteTelefone.trim(),
-          cliente_email: formData.clienteEmail.trim().toLowerCase() || null,
-          cliente_tipo: formData.clienteTipo || null,
-          imovel_endereco: formData.imovelEndereco.trim() || null,
-          imovel_cidade_estado: formData.imovelCidadeEstado.trim() || null,
-          imovel_tipo: formData.imovelTipo || null,
-          imovel_situacao: formData.imovelSituacao || null,
-          imovel_status: formData.imovelStatus || null,
-          ambientes: ambientesValidos,
-          pintura_tipo_servico: formData.pinturaTipoServico || null,
-          pintura_acabamento: formData.pinturaAcabamento || null,
-          pintura_tinta: formData.pinturaTinta || null,
-          prep_situacao_parede: formData.prepSituacaoParede || null,
-          prep_servicos_necessarios: prepServicos,
-          comp_altura_trabalho: formData.compAlturaTrabalho || null,
-          comp_necessidade: compNecessidade,
-          comp_acesso: formData.compAcesso || null,
-          servicos_extras: servicosExtras,
-          cores_ja_definidas: formData.coresJaDefinidas || null,
-          cores_quantidade: formData.coresQuantidade || null,
-          cores_consultoria: formData.coresConsultoria || null,
-          prazo_data_inicio: formData.prazoDataInicio || null,
-          prazo_estimado: formData.prazoEstimado.trim() || null,
-          prazo_urgencia: formData.prazoUrgencia || null,
-          fornecimento_materiais: formData.fornecimentoMateriais || null,
-          observacoes: formData.observacoes.trim() || null,
-          status: 'novo'
-        })
-        .select('id, cliente_nome, cliente_telefone, cliente_email, cliente_tipo, imovel_cidade_estado, imovel_tipo, pintura_tipo_servico, prazo_urgencia, status, created_at')
+      const quotePayload = {
+        pintor_id: user.id,
+        cliente_nome: formData.clienteNome.trim(),
+        cliente_cpf_cnpj: formData.clienteCpfCnpj.trim() || null,
+        cliente_telefone: formData.clienteTelefone.trim(),
+        cliente_email: formData.clienteEmail.trim().toLowerCase() || null,
+        cliente_tipo: formData.clienteTipo || null,
+        imovel_endereco: formData.imovelEndereco.trim() || null,
+        imovel_cidade_estado: formData.imovelCidadeEstado.trim() || null,
+        imovel_tipo: formData.imovelTipo || null,
+        imovel_situacao: formData.imovelSituacao || null,
+        imovel_status: formData.imovelStatus || null,
+        ambientes: ambientesValidos,
+        pintura_tipo_servico: formData.pinturaTipoServico || null,
+        pintura_acabamento: formData.pinturaAcabamento || null,
+        pintura_tinta: formData.pinturaTinta || null,
+        prep_situacao_parede: formData.prepSituacaoParede || null,
+        prep_servicos_necessarios: prepServicos,
+        comp_altura_trabalho: formData.compAlturaTrabalho || null,
+        comp_necessidade: compNecessidade,
+        comp_acesso: formData.compAcesso || null,
+        servicos_extras: servicosExtras,
+        cores_ja_definidas: formData.coresJaDefinidas || null,
+        cores_quantidade: formData.coresQuantidade || null,
+        cores_consultoria: formData.coresConsultoria || null,
+        prazo_data_inicio: formData.prazoDataInicio || null,
+        prazo_estimado: formData.prazoEstimado.trim() || null,
+        prazo_urgencia: formData.prazoUrgencia || null,
+        fornecimento_materiais: formData.fornecimentoMateriais || null,
+        observacoes: formData.observacoes.trim() || null
+      };
+
+      const mutation = isEditing
+        ? supabase
+            .from('orcamentos')
+            .update(quotePayload)
+            .eq('id', initialQuote!.id)
+            .eq('pintor_id', user.id)
+        : supabase
+            .from('orcamentos')
+            .insert({
+              ...quotePayload,
+              status: 'novo'
+            });
+
+      const { data: savedQuoteData, error: saveError } = await mutation
+        .select(QUOTE_SELECT_FIELDS)
         .single();
 
-      if (insertError) {
-        throw insertError;
+      if (saveError) {
+        throw saveError;
       }
 
+      const savedQuote = savedQuoteData as unknown as SavedOrcamento;
+
+      let nextImagePaths = normalizeStoredStringArray(savedQuote.imagens_paths);
       if (attachments.length > 0) {
         try {
           const uploadedPaths = await uploadAttachments(user.id, savedQuote.id, attachments);
+          nextImagePaths = isEditing
+            ? [...nextImagePaths, ...uploadedPaths]
+            : uploadedPaths;
           const { error: updateError } = await supabase
             .from('orcamentos')
-            .update({ imagens_paths: uploadedPaths })
+            .update({ imagens_paths: nextImagePaths })
             .eq('id', savedQuote.id);
 
           if (updateError) {
             console.error('Erro ao salvar anexos do orcamento:', updateError);
+          } else {
+            savedQuote.imagens_paths = nextImagePaths;
           }
         } catch (uploadError) {
           console.error('Erro ao enviar anexos do orcamento:', uploadError);
         }
       }
 
-      try {
-        await generateQuotePdf({
-          quoteId: savedQuote.id,
-          createdAt: savedQuote.created_at,
-          painterName: painterDisplayName,
-          painterLocation: painterLocation?.trim() || undefined,
-          painterProfilePhotoUrl,
-          clientName: formData.clienteNome.trim(),
-          clientCpfCnpj: formData.clienteCpfCnpj.trim() || undefined,
-          clientPhone: formData.clienteTelefone.trim(),
-          clientEmail: formData.clienteEmail.trim().toLowerCase() || undefined,
-          clientType: formData.clienteTipo || undefined,
-          propertyAddress: formData.imovelEndereco.trim() || undefined,
-          propertyCityState: formData.imovelCidadeEstado.trim() || undefined,
-          propertyType: formData.imovelTipo || undefined,
-          propertySituation: formData.imovelSituacao || undefined,
-          propertyStatus: formData.imovelStatus || undefined,
-          serviceType: formData.pinturaTipoServico || undefined,
-          finishType: formData.pinturaAcabamento || undefined,
-          paintType: formData.pinturaTinta || undefined,
-          wallState: formData.prepSituacaoParede || undefined,
-          prepServices: prepServicos,
-          workHeight: formData.compAlturaTrabalho || undefined,
-          complexityNeeds: compNecessidade,
-          accessLevel: formData.compAcesso || undefined,
-          extraServices: servicosExtras,
-          colorsDefined: formData.coresJaDefinidas || undefined,
-          colorsQuantity: formData.coresQuantidade || undefined,
-          colorConsulting: formData.coresConsultoria || undefined,
-          startDate: formData.prazoDataInicio || undefined,
-          estimatedDeadline: formData.prazoEstimado.trim() || undefined,
-          urgency: formData.prazoUrgencia || undefined,
-          materialSupply: formData.fornecimentoMateriais || undefined,
-          observations: formData.observacoes.trim() || undefined,
-          ambientes: ambientesValidos
-        });
-      } catch (pdfError) {
-        console.error('Erro ao gerar PDF do orcamento:', pdfError);
-      }
-
-      const whatsappUrl = buildQuoteWhatsappUrl(formData.clienteTelefone, whatsappMessage);
-
-      if (whatsappUrl) {
-        if (whatsappDraftWindow) {
-          whatsappDraftWindow.location.href = whatsappUrl;
-        } else if (typeof window !== 'undefined') {
-          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      if (!isEditing) {
+        try {
+          await generateQuotePdf({
+            quoteId: savedQuote.id,
+            createdAt: savedQuote.created_at,
+            painterName: painterDisplayName,
+            painterLocation: painterLocation?.trim() || undefined,
+            painterProfilePhotoUrl,
+            clientName: formData.clienteNome.trim(),
+            clientCpfCnpj: formData.clienteCpfCnpj.trim() || undefined,
+            clientPhone: formData.clienteTelefone.trim(),
+            clientEmail: formData.clienteEmail.trim().toLowerCase() || undefined,
+            clientType: formData.clienteTipo || undefined,
+            propertyAddress: formData.imovelEndereco.trim() || undefined,
+            propertyCityState: formData.imovelCidadeEstado.trim() || undefined,
+            propertyType: formData.imovelTipo || undefined,
+            propertySituation: formData.imovelSituacao || undefined,
+            propertyStatus: formData.imovelStatus || undefined,
+            serviceType: formData.pinturaTipoServico || undefined,
+            finishType: formData.pinturaAcabamento || undefined,
+            paintType: formData.pinturaTinta || undefined,
+            wallState: formData.prepSituacaoParede || undefined,
+            prepServices: prepServicos,
+            workHeight: formData.compAlturaTrabalho || undefined,
+            complexityNeeds: compNecessidade,
+            accessLevel: formData.compAcesso || undefined,
+            extraServices: servicosExtras,
+            colorsDefined: formData.coresJaDefinidas || undefined,
+            colorsQuantity: formData.coresQuantidade || undefined,
+            colorConsulting: formData.coresConsultoria || undefined,
+            startDate: formData.prazoDataInicio || undefined,
+            estimatedDeadline: formData.prazoEstimado.trim() || undefined,
+            urgency: formData.prazoUrgencia || undefined,
+            materialSupply: formData.fornecimentoMateriais || undefined,
+            observations: formData.observacoes.trim() || undefined,
+            ambientes: ambientesValidos
+          });
+        } catch (pdfError) {
+          console.error('Erro ao gerar PDF do orcamento:', pdfError);
         }
-      } else if (whatsappDraftWindow) {
-        whatsappDraftWindow.close();
+
+        const whatsappUrl = buildQuoteWhatsappUrl(formData.clienteTelefone, whatsappMessage);
+
+        if (whatsappUrl) {
+          if (whatsappDraftWindow) {
+            whatsappDraftWindow.location.href = whatsappUrl;
+          } else if (typeof window !== 'undefined') {
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+          }
+        } else if (whatsappDraftWindow) {
+          whatsappDraftWindow.close();
+        }
       }
 
       onSaved?.(savedQuote);
@@ -481,8 +648,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
         <div className="bg-gradient-to-r from-[#000747] to-[#9A077B] p-6 text-white flex justify-between items-center z-10 shadow-md">
           <div>
-            <h2 className="text-xl font-black tracking-wide">Formulario Profissional de Orcamento</h2>
-            <p className="text-white/80 text-sm font-medium">Pintura imobiliaria com salvamento real no painel</p>
+            <h2 className="text-xl font-black tracking-wide">
+              {isEditing ? 'Edicao Profissional de Orcamento' : 'Formulario Profissional de Orcamento'}
+            </h2>
+            <p className="text-white/80 text-sm font-medium">
+              {isEditing ? 'Atualize os dados do PDF e da negociacao no painel' : 'Pintura imobiliaria com salvamento real no painel'}
+            </p>
           </div>
           <button onClick={handleClose} disabled={isSubmitting} className="p-2 hover:bg-white/20 rounded-full transition disabled:opacity-50">
             <X size={24} />
@@ -789,7 +960,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
           </button>
           <button onClick={() => void handleSubmit()} disabled={isSubmitting} className="px-8 py-3 rounded-xl font-black bg-[#9A077B] hover:bg-[#7F0665] text-white shadow-lg shadow-[#EFC6E3] transition uppercase tracking-widest flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
             {isSubmitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <CheckCircle2 size={18} className="mr-2" />}
-            {isSubmitting ? 'Salvando...' : 'Gerar Orcamento'}
+            {isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alteracoes' : 'Gerar Orcamento')}
           </button>
         </div>
       </div>

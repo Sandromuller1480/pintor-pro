@@ -91,6 +91,12 @@ TO authenticated
 USING (auth.uid() = pintor_id)
 WITH CHECK (auth.uid() = pintor_id);
 
+DROP POLICY IF EXISTS "Pintor pode deletar seus orcamentos" ON public.orcamentos;
+CREATE POLICY "Pintor pode deletar seus orcamentos"
+ON public.orcamentos FOR DELETE
+TO authenticated
+USING (auth.uid() = pintor_id);
+
 -- ==========================================
 -- BUCKET DE ANEXOS DOS ORCAMENTOS
 -- ==========================================
