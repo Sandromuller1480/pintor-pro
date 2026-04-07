@@ -507,6 +507,9 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
                 <ZoomIn size={18} />
               </button>
             </div>
+            <p className="mt-3 max-w-[320px] text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 sm:hidden">
+              Com dois dedos na tela arraste para +zoom e -zoom, com um dedo na tela mova a imagem para os lados.
+            </p>
           </div>
 
           <div className="space-y-5 rounded-[26px] border border-slate-200 bg-slate-50 p-4 sm:space-y-6 sm:rounded-[30px] sm:p-5">
