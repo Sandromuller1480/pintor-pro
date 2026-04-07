@@ -488,41 +488,34 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               />
               <div className="pointer-events-none absolute inset-5 rounded-full border-[3px] border-white/95 shadow-[0_0_0_1px_rgba(148,163,184,0.18)]" />
             </div>
+            <div className="mt-4 flex w-full max-w-[320px] items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleZoomChange(zoom - 0.1)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:text-[#9A077B]"
+              >
+                <ZoomOut size={18} />
+              </button>
+              <input
+                type="range"
+                min={MIN_ZOOM}
+                max={MAX_ZOOM}
+                step={0.01}
+                value={zoom}
+                onChange={(event) => handleZoomChange(Number(event.target.value))}
+                className="hidden h-2 flex-1 accent-[#9A077B] sm:block"
+              />
+              <button
+                type="button"
+                onClick={() => handleZoomChange(zoom + 0.1)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:text-[#9A077B]"
+              >
+                <ZoomIn size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-5 rounded-[26px] border border-slate-200 bg-slate-50 p-4 sm:space-y-6 sm:rounded-[30px] sm:p-5">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Zoom</p>
-                <p className="text-sm font-black text-[#000747]">{Math.round(zoom * 100)}%</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleZoomChange(zoom - 0.1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:text-[#9A077B]"
-                >
-                  <ZoomOut size={18} />
-                </button>
-                <input
-                  type="range"
-                  min={MIN_ZOOM}
-                  max={MAX_ZOOM}
-                  step={0.01}
-                  value={zoom}
-                  onChange={(event) => handleZoomChange(Number(event.target.value))}
-                  className="hidden h-2 w-full accent-[#9A077B] sm:block"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleZoomChange(zoom + 0.1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:text-[#9A077B]"
-                >
-                  <ZoomIn size={18} />
-                </button>
-              </div>
-            </div>
-
             <button
               type="button"
               onClick={resetTransform}
