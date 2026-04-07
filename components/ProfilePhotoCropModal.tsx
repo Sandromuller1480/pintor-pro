@@ -18,7 +18,7 @@ type CropPoint = {
   y: number;
 };
 
-const CROP_FRAME_SIZE = 320;
+const DEFAULT_CROP_FRAME_SIZE = 320;
 const OUTPUT_SIZE = 900;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
@@ -47,15 +47,15 @@ const buildSafeFileName = (fileName: string) => {
   );
 };
 
-const getContainScale = (dimensions: ImageDimensions) => (
-  Math.min(CROP_FRAME_SIZE / dimensions.width, CROP_FRAME_SIZE / dimensions.height)
+const getContainScale = (dimensions: ImageDimensions, frameSize: number) => (
+  Math.min(frameSize / dimensions.width, frameSize / dimensions.height)
 );
 
-const clampPosition = (x: number, y: number, width: number, height: number) => {
-  const minX = width > CROP_FRAME_SIZE ? CROP_FRAME_SIZE - width : 0;
-  const maxX = width > CROP_FRAME_SIZE ? 0 : CROP_FRAME_SIZE - width;
-  const minY = height > CROP_FRAME_SIZE ? CROP_FRAME_SIZE - height : 0;
-  const maxY = height > CROP_FRAME_SIZE ? 0 : CROP_FRAME_SIZE - height;
+const clampPosition = (x: number, y: number, width: number, height: number, frameSize: number) => {
+  const minX = width > frameSize ? frameSize - width : 0;
+  const maxX = width > frameSize ? 0 : frameSize - width;
+  const minY = height > frameSize ? frameSize - height : 0;
+  const maxY = height > frameSize ? 0 : frameSize - height;
 
   return {
     x: clamp(x, minX, maxX),
@@ -63,14 +63,14 @@ const clampPosition = (x: number, y: number, width: number, height: number) => {
   };
 };
 
-const getCenteredPosition = (dimensions: ImageDimensions, zoom: number) => {
-  const scale = getContainScale(dimensions) * zoom;
+const getCenteredPosition = (dimensions: ImageDimensions, zoom: number, frameSize: number) => {
+  const scale = getContainScale(dimensions, frameSize) * zoom;
   const width = dimensions.width * scale;
   const height = dimensions.height * scale;
 
   return {
-    x: (CROP_FRAME_SIZE - width) / 2,
-    y: (CROP_FRAME_SIZE - height) / 2
+    x: (frameSize - width) / 2,
+    y: (frameSize - height) / 2
   };
 };
 
@@ -89,6 +89,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
 }) => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
+  const [frameSize, setFrameSize] = useState(DEFAULT_CROP_FRAME_SIZE);
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState<CropPoint>({ x: 0, y: 0 });
   const [isSaving, setIsSaving] = useState(false);
@@ -127,9 +128,30 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     };
   }, [file, isOpen]);
 
+  useEffect(() => {
+    const updateFrameSize = () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const nextFrameSize = window.innerWidth < 640
+        ? clamp(window.innerWidth - 96, 232, DEFAULT_CROP_FRAME_SIZE)
+        : DEFAULT_CROP_FRAME_SIZE;
+
+      setFrameSize(nextFrameSize);
+    };
+
+    updateFrameSize();
+    window.addEventListener('resize', updateFrameSize);
+
+    return () => {
+      window.removeEventListener('resize', updateFrameSize);
+    };
+  }, []);
+
   const baseScale = useMemo(() => (
-    imageDimensions ? getContainScale(imageDimensions) : 1
-  ), [imageDimensions]);
+    imageDimensions ? getContainScale(imageDimensions, frameSize) : 1
+  ), [frameSize, imageDimensions]);
 
   const renderedSize = useMemo(() => {
     if (!imageDimensions) {
@@ -150,19 +172,19 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     }
 
     setZoom(1);
-    setPosition(getCenteredPosition(imageDimensions, 1));
+    setPosition(getCenteredPosition(imageDimensions, 1, frameSize));
   };
 
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const target = event.currentTarget;
     const nextDimensions = {
-      width: target.naturalWidth || CROP_FRAME_SIZE,
-      height: target.naturalHeight || CROP_FRAME_SIZE
+      width: target.naturalWidth || DEFAULT_CROP_FRAME_SIZE,
+      height: target.naturalHeight || DEFAULT_CROP_FRAME_SIZE
     };
 
     setImageDimensions(nextDimensions);
     setZoom(1);
-    setPosition(getCenteredPosition(nextDimensions, 1));
+    setPosition(getCenteredPosition(nextDimensions, 1, frameSize));
   };
 
   const handleZoomChange = (nextZoomValue: number) => {
@@ -185,7 +207,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     };
 
     setZoom(boundedZoom);
-    setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
+    setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight, frameSize));
   };
 
   const applyZoomFromState = ({
@@ -216,7 +238,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     };
 
     setZoom(boundedZoom);
-    setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
+    setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight, frameSize));
   };
 
   const getLocalPointerPoint = (
@@ -303,7 +325,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
       };
 
       setZoom(boundedZoom);
-      setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
+      setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight, frameSize));
       return;
     }
 
@@ -317,7 +339,8 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
       dragRef.current.originX + deltaX,
       dragRef.current.originY + deltaY,
       renderedSize.width,
-      renderedSize.height
+      renderedSize.height,
+      frameSize
     );
 
     setPosition(nextPosition);
@@ -364,7 +387,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
         throw new Error('Nao foi possivel preparar o editor de imagem.');
       }
 
-      const ratio = OUTPUT_SIZE / CROP_FRAME_SIZE;
+      const ratio = OUTPUT_SIZE / frameSize;
       canvas.width = OUTPUT_SIZE;
       canvas.height = OUTPUT_SIZE;
 
@@ -409,13 +432,13 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-4xl overflow-hidden rounded-[34px] border border-white/10 bg-white shadow-[0_40px_100px_rgba(15,23,42,0.35)]">
-        <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-[#000747] to-[#9A077B] px-6 py-5 text-white">
+    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-slate-950/75 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="my-2 flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_40px_100px_rgba(15,23,42,0.35)] sm:my-0 sm:max-h-[calc(100dvh-2rem)] sm:rounded-[34px]">
+        <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-[#000747] to-[#9A077B] px-4 py-4 text-white sm:px-6 sm:py-5">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/70">Foto de perfil</p>
-            <h3 className="mt-2 text-2xl font-black">Ajuste o enquadramento</h3>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-white/80">
+            <h3 className="mt-2 text-xl font-black sm:text-2xl">Ajuste o enquadramento</h3>
+            <p className="mt-2 hidden max-w-2xl text-sm font-medium text-white/80 sm:block">
               Arraste a imagem e ajuste o zoom para enquadrar rosto, marca ou icone com mais precisao.
             </p>
           </div>
@@ -430,15 +453,15 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
           </button>
         </div>
 
-        <div className="grid gap-8 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid flex-1 gap-5 overflow-y-auto px-4 py-4 sm:gap-8 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex flex-col items-center">
             <div
-              className="relative h-[320px] w-[320px] overflow-hidden rounded-[30px] border border-slate-200 bg-slate-100 shadow-inner"
+              className="relative overflow-hidden rounded-[26px] border border-slate-200 bg-slate-100 shadow-inner sm:rounded-[30px]"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerEnd}
               onPointerCancel={handlePointerEnd}
-              style={{ touchAction: 'none' }}
+              style={{ touchAction: 'none', width: `${frameSize}px`, height: `${frameSize}px` }}
             >
               {previewUrl && (
                 <img
@@ -465,12 +488,9 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               />
               <div className="pointer-events-none absolute inset-5 rounded-full border-[3px] border-white/95 shadow-[0_0_0_1px_rgba(148,163,184,0.18)]" />
             </div>
-            <p className="mt-4 text-center text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-              Arraste para enquadrar. No celular, use dois dedos para dar zoom.
-            </p>
           </div>
 
-          <div className="space-y-6 rounded-[30px] border border-slate-200 bg-slate-50 p-5">
+          <div className="space-y-5 rounded-[26px] border border-slate-200 bg-slate-50 p-4 sm:space-y-6 sm:rounded-[30px] sm:p-5">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Arquivo selecionado</p>
               <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-4 shadow-sm">
@@ -527,7 +547,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               Resetar enquadramento
             </button>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:pt-2">
               <button
                 type="button"
                 onClick={onClose}
