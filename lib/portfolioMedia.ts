@@ -26,11 +26,57 @@ const sanitizeFileSlug = (value: string) => (
     .replace(/^-+|-+$/g, '') || 'midia'
 );
 
+const extractPortfolioStoragePath = (value: string | null | undefined) => {
+  if (!value) {
+    return null;
+  }
+
+  if (!isAbsoluteUrl(value)) {
+    return value;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+    const pathCandidates = [
+      `/storage/v1/object/public/${PORTFOLIO_MEDIA_BUCKET}/`,
+      `/storage/v1/object/sign/${PORTFOLIO_MEDIA_BUCKET}/`,
+      `/storage/v1/object/authenticated/${PORTFOLIO_MEDIA_BUCKET}/`,
+      `/storage/v1/render/image/public/${PORTFOLIO_MEDIA_BUCKET}/`,
+      `/storage/v1/render/image/sign/${PORTFOLIO_MEDIA_BUCKET}/`
+    ];
+
+    for (const prefix of pathCandidates) {
+      if (!parsedUrl.pathname.startsWith(prefix)) {
+        continue;
+      }
+
+      const rawPath = parsedUrl.pathname.slice(prefix.length);
+      return decodeURIComponent(rawPath).replace(/^\/+/, '');
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 const buildSignedUrlMap = async (paths: string[]) => {
-  const uniquePaths = Array.from(new Set(paths.filter((path) => path && !isAbsoluteUrl(path))));
+  const normalizedEntries = Array.from(new Set(paths.filter(Boolean))).map((originalValue) => ({
+    originalValue,
+    storagePath: extractPortfolioStoragePath(originalValue)
+  }));
+  const uniquePaths = Array.from(
+    new Set(
+      normalizedEntries
+        .map((entry) => entry.storagePath)
+        .filter((path): path is string => Boolean(path))
+    )
+  );
 
   if (uniquePaths.length === 0) {
-    return new Map<string, string | null>();
+    return new Map(
+      normalizedEntries.map((entry) => [entry.originalValue, isAbsoluteUrl(entry.originalValue) ? entry.originalValue : null])
+    );
   }
 
   const { data, error } = await supabase.storage
@@ -41,10 +87,20 @@ const buildSignedUrlMap = async (paths: string[]) => {
     throw error;
   }
 
-  return new Map(
+  const signedUrlsByPath = new Map(
     uniquePaths.map((path) => {
       const match = data?.find((item) => item.path === path);
       return [path, match?.signedUrl ?? null];
+    })
+  );
+
+  return new Map(
+    normalizedEntries.map((entry) => {
+      if (!entry.storagePath) {
+        return [entry.originalValue, isAbsoluteUrl(entry.originalValue) ? entry.originalValue : null];
+      }
+
+      return [entry.originalValue, signedUrlsByPath.get(entry.storagePath) ?? null];
     })
   );
 };
