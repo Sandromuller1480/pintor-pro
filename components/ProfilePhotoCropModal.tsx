@@ -480,12 +480,6 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
                   }}
                 />
               )}
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: 'radial-gradient(circle at center, transparent 0%, transparent 42%, rgba(15, 23, 42, 0.5) 43%, rgba(15, 23, 42, 0.5) 100%)'
-                }}
-              />
               <div className="pointer-events-none absolute inset-5 rounded-full border-[3px] border-white/95 shadow-[0_0_0_1px_rgba(148,163,184,0.18)]" />
             </div>
             <div className="mt-4 flex w-full max-w-[320px] items-center justify-center gap-3">
