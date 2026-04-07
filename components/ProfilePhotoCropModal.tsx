@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ImagePlus, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { CheckCircle2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 type ProfilePhotoCropModalProps = {
   isOpen: boolean;
@@ -491,21 +491,6 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
           </div>
 
           <div className="space-y-5 rounded-[26px] border border-slate-200 bg-slate-50 p-4 sm:space-y-6 sm:rounded-[30px] sm:p-5">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Arquivo selecionado</p>
-              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-4 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F7E3F1] text-[#9A077B]">
-                  <ImagePlus size={20} />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-[#000747]">{file.name}</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    JPG, JPEG, PNG, BMP, WEBP e formatos estaticos compativeis
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Zoom</p>
