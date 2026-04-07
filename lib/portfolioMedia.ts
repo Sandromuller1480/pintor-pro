@@ -110,6 +110,10 @@ const resolveStoredMediaValue = (value: string | null | undefined, signedUrlMap:
     return null;
   }
 
+  if (signedUrlMap.has(value)) {
+    return signedUrlMap.get(value) ?? null;
+  }
+
   if (isAbsoluteUrl(value)) {
     return value;
   }
