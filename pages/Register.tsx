@@ -283,24 +283,45 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         <div className="space-y-6 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="col-span-1 border border-slate-200 rounded-2xl p-6 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden group">
+              <input
+                id="profile-photo-upload"
+                type="file"
+                accept={PROFILE_IMAGE_ACCEPT}
+                className="hidden"
+                onChange={handleProfilePhotoChange}
+              />
               {formData.profilePhoto ? (
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg mb-2 relative">
+                <label
+                  htmlFor="profile-photo-upload"
+                  className="mb-2 block cursor-pointer rounded-full transition-transform hover:scale-[1.02]"
+                  aria-label="Selecionar foto de perfil"
+                >
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg relative">
                   <img src={profilePreviewUrl} alt="Perfil" className="w-full h-full object-cover" />
-                </div>
+                  </div>
+                </label>
               ) : (
-                <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-inner mb-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
+                <label
+                  htmlFor="profile-photo-upload"
+                  className="mb-2 flex cursor-pointer rounded-full transition-transform hover:scale-[1.02]"
+                  aria-label="Selecionar foto de perfil"
+                >
+                  <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center border-4 border-white shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </label>
               )}
-              <label className="text-center cursor-pointer mt-2 text-[#9A077B] text-xs font-bold uppercase tracking-widest hover:text-[#7F0665]">
+              <label
+                htmlFor="profile-photo-upload"
+                className="text-center cursor-pointer mt-2 text-[#9A077B] text-xs font-bold uppercase tracking-widest hover:text-[#7F0665]"
+              >
                 Upload Foto
-                <input type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={handleProfilePhotoChange} />
               </label>
               {formData.profilePhoto && (
                 <button
