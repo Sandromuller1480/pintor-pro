@@ -311,9 +311,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                   Editar enquadramento
                 </button>
               )}
-              <p className="mt-3 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                JPG, JPEG, PNG, BMP e WEBP
-              </p>
             </div>
 
             <div className="col-span-2 space-y-4">
