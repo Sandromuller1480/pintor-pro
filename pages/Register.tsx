@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ProfilePhotoCropModal } from '../components/ProfilePhotoCropModal';
 import { SPECIALTY_OPTIONS } from '../lib/painterProfileOptions';
 import {
   paintersService,
@@ -11,6 +12,18 @@ const GENDER_OPTIONS = [
   { value: 'feminino', label: 'Feminino' },
   { value: 'masculino', label: 'Masculino' }
 ] as const;
+
+const SUPPORTED_PROFILE_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/bmp',
+  'image/x-ms-bmp',
+  'image/webp'
+]);
+
+const PROFILE_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.bmp,.webp,image/jpeg,image/jpg,image/png,image/bmp,image/x-ms-bmp,image/webp';
+const PROFILE_IMAGE_EXTENSION_PATTERN = /\.(jpg|jpeg|png|bmp|webp)$/i;
 
 type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' | 'processingWarning'>;
 
@@ -58,6 +71,8 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [submissionFeedback, setSubmissionFeedback] = useState<SubmissionFeedback | null>(null);
   const [profilePreviewUrl, setProfilePreviewUrl] = useState('');
+  const [pendingProfilePhotoFile, setPendingProfilePhotoFile] = useState<File | null>(null);
+  const [isProfileCropModalOpen, setIsProfileCropModalOpen] = useState(false);
   const successTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -160,7 +175,45 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
 
   const handleProfilePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
-    setFormData({ ...formData, profilePhoto: file });
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const hasSupportedMimeType = !file.type || SUPPORTED_PROFILE_IMAGE_TYPES.has(file.type);
+    const hasSupportedExtension = PROFILE_IMAGE_EXTENSION_PATTERN.test(file.name);
+
+    if (!hasSupportedMimeType || !hasSupportedExtension) {
+      alert('Use uma imagem estatica em JPG, JPEG, PNG, BMP ou WEBP para a foto de perfil.');
+      return;
+    }
+
+    setPendingProfilePhotoFile(file);
+    setIsProfileCropModalOpen(true);
+  };
+
+  const handleProfilePhotoCropConfirm = (croppedFile: File) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      profilePhoto: croppedFile
+    }));
+    setPendingProfilePhotoFile(null);
+    setIsProfileCropModalOpen(false);
+  };
+
+  const handleCloseProfileCropModal = () => {
+    setPendingProfilePhotoFile(null);
+    setIsProfileCropModalOpen(false);
+  };
+
+  const handleReframeCurrentPhoto = () => {
+    if (!formData.profilePhoto) {
+      return;
+    }
+
+    setPendingProfilePhotoFile(formData.profilePhoto);
+    setIsProfileCropModalOpen(true);
   };
 
   const handleCepChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,8 +300,20 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
               )}
               <label className="text-center cursor-pointer mt-2 text-[#9A077B] text-xs font-bold uppercase tracking-widest hover:text-[#7F0665]">
                 Upload Foto
-                <input type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoChange} />
+                <input type="file" accept={PROFILE_IMAGE_ACCEPT} className="hidden" onChange={handleProfilePhotoChange} />
               </label>
+              {formData.profilePhoto && (
+                <button
+                  type="button"
+                  onClick={handleReframeCurrentPhoto}
+                  className="mt-3 rounded-full border border-[#EFC6E3] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#9A077B] transition hover:bg-[#FDF3FA]"
+                >
+                  Editar enquadramento
+                </button>
+              )}
+              <p className="mt-3 text-center text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                JPG, JPEG, PNG, BMP e WEBP
+              </p>
             </div>
 
             <div className="col-span-2 space-y-4">
@@ -489,6 +554,12 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
       >
         &larr; Voltar para a Home
       </button>
+      <ProfilePhotoCropModal
+        isOpen={isProfileCropModalOpen}
+        file={pendingProfilePhotoFile}
+        onClose={handleCloseProfileCropModal}
+        onConfirm={handleProfilePhotoCropConfirm}
+      />
     </div>
   );
 };
