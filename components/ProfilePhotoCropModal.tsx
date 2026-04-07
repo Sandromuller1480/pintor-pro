@@ -13,12 +13,26 @@ type ImageDimensions = {
   height: number;
 };
 
+type CropPoint = {
+  x: number;
+  y: number;
+};
+
 const CROP_FRAME_SIZE = 320;
 const OUTPUT_SIZE = 900;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const getPointDistance = (firstPoint: CropPoint, secondPoint: CropPoint) => (
+  Math.hypot(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y)
+);
+
+const getPointCenter = (firstPoint: CropPoint, secondPoint: CropPoint) => ({
+  x: (firstPoint.x + secondPoint.x) / 2,
+  y: (firstPoint.y + secondPoint.y) / 2
+});
 
 const buildSafeFileName = (fileName: string) => {
   const baseName = fileName.replace(/\.[^/.]+$/, '');
@@ -76,7 +90,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
   const [previewUrl, setPreviewUrl] = useState('');
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<CropPoint>({ x: 0, y: 0 });
   const [isSaving, setIsSaving] = useState(false);
   const dragRef = useRef<{
     pointerId: number;
@@ -84,6 +98,13 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     startY: number;
     originX: number;
     originY: number;
+  } | null>(null);
+  const activePointersRef = useRef<Map<number, CropPoint>>(new Map<number, CropPoint>());
+  const pinchRef = useRef<{
+    initialDistance: number;
+    initialZoom: number;
+    initialPosition: CropPoint;
+    initialCenter: CropPoint;
   } | null>(null);
 
   useEffect(() => {
@@ -99,7 +120,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     setPreviewUrl(objectUrl);
     setImageDimensions(null);
     setZoom(1);
-    setPosition({ x: 0, y: 0 });
+      setPosition({ x: 0, y: 0 });
 
     return () => {
       URL.revokeObjectURL(objectUrl);
@@ -167,29 +188,131 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!imageDimensions || event.button !== 0) {
+  const applyZoomFromState = ({
+    nextZoomValue,
+    anchorPoint,
+    originPosition,
+    originZoom
+  }: {
+    nextZoomValue: number;
+    anchorPoint: CropPoint;
+    originPosition: CropPoint;
+    originZoom: number;
+  }) => {
+    if (!imageDimensions) {
       return;
     }
 
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: position.x,
-      originY: position.y
+    const boundedZoom = clamp(nextZoomValue, MIN_ZOOM, MAX_ZOOM);
+    const previousScale = baseScale * originZoom;
+    const nextScale = baseScale * boundedZoom;
+    const imagePointX = (anchorPoint.x - originPosition.x) / previousScale;
+    const imagePointY = (anchorPoint.y - originPosition.y) / previousScale;
+    const nextWidth = imageDimensions.width * nextScale;
+    const nextHeight = imageDimensions.height * nextScale;
+    const unclampedPosition = {
+      x: anchorPoint.x - imagePointX * nextScale,
+      y: anchorPoint.y - imagePointY * nextScale
     };
+
+    setZoom(boundedZoom);
+    setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
+  };
+
+  const getLocalPointerPoint = (
+    event: React.PointerEvent<HTMLDivElement>
+  ): CropPoint => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return {
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top
+    };
+  };
+
+  const beginPinchGesture = () => {
+    const pointerEntries = Array.from(activePointersRef.current.values()) as CropPoint[];
+
+    if (pointerEntries.length < 2) {
+      pinchRef.current = null;
+      return;
+    }
+
+    const [firstPoint, secondPoint] = pointerEntries;
+    pinchRef.current = {
+      initialDistance: getPointDistance(firstPoint, secondPoint),
+      initialZoom: zoom,
+      initialPosition: position,
+      initialCenter: getPointCenter(firstPoint, secondPoint)
+    };
+    dragRef.current = null;
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!imageDimensions || (event.pointerType === 'mouse' && event.button !== 0)) {
+      return;
+    }
+
+    const localPoint = getLocalPointerPoint(event);
+    activePointersRef.current.set(event.pointerId, localPoint);
+
+    if (activePointersRef.current.size >= 2) {
+      beginPinchGesture();
+    } else {
+      dragRef.current = {
+        pointerId: event.pointerId,
+        startX: localPoint.x,
+        startY: localPoint.y,
+        originX: position.x,
+        originY: position.y
+      };
+    }
 
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || !imageDimensions) {
+    if (!imageDimensions) {
       return;
     }
 
-    const deltaX = event.clientX - dragRef.current.startX;
-    const deltaY = event.clientY - dragRef.current.startY;
+    const localPoint = getLocalPointerPoint(event);
+
+    if (activePointersRef.current.has(event.pointerId)) {
+      activePointersRef.current.set(event.pointerId, localPoint);
+    }
+
+    if (pinchRef.current && activePointersRef.current.size >= 2) {
+      const pointerEntries = Array.from(activePointersRef.current.values()) as CropPoint[];
+      const [firstPoint, secondPoint] = pointerEntries;
+      const currentDistance = getPointDistance(firstPoint, secondPoint);
+      const currentCenter = getPointCenter(firstPoint, secondPoint);
+      const distanceRatio = pinchRef.current.initialDistance > 0
+        ? currentDistance / pinchRef.current.initialDistance
+        : 1;
+      const nextZoomValue = pinchRef.current.initialZoom * distanceRatio;
+      const boundedZoom = clamp(nextZoomValue, MIN_ZOOM, MAX_ZOOM);
+      const previousScale = baseScale * pinchRef.current.initialZoom;
+      const nextScale = baseScale * boundedZoom;
+      const imagePointX = (pinchRef.current.initialCenter.x - pinchRef.current.initialPosition.x) / previousScale;
+      const imagePointY = (pinchRef.current.initialCenter.y - pinchRef.current.initialPosition.y) / previousScale;
+      const nextWidth = imageDimensions.width * nextScale;
+      const nextHeight = imageDimensions.height * nextScale;
+      const unclampedPosition = {
+        x: currentCenter.x - imagePointX * nextScale,
+        y: currentCenter.y - imagePointY * nextScale
+      };
+
+      setZoom(boundedZoom);
+      setPosition(clampPosition(unclampedPosition.x, unclampedPosition.y, nextWidth, nextHeight));
+      return;
+    }
+
+    if (!dragRef.current) {
+      return;
+    }
+
+    const deltaX = localPoint.x - dragRef.current.startX;
+    const deltaY = localPoint.y - dragRef.current.startY;
     const nextPosition = clampPosition(
       dragRef.current.originX + deltaX,
       dragRef.current.originY + deltaY,
@@ -201,11 +324,25 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
   };
 
   const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) {
-      return;
+    activePointersRef.current.delete(event.pointerId);
+
+    if (activePointersRef.current.size < 2) {
+      pinchRef.current = null;
     }
 
-    dragRef.current = null;
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+    } else if (activePointersRef.current.size === 1) {
+      const [[pointerId, localPoint]] = Array.from(activePointersRef.current.entries()) as Array<[number, CropPoint]>;
+      dragRef.current = {
+        pointerId,
+        startX: localPoint.x,
+        startY: localPoint.y,
+        originX: position.x,
+        originY: position.y
+      };
+    }
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -329,7 +466,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               <div className="pointer-events-none absolute inset-5 rounded-full border-[3px] border-white/95 shadow-[0_0_0_1px_rgba(148,163,184,0.18)]" />
             </div>
             <p className="mt-4 text-center text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-              Arraste para enquadrar dentro do circulo
+              Arraste para enquadrar. No celular, use dois dedos para dar zoom.
             </p>
           </div>
 
@@ -369,7 +506,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
                   step={0.01}
                   value={zoom}
                   onChange={(event) => handleZoomChange(Number(event.target.value))}
-                  className="h-2 w-full accent-[#9A077B]"
+                  className="hidden h-2 w-full accent-[#9A077B] sm:block"
                 />
                 <button
                   type="button"
@@ -389,10 +526,6 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               <RotateCcw size={16} />
               Resetar enquadramento
             </button>
-
-            <div className="rounded-[24px] bg-[#000747] px-4 py-4 text-sm font-medium leading-relaxed text-white/80">
-              Use o enquadramento mais aberto para marcas e icones. Para fotos de rosto, aproxime um pouco mais no zoom.
-            </div>
 
             <div className="flex gap-3 pt-2">
               <button
