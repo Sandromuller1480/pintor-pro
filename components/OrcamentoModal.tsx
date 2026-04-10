@@ -87,6 +87,7 @@ export type SavedOrcamento = {
 
 const QUOTE_MEDIA_BUCKET = 'orcamentos-media';
 const PROPERTY_SITUATION_OPTIONS = ['Novo', 'Reforma'] as const;
+const PROPERTY_STATUS_OPTIONS = ['Vazio', 'Mobiliado'] as const;
 const QUOTE_SELECT_FIELDS = [
   'id',
   'cliente_nome',
@@ -273,6 +274,13 @@ const normalizePropertySituation = (value: string | null | undefined) => {
     : '';
 };
 
+const normalizePropertyStatus = (value: string | null | undefined) => {
+  const normalizedValue = (value ?? '').trim();
+  return PROPERTY_STATUS_OPTIONS.includes(normalizedValue as (typeof PROPERTY_STATUS_OPTIONS)[number])
+    ? normalizedValue
+    : '';
+};
+
 const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
   if (!Array.isArray(value)) {
     return [INITIAL_AMBIENTE()];
@@ -308,7 +316,7 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   imovelCidadeEstado: quote.imovel_cidade_estado || '',
   imovelTipo: quote.imovel_tipo || 'Casa',
   imovelSituacao: normalizePropertySituation(quote.imovel_situacao),
-  imovelStatus: quote.imovel_status || '',
+  imovelStatus: normalizePropertyStatus(quote.imovel_status),
   pinturaTipoServico: quote.pintura_tipo_servico || '',
   pinturaAcabamento: quote.pintura_acabamento || '',
   pinturaTinta: quote.pintura_tinta || '',
@@ -730,7 +738,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
               <InputGroup label="Imovel esta">
                 <div className="flex flex-wrap gap-4 mt-2">
-                  {['Vazio', 'Mobiliado', 'Em uso'].map((item) => (
+                  {PROPERTY_STATUS_OPTIONS.map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
                       <input type="radio" name="imovelStatus" value={item} checked={formData.imovelStatus === item} onChange={(e) => updateField('imovelStatus', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
