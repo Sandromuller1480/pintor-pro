@@ -880,8 +880,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           propertySituation: quote.imovel_situacao || undefined,
           propertyStatus: quote.imovel_status || undefined,
           serviceType: quote.pintura_tipo_servico || undefined,
-          finishType: quote.pintura_acabamento || undefined,
-          paintType: quote.pintura_tinta || undefined,
+          finishType: Array.isArray(quote.pintura_acabamentos) && quote.pintura_acabamentos.length > 0
+            ? quote.pintura_acabamentos.join(', ')
+            : (quote.pintura_acabamento || undefined),
+          paintType: Array.isArray(quote.pintura_tintas) && quote.pintura_tintas.length > 0
+            ? quote.pintura_tintas.join(', ')
+            : (quote.pintura_tinta || undefined),
           wallState: quote.prep_situacao_parede || undefined,
           prepServices: Array.isArray(quote.prep_servicos_necessarios) ? quote.prep_servicos_necessarios : [],
           workHeight: quote.comp_altura_trabalho || undefined,

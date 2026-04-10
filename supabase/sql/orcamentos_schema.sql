@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
     -- 4. Tipo de Pintura
     pintura_tipo_servico TEXT,
     pintura_acabamento TEXT,
+    pintura_acabamentos JSONB DEFAULT '[]'::jsonb,
     pintura_tinta TEXT,
+    pintura_tintas JSONB DEFAULT '[]'::jsonb,
 
     -- 5. Preparacao da Superficie
     prep_situacao_parede TEXT,

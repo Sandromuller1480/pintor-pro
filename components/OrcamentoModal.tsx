@@ -35,8 +35,8 @@ type OrcamentoFormData = {
   imovelSituacao: string;
   imovelStatus: string;
   pinturaTipoServico: string;
-  pinturaAcabamento: string;
-  pinturaTinta: string;
+  pinturaAcabamento: string[];
+  pinturaTinta: string[];
   prepSituacaoParede: string;
   compAlturaTrabalho: string;
   compAcesso: string;
@@ -71,7 +71,9 @@ export type SavedOrcamento = {
   ambientes?: Ambiente[] | null;
   pintura_tipo_servico: string | null;
   pintura_acabamento?: string | null;
+  pintura_acabamentos?: string[] | null;
   pintura_tinta?: string | null;
+  pintura_tintas?: string[] | null;
   prep_situacao_parede?: string | null;
   prep_servicos_necessarios?: string[] | null;
   comp_altura_trabalho?: string | null;
@@ -116,7 +118,9 @@ const QUOTE_SELECT_FIELDS = [
   'ambientes',
   'pintura_tipo_servico',
   'pintura_acabamento',
+  'pintura_acabamentos',
   'pintura_tinta',
+  'pintura_tintas',
   'prep_situacao_parede',
   'prep_servicos_necessarios',
   'comp_altura_trabalho',
@@ -153,8 +157,8 @@ const INITIAL_FORM_DATA: OrcamentoFormData = {
   imovelSituacao: '',
   imovelStatus: '',
   pinturaTipoServico: '',
-  pinturaAcabamento: '',
-  pinturaTinta: '',
+  pinturaAcabamento: [],
+  pinturaTinta: [],
   prepSituacaoParede: '',
   compAlturaTrabalho: '',
   compAcesso: '',
@@ -375,6 +379,24 @@ const normalizeStoredStringArray = (value: unknown) => (
     : []
 );
 
+const normalizeStoredFinishTypes = (
+  value: unknown,
+  fallback: string | null | undefined
+) => {
+  const normalizedArray = normalizeStoredStringArray(value);
+
+  if (normalizedArray.length > 0) {
+    return normalizedArray;
+  }
+
+  const normalizedFallback = (fallback ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return normalizedFallback;
+};
+
 const normalizePropertySituation = (value: string | null | undefined) => {
   const normalizedValue = (value ?? '').trim();
   return PROPERTY_SITUATION_OPTIONS.includes(normalizedValue as (typeof PROPERTY_SITUATION_OPTIONS)[number])
@@ -434,8 +456,8 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   imovelSituacao: normalizePropertySituation(quote.imovel_situacao),
   imovelStatus: normalizePropertyStatus(quote.imovel_status),
   pinturaTipoServico: quote.pintura_tipo_servico || '',
-  pinturaAcabamento: quote.pintura_acabamento || '',
-  pinturaTinta: quote.pintura_tinta || '',
+  pinturaAcabamento: normalizeStoredFinishTypes(quote.pintura_acabamentos, quote.pintura_acabamento),
+  pinturaTinta: normalizeStoredFinishTypes(quote.pintura_tintas, quote.pintura_tinta),
   prepSituacaoParede: quote.prep_situacao_parede || '',
   compAlturaTrabalho: quote.comp_altura_trabalho || '',
   compAcesso: quote.comp_acesso || '',
@@ -576,6 +598,24 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
     );
   };
 
+  const toggleFinishType = (item: string) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      pinturaAcabamento: currentData.pinturaAcabamento.includes(item)
+        ? currentData.pinturaAcabamento.filter((value) => value !== item)
+        : [...currentData.pinturaAcabamento, item]
+    }));
+  };
+
+  const togglePaintType = (item: string) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      pinturaTinta: currentData.pinturaTinta.includes(item)
+        ? currentData.pinturaTinta.filter((value) => value !== item)
+        : [...currentData.pinturaTinta, item]
+    }));
+  };
+
   const toggleArrayItem = (
     setter: React.Dispatch<React.SetStateAction<string[]>>,
     array: string[],
@@ -687,8 +727,10 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         imovel_status: formData.imovelStatus || null,
         ambientes: ambientesValidos,
         pintura_tipo_servico: formData.pinturaTipoServico || null,
-        pintura_acabamento: formData.pinturaAcabamento || null,
-        pintura_tinta: formData.pinturaTinta || null,
+        pintura_acabamento: formData.pinturaAcabamento.length > 0 ? formData.pinturaAcabamento.join(', ') : null,
+        pintura_acabamentos: formData.pinturaAcabamento,
+        pintura_tinta: formData.pinturaTinta.length > 0 ? formData.pinturaTinta.join(', ') : null,
+        pintura_tintas: formData.pinturaTinta,
         prep_situacao_parede: formData.prepSituacaoParede || null,
         prep_servicos_necessarios: prepServicos,
         comp_altura_trabalho: formData.compAlturaTrabalho || null,
@@ -774,8 +816,8 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             propertySituation: formData.imovelSituacao || undefined,
             propertyStatus: formData.imovelStatus || undefined,
             serviceType: formData.pinturaTipoServico || undefined,
-            finishType: formData.pinturaAcabamento || undefined,
-            paintType: formData.pinturaTinta || undefined,
+            finishType: formData.pinturaAcabamento.length > 0 ? formData.pinturaAcabamento.join(', ') : undefined,
+            paintType: formData.pinturaTinta.length > 0 ? formData.pinturaTinta.join(', ') : undefined,
             wallState: formData.prepSituacaoParede || undefined,
             prepServices: prepServicos,
             workHeight: formData.compAlturaTrabalho || undefined,
@@ -989,7 +1031,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               <InputGroup label="Tipo de acabamento">
                 {['Fosco', 'Semi-brilho', 'Acetinado', 'Brilhante'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
-                    <input type="radio" name="pinturaAcabamento" value={item} checked={formData.pinturaAcabamento === item} onChange={(e) => updateField('pinturaAcabamento', e.target.value)} className="accent-[#9A077B]" />
+                    <input
+                      type="checkbox"
+                      checked={formData.pinturaAcabamento.includes(item)}
+                      onChange={() => toggleFinishType(item)}
+                      className="accent-[#9A077B]"
+                    />
                     <span className="text-sm text-slate-700">{item}</span>
                   </label>
                 ))}
@@ -997,7 +1044,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               <InputGroup label="Tipo de tinta">
                 {['Acrilica', 'Latex', 'Epoxi', 'Esmalte', 'Emborrachada', 'A definir'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
-                    <input type="radio" name="pinturaTinta" value={item} checked={formData.pinturaTinta === item} onChange={(e) => updateField('pinturaTinta', e.target.value)} className="accent-[#9A077B]" />
+                    <input
+                      type="checkbox"
+                      checked={formData.pinturaTinta.includes(item)}
+                      onChange={() => togglePaintType(item)}
+                      className="accent-[#9A077B]"
+                    />
                     <span className="text-sm text-slate-700">{item}</span>
                   </label>
                 ))}
