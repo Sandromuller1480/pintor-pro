@@ -925,6 +925,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         {
           createdAt: quote.created_at,
           painterName: painterDisplayName,
+          painterProfilePhotoUrl: currentProfile?.profilePhotoUrl ?? null,
           painterEmail: currentProfile?.email || undefined,
           painterPhone: currentProfile?.whatsapp || undefined,
           painterLocation: painterDisplayLocation || undefined,

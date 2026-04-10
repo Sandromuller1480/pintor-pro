@@ -13,6 +13,7 @@ type ContractPdfAmbiente = {
 type ContractPdfPayload = {
   createdAt: string;
   painterName: string;
+  painterProfilePhotoUrl?: string | null;
   painterEmail?: string | null;
   painterPhone?: string | null;
   painterLocation?: string | null;
@@ -203,6 +204,8 @@ export const generateContractPdf = async (
   const pageHeight = doc.internal.pageSize.getHeight();
   const brandLogoDataUrl = await fetchImageDataUrl(pintorProLogoUrl);
   const brandLogoDimensions = brandLogoDataUrl ? await getImageDimensions(brandLogoDataUrl) : null;
+  const painterHeaderImage = await fetchImageDataUrl(payload.painterProfilePhotoUrl);
+  const painterHeaderImageDimensions = painterHeaderImage ? await getImageDimensions(painterHeaderImage) : null;
   let y = PAGE_MARGIN;
 
   const drawFooter = async () => {
@@ -318,36 +321,63 @@ export const generateContractPdf = async (
   doc.setFillColor(...BRAND_PINK);
   doc.rect(pageWidth * 0.42, 0, pageWidth * 0.58, 16, 'F');
 
-  if (brandLogoDataUrl) {
-    const logoSize = getContainedImageSize(
-      brandLogoDimensions?.width ?? 1,
-      brandLogoDimensions?.height ?? 1,
-      96,
-      28
+  const headerImageBoxSize = 54;
+  let headerTextStartX = PAGE_MARGIN;
+  let headerTextWidth = pageWidth - (PAGE_MARGIN * 2);
+
+  if (painterHeaderImage) {
+    const headerImageSize = getContainedImageSize(
+      painterHeaderImageDimensions?.width ?? 1,
+      painterHeaderImageDimensions?.height ?? 1,
+      headerImageBoxSize,
+      headerImageBoxSize
     );
 
+    const headerImageX = PAGE_MARGIN + ((headerImageBoxSize - headerImageSize.width) / 2);
+    const headerImageY = y + ((headerImageBoxSize - headerImageSize.height) / 2);
+
     doc.addImage(
-      brandLogoDataUrl,
+      painterHeaderImage,
       'PNG',
-      PAGE_MARGIN,
-      y,
-      logoSize.width,
-      logoSize.height,
+      headerImageX,
+      headerImageY,
+      headerImageSize.width,
+      headerImageSize.height,
       undefined,
       'FAST'
     );
+
+    headerTextStartX = PAGE_MARGIN + headerImageBoxSize + 14;
+    headerTextWidth = pageWidth - headerTextStartX - PAGE_MARGIN;
   }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...BRAND_BLUE);
-  doc.text('Contrato Base de Prestacao de Servicos de Pintura', pageWidth / 2, y + 16, { align: 'center' });
+  const painterNameLines = doc.splitTextToSize(payload.painterName, headerTextWidth);
+  const painterNameLineHeight = 18;
+  const painterNameStartY = y + 16;
+  doc.text(painterNameLines, headerTextStartX, painterNameStartY);
+
+  const painterNameBottomY = painterNameStartY + ((painterNameLines.length - 1) * painterNameLineHeight);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...BRAND_BLUE);
+  const contractTitleY = painterNameBottomY + 20;
+  doc.text('CONTRADO PRESTACAO DE SERVICO DE PINTURA', headerTextStartX, contractTitleY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED_TEXT);
-  doc.text(`Emitido em ${formatDisplayDate(payload.createdAt)}`, pageWidth / 2, y + 36, { align: 'center' });
-  y += 64;
+  const issuedAtY = contractTitleY + 18;
+  doc.text(`Emitido em ${formatDisplayDate(payload.createdAt)}`, headerTextStartX, issuedAtY);
+
+  const headerBottomY = Math.max(
+    issuedAtY,
+    y + (painterHeaderImage ? headerImageBoxSize : 0)
+  );
+  y = headerBottomY + 20;
 
   await addParagraph(
     'Instrumento particular que organiza a contratacao direta entre cliente e profissional de pintura, com base nas informacoes registradas na plataforma Pintor Pro.'
