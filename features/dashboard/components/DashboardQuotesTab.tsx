@@ -64,6 +64,9 @@ export const DashboardQuotesTab: React.FC<DashboardQuotesTabProps> = ({
           const statusStyle = QUOTE_STATUS_STYLES[orcamento.status] ?? 'bg-slate-100 text-slate-700';
           const statusLabel = QUOTE_STATUS_LABELS[orcamento.status] ?? orcamento.status;
           const serviceLabel = orcamento.pintura_tipo_servico || orcamento.imovel_tipo || 'Servico nao informado';
+          const totalLabel = orcamento.valor_total != null
+            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(orcamento.valor_total) || 0)
+            : 'A definir';
 
           return (
             <div
@@ -87,6 +90,7 @@ export const DashboardQuotesTab: React.FC<DashboardQuotesTabProps> = ({
                     <p className="truncate text-base font-black text-[#000747]">{fileName}</p>
                     <p className="mt-1 text-sm font-bold text-slate-800">{orcamento.cliente_nome}</p>
                     <p className="mt-1 text-sm font-medium text-slate-500">{serviceLabel}</p>
+                    <p className="mt-1 text-sm font-black text-[#9A077B]">Total estimado: {totalLabel}</p>
                     <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                       {orcamento.imovel_cidade_estado || 'Local nao informado'} · {formatShortDate(orcamento.created_at)}
                     </p>

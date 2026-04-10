@@ -54,13 +54,20 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
     -- 10. Fornecimento
     fornecimento_materiais TEXT,
 
-    -- 11. Imagens
+    -- 11. Valores do Orcamento
+    valor_materiais NUMERIC(12,2),
+    valor_deslocamento NUMERIC(12,2),
+    valor_ajuste_extra NUMERIC(12,2),
+    valor_desconto NUMERIC(12,2),
+    valor_total NUMERIC(12,2),
+
+    -- 12. Imagens
     imagens_paths JSONB DEFAULT '[]'::jsonb,
 
-    -- 12. Observacoes
+    -- 13. Observacoes
     observacoes TEXT,
 
-    -- 13. Status da negociacao
+    -- 14. Status da negociacao
     status TEXT DEFAULT 'novo',
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL

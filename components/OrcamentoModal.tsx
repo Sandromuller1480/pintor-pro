@@ -19,6 +19,7 @@ type Ambiente = {
   area: string;
   peDireito: string;
   superficie: string;
+  valor: string;
 };
 
 type OrcamentoFormData = {
@@ -45,6 +46,10 @@ type OrcamentoFormData = {
   prazoEstimado: string;
   prazoUrgencia: string;
   fornecimentoMateriais: string;
+  valorMateriais: string;
+  valorDeslocamento: string;
+  valorAjusteExtra: string;
+  valorDesconto: string;
   observacoes: string;
   confirmacaoInformacoes: boolean;
   autorizacaoContato: boolean;
@@ -79,6 +84,11 @@ export type SavedOrcamento = {
   prazo_estimado?: string | null;
   prazo_urgencia: string | null;
   fornecimento_materiais?: string | null;
+  valor_materiais?: number | string | null;
+  valor_deslocamento?: number | string | null;
+  valor_ajuste_extra?: number | string | null;
+  valor_desconto?: number | string | null;
+  valor_total?: number | string | null;
   imagens_paths?: string[] | null;
   observacoes?: string | null;
   status: string;
@@ -88,6 +98,8 @@ export type SavedOrcamento = {
 const QUOTE_MEDIA_BUCKET = 'orcamentos-media';
 const PROPERTY_SITUATION_OPTIONS = ['Novo', 'Reforma'] as const;
 const PROPERTY_STATUS_OPTIONS = ['Vazio', 'Mobiliado'] as const;
+type CurrencyFormField = 'valorMateriais' | 'valorDeslocamento' | 'valorAjusteExtra' | 'valorDesconto';
+
 const QUOTE_SELECT_FIELDS = [
   'id',
   'cliente_nome',
@@ -117,6 +129,11 @@ const QUOTE_SELECT_FIELDS = [
   'prazo_estimado',
   'prazo_urgencia',
   'fornecimento_materiais',
+  'valor_materiais',
+  'valor_deslocamento',
+  'valor_ajuste_extra',
+  'valor_desconto',
+  'valor_total',
   'imagens_paths',
   'observacoes',
   'status',
@@ -147,6 +164,10 @@ const INITIAL_FORM_DATA: OrcamentoFormData = {
   prazoEstimado: '',
   prazoUrgencia: '',
   fornecimentoMateriais: '',
+  valorMateriais: '',
+  valorDeslocamento: '',
+  valorAjusteExtra: '',
+  valorDesconto: '',
   observacoes: '',
   confirmacaoInformacoes: false,
   autorizacaoContato: false
@@ -157,7 +178,8 @@ const INITIAL_AMBIENTE = (): Ambiente => ({
   nome: '',
   area: '',
   peDireito: 'Padrao',
-  superficie: ''
+  superficie: '',
+  valor: ''
 });
 
 const InputGroup = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -213,11 +235,91 @@ const normalizeWhatsappPhone = (value: string) => {
   return digits;
 };
 
+const sanitizeCurrencyTypingValue = (value: string) => value.replace(/[^\d.,]/g, '');
+
+const parseCurrencyValue = (value: string | number | null | undefined) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const normalizedValue = String(value ?? '').trim();
+
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  const sanitizedValue = normalizedValue.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+  const hasComma = sanitizedValue.includes(',');
+  const hasDot = sanitizedValue.includes('.');
+  let numericString = sanitizedValue;
+
+  if (hasComma && hasDot) {
+    numericString = sanitizedValue.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    numericString = sanitizedValue.replace(',', '.');
+  } else if (hasDot) {
+    const dotParts = sanitizedValue.split('.');
+    numericString = dotParts[dotParts.length - 1]?.length === 3
+      ? sanitizedValue.replace(/\./g, '')
+      : sanitizedValue;
+  }
+
+  const numericValue = Number(numericString.replace(/[^\d.-]/g, ''));
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const formatCurrencyInputValue = (value: string | number | null | undefined) => {
+  const rawValue = String(value ?? '').trim();
+
+  if (!rawValue) {
+    return '';
+  }
+
+  return parseCurrencyValue(value).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const formatCurrencyDisplay = (value: number) => value.toLocaleString('pt-BR', {
+  style: 'currency',
+  currency: 'BRL'
+});
+
+const calculateQuoteTotals = (
+  ambientes: Ambiente[],
+  pricing: Pick<OrcamentoFormData, CurrencyFormField>
+) => {
+  const subtotalAmbientes = ambientes.reduce((sum, ambiente) => sum + parseCurrencyValue(ambiente.valor), 0);
+  const valorMateriais = parseCurrencyValue(pricing.valorMateriais);
+  const valorDeslocamento = parseCurrencyValue(pricing.valorDeslocamento);
+  const valorAjusteExtra = parseCurrencyValue(pricing.valorAjusteExtra);
+  const valorDesconto = parseCurrencyValue(pricing.valorDesconto);
+  const subtotalComplementares = valorMateriais + valorDeslocamento + valorAjusteExtra;
+  const total = Math.max(0, subtotalAmbientes + subtotalComplementares - valorDesconto);
+
+  return {
+    subtotalAmbientes,
+    valorMateriais,
+    valorDeslocamento,
+    valorAjusteExtra,
+    valorDesconto,
+    subtotalComplementares,
+    total
+  };
+};
+
 const buildQuoteWhatsappMessage = (
   painterName: string,
   formData: OrcamentoFormData,
   ambientesValidos: Ambiente[]
 ) => {
+  const quoteTotals = calculateQuoteTotals(ambientesValidos, {
+    valorMateriais: formData.valorMateriais,
+    valorDeslocamento: formData.valorDeslocamento,
+    valorAjusteExtra: formData.valorAjusteExtra,
+    valorDesconto: formData.valorDesconto
+  });
   const messageLines = [
     `Ola, ${formData.clienteNome.trim()}!`,
     `Seu orcamento foi preparado por ${painterName || 'seu pintor'} pela plataforma Pintor Pro.`,
@@ -240,6 +342,10 @@ const buildQuoteWhatsappMessage = (
 
   if (formData.prazoDataInicio) {
     messageLines.push(`Inicio ideal: ${formData.prazoDataInicio}`);
+  }
+
+  if (quoteTotals.total > 0) {
+    messageLines.push(`Valor total estimado: ${formatCurrencyDisplay(quoteTotals.total)}`);
   }
 
   if (formData.observacoes.trim()) {
@@ -299,7 +405,12 @@ const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
         peDireito: typeof ambiente.peDireito === 'string' && ambiente.peDireito.trim()
           ? ambiente.peDireito
           : 'Padrao',
-        superficie: typeof ambiente.superficie === 'string' ? ambiente.superficie : ''
+        superficie: typeof ambiente.superficie === 'string' ? ambiente.superficie : '',
+        valor: formatCurrencyInputValue(
+          typeof ambiente.valor === 'string' || typeof ambiente.valor === 'number'
+            ? ambiente.valor
+            : ''
+        )
       };
     });
 
@@ -330,6 +441,10 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   prazoEstimado: quote.prazo_estimado || '',
   prazoUrgencia: quote.prazo_urgencia || '',
   fornecimentoMateriais: quote.fornecimento_materiais || '',
+  valorMateriais: formatCurrencyInputValue(quote.valor_materiais),
+  valorDeslocamento: formatCurrencyInputValue(quote.valor_deslocamento),
+  valorAjusteExtra: formatCurrencyInputValue(quote.valor_ajuste_extra),
+  valorDesconto: formatCurrencyInputValue(quote.valor_desconto),
   observacoes: quote.observacoes || '',
   confirmacaoInformacoes: true,
   autorizacaoContato: true
@@ -383,6 +498,13 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
 
   if (!isOpen) return null;
 
+  const quoteTotals = calculateQuoteTotals(ambientes, {
+    valorMateriais: formData.valorMateriais,
+    valorDeslocamento: formData.valorDeslocamento,
+    valorAjusteExtra: formData.valorAjusteExtra,
+    valorDesconto: formData.valorDesconto
+  });
+
   const resetForm = () => {
     setFormData(INITIAL_FORM_DATA);
     setAmbientes([INITIAL_AMBIENTE()]);
@@ -407,6 +529,20 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
     }));
   };
 
+  const updateCurrencyField = (field: CurrencyFormField, value: string) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      [field]: sanitizeCurrencyTypingValue(value)
+    }));
+  };
+
+  const formatCurrencyFieldOnBlur = (field: CurrencyFormField) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      [field]: formatCurrencyInputValue(currentData[field])
+    }));
+  };
+
   const handleAddAmbiente = () => {
     setAmbientes((currentAmbientes) => [...currentAmbientes, INITIAL_AMBIENTE()]);
   };
@@ -420,6 +556,16 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       currentAmbientes.map((ambiente) => (
         ambiente.id === id
           ? { ...ambiente, [field]: value }
+          : ambiente
+      ))
+    );
+  };
+
+  const formatAmbienteCurrencyOnBlur = (id: string) => {
+    setAmbientes((currentAmbientes) =>
+      currentAmbientes.map((ambiente) => (
+        ambiente.id === id
+          ? { ...ambiente, valor: formatCurrencyInputValue(ambiente.valor) }
           : ambiente
       ))
     );
@@ -510,8 +656,15 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       const ambientesValidos = ambientes.filter((ambiente) => (
         ambiente.nome.trim() ||
         ambiente.area.trim() ||
-        ambiente.superficie.trim()
+        ambiente.superficie.trim() ||
+        ambiente.valor.trim()
       ));
+      const validQuoteTotals = calculateQuoteTotals(ambientesValidos, {
+        valorMateriais: formData.valorMateriais,
+        valorDeslocamento: formData.valorDeslocamento,
+        valorAjusteExtra: formData.valorAjusteExtra,
+        valorDesconto: formData.valorDesconto
+      });
       const whatsappMessage = buildQuoteWhatsappMessage(painterDisplayName, formData, ambientesValidos);
 
       const quotePayload = {
@@ -543,6 +696,11 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         prazo_estimado: formData.prazoEstimado.trim() || null,
         prazo_urgencia: formData.prazoUrgencia || null,
         fornecimento_materiais: formData.fornecimentoMateriais || null,
+        valor_materiais: formData.valorMateriais.trim() ? parseCurrencyValue(formData.valorMateriais) : null,
+        valor_deslocamento: formData.valorDeslocamento.trim() ? parseCurrencyValue(formData.valorDeslocamento) : null,
+        valor_ajuste_extra: formData.valorAjusteExtra.trim() ? parseCurrencyValue(formData.valorAjusteExtra) : null,
+        valor_desconto: formData.valorDesconto.trim() ? parseCurrencyValue(formData.valorDesconto) : null,
+        valor_total: validQuoteTotals.total,
         observacoes: formData.observacoes.trim() || null
       };
 
@@ -625,6 +783,11 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             estimatedDeadline: formData.prazoEstimado.trim() || undefined,
             urgency: formData.prazoUrgencia || undefined,
             materialSupply: formData.fornecimentoMateriais || undefined,
+            materialsCost: validQuoteTotals.valorMateriais,
+            travelCost: validQuoteTotals.valorDeslocamento,
+            extraAdjustment: validQuoteTotals.valorAjusteExtra,
+            discountValue: validQuoteTotals.valorDesconto,
+            totalValue: validQuoteTotals.total,
             observations: formData.observacoes.trim() || undefined,
             ambientes: ambientesValidos
           });
@@ -760,7 +923,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                       </button>
                     )}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                     <InputGroup label="Nome do ambiente">
                       <input type="text" placeholder="Ex: Sala" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.nome} onChange={(e) => updateAmbiente(ambiente.id, 'nome', e.target.value)} />
                     </InputGroup>
@@ -778,6 +941,17 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                         <option value="">Selecione...</option>
                         {['Reboco', 'Gesso', 'Drywall', 'Madeira', 'Metal'].map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>
+                    </InputGroup>
+                    <InputGroup label="Valor estimado (R$)">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]"
+                        value={ambiente.valor}
+                        onChange={(e) => updateAmbiente(ambiente.id, 'valor', sanitizeCurrencyTypingValue(e.target.value))}
+                        onBlur={() => formatAmbienteCurrencyOnBlur(ambiente.id)}
+                      />
                     </InputGroup>
                   </div>
                 </div>
@@ -941,7 +1115,78 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </div>
             </div>
 
-            <SectionTitle title="11. Imagens do Local (Opcionais)" />
+            <SectionTitle title="11. Composicao de Valores" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <InputGroup label="Materiais (R$)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.valorMateriais}
+                  onChange={(e) => updateCurrencyField('valorMateriais', e.target.value)}
+                  onBlur={() => formatCurrencyFieldOnBlur('valorMateriais')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                  placeholder="0,00"
+                />
+              </InputGroup>
+              <InputGroup label="Deslocamento (R$)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.valorDeslocamento}
+                  onChange={(e) => updateCurrencyField('valorDeslocamento', e.target.value)}
+                  onBlur={() => formatCurrencyFieldOnBlur('valorDeslocamento')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                  placeholder="0,00"
+                />
+              </InputGroup>
+              <InputGroup label="Ajuste extra (R$)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.valorAjusteExtra}
+                  onChange={(e) => updateCurrencyField('valorAjusteExtra', e.target.value)}
+                  onBlur={() => formatCurrencyFieldOnBlur('valorAjusteExtra')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                  placeholder="0,00"
+                />
+              </InputGroup>
+              <InputGroup label="Desconto (R$)">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.valorDesconto}
+                  onChange={(e) => updateCurrencyField('valorDesconto', e.target.value)}
+                  onBlur={() => formatCurrencyFieldOnBlur('valorDesconto')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                  placeholder="0,00"
+                />
+              </InputGroup>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Ambientes</p>
+                <p className="mt-2 text-2xl font-black text-[#000747]">{formatCurrencyDisplay(quoteTotals.subtotalAmbientes)}</p>
+                <p className="mt-2 text-sm font-medium text-slate-500">Soma dos valores informados em cada ambiente.</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Custos complementares</p>
+                <p className="mt-2 text-2xl font-black text-[#000747]">{formatCurrencyDisplay(quoteTotals.subtotalComplementares)}</p>
+                <p className="mt-2 text-sm font-medium text-slate-500">Materiais, deslocamento e ajustes extras.</p>
+              </div>
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-red-400">Desconto aplicado</p>
+                <p className="mt-2 text-2xl font-black text-red-600">{formatCurrencyDisplay(quoteTotals.valorDesconto)}</p>
+                <p className="mt-2 text-sm font-medium text-red-500">Esse valor sera abatido do total final.</p>
+              </div>
+              <div className="rounded-2xl bg-[#000747] p-4 text-white shadow-lg shadow-[#000747]/15">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/60">Total automatico da obra</p>
+                <p className="mt-2 text-2xl font-black">{formatCurrencyDisplay(quoteTotals.total)}</p>
+                <p className="mt-2 text-sm font-medium text-white/75">Calculado automaticamente no final do orcamento.</p>
+              </div>
+            </div>
+
+            <SectionTitle title="12. Imagens do Local (Opcionais)" />
             <label className="border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
               <Camera size={32} className="text-slate-400 mb-2" />
               <p className="font-bold text-slate-600">Clique para adicionar fotos ou videos do local</p>
@@ -949,13 +1194,13 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={(e) => setAttachments(Array.from(e.target.files ?? []))} />
             </label>
 
-            <SectionTitle title="12. Observacoes" />
+            <SectionTitle title="13. Observacoes" />
             <InputGroup label="Detalhes adicionais ou restricoes">
               <textarea rows={4} value={formData.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700 resize-none" placeholder="Ex: Predio so aceita obras das 9h as 17h. Existem moveis pesados na sala..." />
             </InputGroup>
 
             <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl mt-8">
-              <SectionTitle title="13. Confirmacao Final" />
+              <SectionTitle title="14. Confirmacao Final" />
               <div className="space-y-4">
                 <label className="flex items-start space-x-3 cursor-pointer">
                   <input type="checkbox" checked={formData.confirmacaoInformacoes} onChange={(e) => updateField('confirmacaoInformacoes', e.target.checked)} className="accent-[#9A077B] w-5 h-5 mt-0.5" />
@@ -970,7 +1215,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6 bg-white border-t border-slate-100 flex justify-end space-x-4">
+        <div className="p-6 bg-white border-t border-slate-100 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="rounded-2xl border border-[#9A077B]/15 bg-[#9A077B]/5 px-5 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#9A077B]/70">Total da obra</p>
+            <p className="mt-1 text-2xl font-black text-[#000747]">{formatCurrencyDisplay(quoteTotals.total)}</p>
+          </div>
+          <div className="flex justify-end space-x-4">
           <button onClick={handleClose} disabled={isSubmitting} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition disabled:opacity-50">
             Cancelar
           </button>
@@ -978,6 +1228,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             {isSubmitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <CheckCircle2 size={18} className="mr-2" />}
             {isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alteracoes' : 'Gerar Orcamento')}
           </button>
+          </div>
         </div>
       </div>
     </div>

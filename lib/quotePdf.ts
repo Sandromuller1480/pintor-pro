@@ -6,6 +6,7 @@ type QuotePdfAmbiente = {
   area: string;
   peDireito: string;
   superficie: string;
+  valor?: string;
 };
 
 type QuotePdfPayload = {
@@ -40,6 +41,11 @@ type QuotePdfPayload = {
   estimatedDeadline?: string;
   urgency?: string;
   materialSupply?: string;
+  materialsCost?: number | string | null;
+  travelCost?: number | string | null;
+  extraAdjustment?: number | string | null;
+  discountValue?: number | string | null;
+  totalValue?: number | string | null;
   observations?: string;
   ambientes: QuotePdfAmbiente[];
 };
@@ -68,6 +74,46 @@ const formatDisplayDate = (value: string | null | undefined) => {
 
   return new Intl.DateTimeFormat('pt-BR').format(parsedDate);
 };
+
+const parseCurrencyValue = (value: string | number | null | undefined) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const normalizedValue = String(value ?? '').trim();
+
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  const sanitizedValue = normalizedValue.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+  const hasComma = sanitizedValue.includes(',');
+  const hasDot = sanitizedValue.includes('.');
+  let numericString = sanitizedValue;
+
+  if (hasComma && hasDot) {
+    numericString = sanitizedValue.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    numericString = sanitizedValue.replace(',', '.');
+  } else if (hasDot) {
+    const dotParts = sanitizedValue.split('.');
+    numericString = dotParts[dotParts.length - 1]?.length === 3
+      ? sanitizedValue.replace(/\./g, '')
+      : sanitizedValue;
+  }
+
+  const numericValue = Number(numericString.replace(/[^\d.-]/g, ''));
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const formatCurrencyDisplay = (value: string | number | null | undefined) => (
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(parseCurrencyValue(value))
+);
+
+const hasCurrencyValue = (value: string | number | null | undefined) => parseCurrencyValue(value) > 0;
 
 const sanitizeFileName = (value: string) => value
   .normalize('NFD')
@@ -347,7 +393,8 @@ export const generateQuotePdf = async (
             ambiente.nome.trim() || `Ambiente ${index + 1}`,
             ambiente.area.trim() ? `${ambiente.area.trim()} m2` : '',
             ambiente.peDireito.trim(),
-            ambiente.superficie.trim()
+            ambiente.superficie.trim(),
+            ambiente.valor?.trim() ? formatCurrencyDisplay(ambiente.valor) : ''
           ].filter(Boolean);
 
           return parts.join(' | ');
@@ -371,6 +418,34 @@ export const generateQuotePdf = async (
   await addField('Consultoria de cores', payload.colorConsulting || '');
   await addField('Servicos extras', payload.extraServices.join(', '));
   await addField('Observacoes', payload.observations || '');
+
+  const quoteHasPricing =
+    payload.ambientes.some((ambiente) => hasCurrencyValue(ambiente.valor)) ||
+    hasCurrencyValue(payload.materialsCost) ||
+    hasCurrencyValue(payload.travelCost) ||
+    hasCurrencyValue(payload.extraAdjustment) ||
+    hasCurrencyValue(payload.discountValue) ||
+    hasCurrencyValue(payload.totalValue);
+
+  if (quoteHasPricing) {
+    const ambientesSubtotal = payload.ambientes.reduce((sum, ambiente) => sum + parseCurrencyValue(ambiente.valor), 0);
+
+    await addSectionTitle('6. Valores do orcamento');
+    await addField('Subtotal dos ambientes', formatCurrencyDisplay(ambientesSubtotal));
+    if (hasCurrencyValue(payload.materialsCost)) {
+      await addField('Materiais', formatCurrencyDisplay(payload.materialsCost));
+    }
+    if (hasCurrencyValue(payload.travelCost)) {
+      await addField('Deslocamento', formatCurrencyDisplay(payload.travelCost));
+    }
+    if (hasCurrencyValue(payload.extraAdjustment)) {
+      await addField('Ajuste extra', formatCurrencyDisplay(payload.extraAdjustment));
+    }
+    if (hasCurrencyValue(payload.discountValue)) {
+      await addField('Desconto', formatCurrencyDisplay(payload.discountValue));
+    }
+    await addField('Total da obra', formatCurrencyDisplay(payload.totalValue));
+  }
 
   await ensureSpace(70);
   doc.setFillColor(...LIGHT_PANEL);

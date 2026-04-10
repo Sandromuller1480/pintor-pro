@@ -895,6 +895,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           estimatedDeadline: quote.prazo_estimado || undefined,
           urgency: quote.prazo_urgencia || undefined,
           materialSupply: quote.fornecimento_materiais || undefined,
+          materialsCost: quote.valor_materiais ?? undefined,
+          travelCost: quote.valor_deslocamento ?? undefined,
+          extraAdjustment: quote.valor_ajuste_extra ?? undefined,
+          discountValue: quote.valor_desconto ?? undefined,
+          totalValue: quote.valor_total ?? undefined,
           observations: quote.observacoes || undefined,
           ambientes: Array.isArray(quote.ambientes) ? quote.ambientes : []
         },
