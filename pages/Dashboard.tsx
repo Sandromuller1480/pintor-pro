@@ -4,6 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
+import { generateContractPdf } from '../lib/contractPdf';
 import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
 import {
@@ -915,6 +916,50 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
+  const handleQuoteViewContract = async (quote: SavedOrcamento) => {
+    const painterDisplayName = currentProfile?.fullName || userName;
+    const painterDisplayLocation = [currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ');
+
+    try {
+      await generateContractPdf(
+        {
+          createdAt: quote.created_at,
+          painterName: painterDisplayName,
+          painterEmail: currentProfile?.email || undefined,
+          painterPhone: currentProfile?.whatsapp || undefined,
+          painterLocation: painterDisplayLocation || undefined,
+          clientName: quote.cliente_nome,
+          clientCpfCnpj: quote.cliente_cpf_cnpj || undefined,
+          clientPhone: quote.cliente_telefone || undefined,
+          clientEmail: quote.cliente_email || undefined,
+          clientType: quote.cliente_tipo || undefined,
+          propertyAddress: quote.imovel_endereco || undefined,
+          propertyCityState: quote.imovel_cidade_estado || undefined,
+          propertyType: quote.imovel_tipo || undefined,
+          serviceType: quote.pintura_tipo_servico || undefined,
+          finishType: Array.isArray(quote.pintura_acabamentos) && quote.pintura_acabamentos.length > 0
+            ? quote.pintura_acabamentos.join(', ')
+            : (quote.pintura_acabamento || undefined),
+          paintType: Array.isArray(quote.pintura_tintas) && quote.pintura_tintas.length > 0
+            ? quote.pintura_tintas.join(', ')
+            : (quote.pintura_tinta || undefined),
+          wallState: quote.prep_situacao_parede || undefined,
+          prepServices: Array.isArray(quote.prep_servicos_necessarios) ? quote.prep_servicos_necessarios : [],
+          extraServices: Array.isArray(quote.servicos_extras) ? quote.servicos_extras : [],
+          startDate: quote.prazo_data_inicio || undefined,
+          estimatedDeadline: quote.prazo_estimado || undefined,
+          totalValue: quote.valor_total ?? undefined,
+          observations: quote.observacoes || undefined,
+          ambientes: Array.isArray(quote.ambientes) ? quote.ambientes : []
+        },
+        { mode: 'open' }
+      );
+    } catch (error) {
+      console.error('Erro ao visualizar contrato do orcamento:', error);
+      setQuotesError('Nao foi possivel abrir o contrato desse orcamento agora.');
+    }
+  };
+
   const handleQuoteEdit = (quote: SavedOrcamento) => {
     setEditingQuote(quote);
     setIsOrcamentoModalOpen(true);
@@ -1275,6 +1320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           }}
           onEdit={handleQuoteEdit}
           onViewPdf={(quote) => void handleQuoteViewPdf(quote)}
+          onViewContract={(quote) => void handleQuoteViewContract(quote)}
           onDelete={(quote) => void handleQuoteDelete(quote)}
         />
       );

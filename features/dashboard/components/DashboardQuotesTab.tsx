@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, FileText, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, FileText, Pencil, Plus, ScrollText, Trash2 } from 'lucide-react';
 import { SavedOrcamento } from '../../../components/OrcamentoModal';
 import { buildQuotePdfFileName } from '../../../lib/quotePdf';
 import { formatShortDate, QUOTE_STATUS_LABELS, QUOTE_STATUS_STYLES } from '../utils';
@@ -12,6 +12,7 @@ interface DashboardQuotesTabProps {
   onAdd: () => void;
   onEdit: (quote: SavedOrcamento) => void;
   onViewPdf: (quote: SavedOrcamento) => void;
+  onViewContract: (quote: SavedOrcamento) => void;
   onDelete: (quote: SavedOrcamento) => void;
 }
 
@@ -23,6 +24,7 @@ export const DashboardQuotesTab: React.FC<DashboardQuotesTabProps> = ({
   onAdd,
   onEdit,
   onViewPdf,
+  onViewContract,
   onDelete
 }) => (
   <div className="animate-in fade-in duration-500">
@@ -114,6 +116,14 @@ export const DashboardQuotesTab: React.FC<DashboardQuotesTabProps> = ({
                 >
                   <Pencil size={16} className="mr-2" />
                   Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onViewContract(orcamento)}
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B]"
+                >
+                  <ScrollText size={16} className="mr-2" />
+                  Contrato
                 </button>
                 <button
                   type="button"
