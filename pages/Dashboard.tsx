@@ -1070,24 +1070,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       return;
     }
 
-    const confirmedByDialog = window.confirm(
-      'Excluir sua conta agora? Esta acao remove seu perfil, portfolio, orcamentos, agenda e conversas vinculadas a este cadastro.'
-    );
-
-    if (!confirmedByDialog) {
-      return;
-    }
-
-    const confirmationText = window.prompt('Digite EXCLUIR para confirmar a remocao definitiva da sua conta.');
-
-    if ((confirmationText ?? '').trim().toUpperCase() !== 'EXCLUIR') {
-      setSettingsFeedback({
-        type: 'error',
-        message: 'Confirmacao nao concluida. Sua conta nao foi excluida.'
-      });
-      return;
-    }
-
     setIsDeletingAccount(true);
     setSettingsFeedback(null);
 
