@@ -17,6 +17,7 @@ type Ambiente = {
   id: string;
   nome: string;
   area: string;
+  tecnicaDecorativaArea: string;
   peDireito: string;
   superficie: string;
   valor: string;
@@ -177,6 +178,7 @@ const INITIAL_AMBIENTE = (): Ambiente => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   nome: '',
   area: '',
+  tecnicaDecorativaArea: '',
   peDireito: 'Padrao',
   superficie: '',
   valor: ''
@@ -402,6 +404,9 @@ const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
           : `quote-ambiente-${index}-${Date.now()}`,
         nome: typeof ambiente.nome === 'string' ? ambiente.nome : '',
         area: typeof ambiente.area === 'string' ? ambiente.area : '',
+        tecnicaDecorativaArea: typeof ambiente.tecnicaDecorativaArea === 'string'
+          ? ambiente.tecnicaDecorativaArea
+          : '',
         peDireito: typeof ambiente.peDireito === 'string' && ambiente.peDireito.trim()
           ? ambiente.peDireito
           : 'Padrao',
@@ -656,6 +661,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       const ambientesValidos = ambientes.filter((ambiente) => (
         ambiente.nome.trim() ||
         ambiente.area.trim() ||
+        ambiente.tecnicaDecorativaArea.trim() ||
         ambiente.superficie.trim() ||
         ambiente.valor.trim()
       ));
@@ -923,12 +929,21 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                       </button>
                     )}
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
                     <InputGroup label="Nome do ambiente">
                       <input type="text" placeholder="Ex: Sala" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.nome} onChange={(e) => updateAmbiente(ambiente.id, 'nome', e.target.value)} />
                     </InputGroup>
                     <InputGroup label="Area (m2)">
                       <input type="text" placeholder="Ex: 25" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.area} onChange={(e) => updateAmbiente(ambiente.id, 'area', e.target.value)} />
+                    </InputGroup>
+                    <InputGroup label="Tecnica Decorativa (m2)">
+                      <input
+                        type="text"
+                        placeholder="Ex: 8"
+                        className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]"
+                        value={ambiente.tecnicaDecorativaArea}
+                        onChange={(e) => updateAmbiente(ambiente.id, 'tecnicaDecorativaArea', e.target.value)}
+                      />
                     </InputGroup>
                     <InputGroup label="Pe direito">
                       <select className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.peDireito} onChange={(e) => updateAmbiente(ambiente.id, 'peDireito', e.target.value)}>

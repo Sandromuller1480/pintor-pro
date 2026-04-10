@@ -4,6 +4,7 @@ import pintorProLogoUrl from '../imagens/Logo colorido PP.png';
 type QuotePdfAmbiente = {
   nome: string;
   area: string;
+  tecnicaDecorativaArea?: string;
   peDireito: string;
   superficie: string;
   valor?: string;
@@ -392,6 +393,7 @@ export const generateQuotePdf = async (
           const parts = [
             ambiente.nome.trim() || `Ambiente ${index + 1}`,
             ambiente.area.trim() ? `${ambiente.area.trim()} m2` : '',
+            ambiente.tecnicaDecorativaArea?.trim() ? `Tecnica decorativa: ${ambiente.tecnicaDecorativaArea.trim()} m2` : '',
             ambiente.peDireito.trim(),
             ambiente.superficie.trim(),
             ambiente.valor?.trim() ? formatCurrencyDisplay(ambiente.valor) : ''
