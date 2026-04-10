@@ -930,13 +930,13 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                     )}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                    <InputGroup label="Nome do ambiente">
+                    <InputGroup label="Ambiente">
                       <input type="text" placeholder="Ex: Sala" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.nome} onChange={(e) => updateAmbiente(ambiente.id, 'nome', e.target.value)} />
                     </InputGroup>
                     <InputGroup label="Area (m2)">
                       <input type="text" placeholder="Ex: 25" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.area} onChange={(e) => updateAmbiente(ambiente.id, 'area', e.target.value)} />
                     </InputGroup>
-                    <InputGroup label="Tecnica Decorativa (m2)">
+                    <InputGroup label="Decorativo m2">
                       <input
                         type="text"
                         placeholder="Ex: 8"
@@ -957,7 +957,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                         {['Reboco', 'Gesso', 'Drywall', 'Madeira', 'Metal'].map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>
                     </InputGroup>
-                    <InputGroup label="Valor estimado (R$)">
+                    <InputGroup label="Valor estimado">
                       <input
                         type="text"
                         inputMode="decimal"
