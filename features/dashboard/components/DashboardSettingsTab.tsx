@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   BellRing,
   Briefcase,
   CalendarDays,
@@ -12,7 +13,8 @@ import {
   MessageSquare,
   PauseCircle,
   Save,
-  ShieldCheck
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 import {
   BRAZIL_TIMEZONE_OPTIONS,
@@ -28,7 +30,9 @@ interface DashboardSettingsTabProps {
   currentProfile: CurrentPainterProfile | null;
   feedback: FeedbackMessage | null;
   isSaving: boolean;
+  isDeletingAccount: boolean;
   onSave: (settings: PainterSettingsForm) => void;
+  onDeleteAccount: () => void;
 }
 
 type SettingsToggleCardProps = {
@@ -80,7 +84,9 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
   currentProfile,
   feedback,
   isSaving,
-  onSave
+  isDeletingAccount,
+  onSave,
+  onDeleteAccount
 }) => {
   const [form, setForm] = useState<PainterSettingsForm>({
     allowChat: true,
@@ -446,6 +452,35 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 Expediente: <span className="font-black text-white">{scheduleSummary}</span>
               </li>
             </ul>
+          </div>
+
+          <div className="rounded-[32px] border border-red-200 bg-red-50/80 p-8 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-red-100 p-3 text-red-600">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-red-700">Zona de risco</h3>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600">
+                  Exclui seu acesso, remove seu perfil publico, portfolio, orcamentos, agenda e conversas vinculadas a esta conta.
+                  Se houver assinatura ativa, a plataforma tenta cancelar a cobranca antes de concluir a exclusao.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onDeleteAccount}
+              disabled={!currentProfile?.applicationId || isDeletingAccount}
+              className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-red-600 px-5 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red-200 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isDeletingAccount ? (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              ) : (
+                <Trash2 size={16} className="mr-2" />
+              )}
+              {isDeletingAccount ? 'Excluindo conta...' : 'Excluir minha conta'}
+            </button>
           </div>
         </aside>
       </div>

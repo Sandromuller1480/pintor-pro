@@ -453,6 +453,16 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
   };
 };
 
+export const deleteCurrentPainterAccount = async (applicationId: string): Promise<void> => {
+  const { error } = await supabase.functions.invoke('delete-painter-account', {
+    body: { applicationId }
+  });
+
+  if (error) {
+    throw error;
+  }
+};
+
 export const fetchPainterProfileViewMetrics = async (
   applicationId: string,
   periodDays: AnalyticsPeriodDays

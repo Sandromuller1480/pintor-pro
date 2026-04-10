@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import {
   buildVisitErrorMessage,
   deleteQuoteItem,
+  deleteCurrentPainterAccount,
   deleteVisitRequest,
   fetchChatMessages,
   fetchChatThreads,
@@ -146,6 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [profileFeedback, setProfileFeedback] = useState<FeedbackMessage | null>(null);
   const [settingsFeedback, setSettingsFeedback] = useState<FeedbackMessage | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -1059,6 +1061,67 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!currentProfile?.applicationId) {
+      setSettingsFeedback({
+        type: 'error',
+        message: 'Nao encontramos seu cadastro para excluir a conta.'
+      });
+      return;
+    }
+
+    const confirmedByDialog = window.confirm(
+      'Excluir sua conta agora? Esta acao remove seu perfil, portfolio, orcamentos, agenda e conversas vinculadas a este cadastro.'
+    );
+
+    if (!confirmedByDialog) {
+      return;
+    }
+
+    const confirmationText = window.prompt('Digite EXCLUIR para confirmar a remocao definitiva da sua conta.');
+
+    if ((confirmationText ?? '').trim().toUpperCase() !== 'EXCLUIR') {
+      setSettingsFeedback({
+        type: 'error',
+        message: 'Confirmacao nao concluida. Sua conta nao foi excluida.'
+      });
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    setSettingsFeedback(null);
+
+    try {
+      await deleteCurrentPainterAccount(currentProfile.applicationId);
+
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (signOutError) {
+        console.error('Erro ao limpar sessao local apos excluir conta do pintor:', signOutError);
+      }
+
+      setCurrentProfile(null);
+      setPortfolioItems([]);
+      setQuoteItems([]);
+      setVisitItems([]);
+      setChatThreads([]);
+      setSettingsFeedback(null);
+      setPage(Page.Home);
+    } catch (error) {
+      console.error('Erro ao excluir conta do pintor:', error);
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+      setSettingsFeedback({
+        type: 'error',
+        message: message.includes('assinatura')
+          ? 'Nao foi possivel excluir a conta porque a assinatura nao foi cancelada automaticamente.'
+          : 'Nao foi possivel excluir sua conta agora.'
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   const openProfilePicker = () => {
     if (!isUploadingProfile && currentProfile?.applicationId) {
       profileInputRef.current?.click();
@@ -1242,7 +1305,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           currentProfile={currentProfile}
           feedback={settingsFeedback}
           isSaving={isSavingSettings}
+          isDeletingAccount={isDeletingAccount}
           onSave={(settings) => void handleSettingsSave(settings)}
+          onDeleteAccount={() => void handleDeleteAccount()}
         />
       );
       break;
