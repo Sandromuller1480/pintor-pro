@@ -86,6 +86,7 @@ export type SavedOrcamento = {
 };
 
 const QUOTE_MEDIA_BUCKET = 'orcamentos-media';
+const PROPERTY_SITUATION_OPTIONS = ['Novo', 'Reforma'] as const;
 const QUOTE_SELECT_FIELDS = [
   'id',
   'cliente_nome',
@@ -265,6 +266,13 @@ const normalizeStoredStringArray = (value: unknown) => (
     : []
 );
 
+const normalizePropertySituation = (value: string | null | undefined) => {
+  const normalizedValue = (value ?? '').trim();
+  return PROPERTY_SITUATION_OPTIONS.includes(normalizedValue as (typeof PROPERTY_SITUATION_OPTIONS)[number])
+    ? normalizedValue
+    : '';
+};
+
 const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
   if (!Array.isArray(value)) {
     return [INITIAL_AMBIENTE()];
@@ -299,7 +307,7 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   imovelEndereco: quote.imovel_endereco || '',
   imovelCidadeEstado: quote.imovel_cidade_estado || '',
   imovelTipo: quote.imovel_tipo || 'Casa',
-  imovelSituacao: quote.imovel_situacao || '',
+  imovelSituacao: normalizePropertySituation(quote.imovel_situacao),
   imovelStatus: quote.imovel_status || '',
   pinturaTipoServico: quote.pintura_tipo_servico || '',
   pinturaAcabamento: quote.pintura_acabamento || '',
@@ -712,7 +720,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
               <InputGroup label="Situacao">
                 <div className="flex flex-wrap gap-4 mt-2">
-                  {['Novo', 'Usado', 'Reforma'].map((item) => (
+                  {PROPERTY_SITUATION_OPTIONS.map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
                       <input type="radio" name="imovelSituacao" value={item} checked={formData.imovelSituacao === item} onChange={(e) => updateField('imovelSituacao', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
