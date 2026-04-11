@@ -153,7 +153,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
               type="text"
               value={billingName}
               onChange={(e) => setBillingName(e.target.value)}
-              placeholder="Nome completo ou razao social"
+              placeholder="Nome completo ou razão social"
               className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
             />
             <input
