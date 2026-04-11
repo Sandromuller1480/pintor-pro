@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+﻿import { supabase } from '../supabase';
 
 const EXISTING_USER_ERROR_PATTERNS = [
   'already registered',
@@ -165,13 +165,13 @@ export const clientSignupService = {
     }
 
     if (authError) {
-      throw new Error(`Nao foi possivel criar o acesso do cliente: ${authError.message}`);
+      throw new Error(`Não foi possível criar o acesso do cliente: ${authError.message}`);
     }
 
     const authUserId = authData.user?.id;
 
     if (!authUserId) {
-      throw new Error('Nao foi possivel identificar o usuario criado para este cadastro.');
+      throw new Error('Não foi possível identificar o usuário criado para este cadastro.');
     }
 
     const clientId = createUuid();
@@ -192,10 +192,10 @@ export const clientSignupService = {
       }
 
       if (insertMessage.includes('relation') && insertMessage.includes('clientes')) {
-        throw new Error('A tabela de clientes ainda nao foi criada no banco. Rode o SQL clientes_schema.sql no Supabase.');
+        throw new Error('A tabela de clientes ainda não foi criada no banco. Rode o SQL clientes_schema.sql no Supabase.');
       }
 
-      throw new Error(`Nao foi possivel salvar os dados do cliente: ${insertError.message}`);
+      throw new Error(`Não foi possível salvar os dados do cliente: ${insertError.message}`);
     }
 
     if (authData.session) {
@@ -238,7 +238,7 @@ export const clientSignupService = {
       const normalizedMessage = signInError.message.toLowerCase();
 
       if (normalizedMessage.includes('email not confirmed')) {
-        throw new Error('Seu e-mail ainda nao foi confirmado. Abra a mensagem enviada pela plataforma e tente novamente.');
+        throw new Error('Seu e-mail ainda não foi confirmado. Abra a mensagem enviada pela plataforma e tente novamente.');
       }
 
       if (normalizedMessage.includes('invalid login credentials')) {
@@ -249,7 +249,7 @@ export const clientSignupService = {
         throw new Error('Muitas tentativas de login. Aguarde alguns minutos antes de tentar novamente.');
       }
 
-      throw new Error(`Nao foi possivel fazer login agora: ${signInError.message}`);
+      throw new Error(`Não foi possível fazer login agora: ${signInError.message}`);
     }
 
     const currentClientProfile = await getCurrentClientProfile();
@@ -258,12 +258,13 @@ export const clientSignupService = {
       const signOutResult = await supabase.auth.signOut();
 
       if (signOutResult.error) {
-        console.error('Erro ao encerrar sessao nao-cliente apos login:', signOutResult.error);
+        console.error('Erro ao encerrar sessão não-cliente apos login:', signOutResult.error);
       }
 
-      throw new Error('Esta conta nao possui cadastro de cliente. Crie seu cadastro de cliente para continuar.');
+      throw new Error('Esta conta não possui cadastro de cliente. Crie seu cadastro de cliente para continuar.');
     }
 
     return currentClientProfile;
   }
 };
+

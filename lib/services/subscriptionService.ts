@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+﻿import { supabase } from '../supabase';
 
 export type PaidPlanCode = 'silver' | 'pro';
 
@@ -42,13 +42,14 @@ export const subscriptionService = {
     });
 
     if (error) {
-      throw new Error(`Nao foi possivel iniciar o checkout: ${error.message}`);
+      throw new Error(`Não foi possível iniciar o checkout: ${error.message}`);
     }
 
     if (!data?.checkoutUrl || !data?.sessionId) {
-      throw new Error('A funcao retornou uma resposta incompleta de checkout.');
+      throw new Error('A função retornou uma resposta incompleta de checkout.');
     }
 
     return data as CreateCheckoutSessionResponse;
   }
 };
+

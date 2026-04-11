@@ -4,7 +4,7 @@ import { CurrentPainterProfile } from './types';
 export const QUOTE_STATUS_LABELS: Record<string, string> = {
   novo: 'Novo',
   respondido: 'Respondido',
-  em_negociacao: 'Em Negociacao',
+  em_negociacao: 'Em Negociação',
   fechado: 'Fechado',
   recusado: 'Recusado'
 };
@@ -21,7 +21,7 @@ export const VISIT_REQUEST_STATUS_LABELS: Record<string, string> = {
   pending: 'Pendente',
   confirmed: 'Confirmada',
   rescheduled: 'Reagendada',
-  completed: 'Visita concluida',
+  completed: 'Visita concluída',
   cancelled: 'Cancelada',
   no_show: 'Cliente ausente'
 };

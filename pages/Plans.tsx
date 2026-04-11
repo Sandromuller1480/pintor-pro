@@ -82,7 +82,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
     if (checkoutStatus === 'success') {
       setCheckoutNotice({
         kind: 'success',
-        message: 'Pagamento iniciado com sucesso. A confirmacao final depende do webhook do provedor de pagamento.'
+        message: 'Pagamento iniciado com sucesso. A confirmação final depende do webhook do provedor de pagamento.'
       });
       window.history.replaceState({}, '', window.location.pathname);
     } else if (checkoutStatus === 'canceled') {
@@ -120,7 +120,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
       window.location.assign(result.checkoutUrl);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Nao foi possivel iniciar o checkout agora.';
+        error instanceof Error ? error.message : 'Não foi possível iniciar o checkout agora.';
       setCheckoutNotice({
         kind: 'error',
         message: errorMessage
@@ -146,7 +146,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
         <div className="bg-white border border-slate-100 shadow-sm rounded-[40px] p-8 mb-12">
           <h3 className="text-slate-900 font-black uppercase tracking-[0.2em] text-xs mb-3">Dados para cobranca</h3>
           <p className="text-sm text-slate-500 font-medium mb-6">
-            Para planos pagos, informe o e-mail que recebera comprovantes e comunicacoes da assinatura.
+            Para planos pagos, informe o e-mail que receberá comprovantes e comunicações da assinatura.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
@@ -247,4 +247,5 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
     </div>
   );
 };
+
 

@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+﻿import { supabase } from '../supabase';
 import { Painter } from '../../types';
 import {
     DEFAULT_SERVICE_TIMEZONE,
@@ -239,7 +239,7 @@ export const paintersService = {
         }
 
         if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
-            console.error('Erro ao buscar diretorio publico de pintores:', publicDirectoryResult.error);
+            console.error('Erro ao buscar diretório público de pintores:', publicDirectoryResult.error);
         }
 
         const { data, error } = await supabase
@@ -267,7 +267,7 @@ export const paintersService = {
         }
 
         if (publicDirectoryResult.error && !isMissingPublicDirectoryError(publicDirectoryResult.error)) {
-            console.error('Erro ao buscar pintor no diretorio publico:', publicDirectoryResult.error);
+            console.error('Erro ao buscar pintor no diretório público:', publicDirectoryResult.error);
         }
 
         const { data, error } = await supabase
@@ -317,7 +317,7 @@ export const paintersService = {
                 const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
 
                 if (authError && !isExistingUserError) {
-                    console.error('Erro de autenticacao:', authError);
+                    console.error('Erro de autenticação:', authError);
                     throw new Error(`Erro ao criar acesso: ${authError.message}`);
                 }
             }
@@ -342,7 +342,7 @@ export const paintersService = {
                 .single();
 
             if (error) {
-                console.error('Erro ao inserir aplicacao:', error);
+                console.error('Erro ao inserir aplicação:', error);
                 throw new Error(`Falha ao salvar cadastro: ${error.message}`);
             }
 
@@ -364,10 +364,10 @@ export const paintersService = {
             });
 
             if (filesUpdateError) {
-                console.error('Erro ao salvar caminhos dos arquivos da aplicacao:', filesUpdateError);
+                console.error('Erro ao salvar caminhos dos arquivos da aplicação:', filesUpdateError);
                 throw new Error(
                     String(filesUpdateError.message || '').toLowerCase().includes('finalize_painter_application_assets')
-                        ? 'O banco ainda nao recebeu o fluxo seguro do onboarding. Rode o SQL add_applications_rls_and_onboarding_storage.sql no Supabase.'
+                        ? 'O banco ainda não recebeu o fluxo seguro do onboarding. Rode o SQL add_applications_rls_and_onboarding_storage.sql no Supabase.'
                         : `Falha ao atualizar anexos do cadastro: ${filesUpdateError.message}`
                 );
             }
@@ -392,7 +392,7 @@ export const paintersService = {
                     specialtiesCount: normalizedSpecialties.length
                 });
             } catch (processingError) {
-                console.error('Erro no processamento da aplicacao:', processingError);
+                console.error('Erro no processamento da aplicação:', processingError);
                 processingWarning = processingError instanceof Error
                     ? processingError.message
                     : 'Falha ao concluir a analise automatica.';
@@ -410,7 +410,7 @@ export const paintersService = {
                 const { error: signOutError } = await supabase.auth.signOut();
 
                 if (signOutError) {
-                    console.error('Erro ao restaurar contexto publico apos concluir o credenciamento:', signOutError);
+                    console.error('Erro ao restaurar contexto público após concluir o credenciamento:', signOutError);
                 }
             }
         }
@@ -468,10 +468,11 @@ export const paintersService = {
         });
 
         if (error) {
-            console.error('Erro ao invocar funcao process-application:', error);
+            console.error('Erro ao invocar função process-application:', error);
             throw error;
         }
 
         return data;
     }
 };
+

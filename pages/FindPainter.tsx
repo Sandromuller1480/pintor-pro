@@ -71,7 +71,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
         if (!isMounted) return;
         setPainters([]);
         if (!silent) {
-          setErrorMessage('Nao foi possivel carregar os pintores agora.');
+          setErrorMessage('Não foi possível carregar os pintores agora.');
         }
       } finally {
         if (isMounted && !silent) {
@@ -190,7 +190,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Qual tipo de pintura voce precisa?"
+                placeholder="Qual tipo de pintura você precisa?"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
                 value={searchDraft}
                 onChange={(e) => setSearchDraft(e.target.value)}
@@ -200,7 +200,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Cidade ou regiao"
+                placeholder="Cidade ou região"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
                 value={locationDraft}
                 onChange={(e) => setLocationDraft(e.target.value)}
@@ -221,10 +221,10 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
           <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-[#9A077B] text-xs font-black uppercase tracking-[0.28em] mb-2">Mapa da Busca</h2>
-              <p className="text-2xl font-black tracking-tight text-slate-900">Explore a area visivel e encontre pintores por regiao.</p>
+              <p className="text-2xl font-black tracking-tight text-slate-900">Explore a área visível e encontre pintores por região.</p>
             </div>
             <p className="text-sm font-bold text-slate-500">
-              Mostrando <span className="text-[#9A077B]">{displayedPainters.length}</span> de <span className="text-slate-900">{filteredPainters.length}</span> pintores na area atual do mapa
+              Mostrando <span className="text-[#9A077B]">{displayedPainters.length}</span> de <span className="text-slate-900">{filteredPainters.length}</span> pintores na área atual do mapa
             </p>
           </div>
 
@@ -263,13 +263,13 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                         <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{specialty}</span>
                       </label>
                     )) : (
-                      <p className="text-sm text-slate-400">Nenhuma especialidade disponivel.</p>
+                      <p className="text-sm text-slate-400">Nenhuma especialidade disponível.</p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confianca</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confiança</h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input
@@ -346,7 +346,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               ) : (
                 <div className="col-span-full py-20 text-center text-slate-400 font-medium">
                   {filteredPainters.length > 0
-                    ? 'Nenhum pintor visivel na area atual do mapa. Arraste ou ajuste o zoom para ver mais profissionais.'
+                    ? 'Nenhum pintor visível na área atual do mapa. Arraste ou ajuste o zoom para ver mais profissionais.'
                     : 'Nenhum pintor encontrado com os filtros atuais.'}
                 </div>
               )}

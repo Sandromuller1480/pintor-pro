@@ -133,7 +133,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     } catch (error) {
       setErrorMessage(error instanceof Error && error.message
         ? error.message
-        : 'Nao foi possivel salvar as alteracoes do perfil agora.');
+        : 'Não foi possível salvar as alterações do perfil agora.');
       setIsSaving(false);
       return;
     }
@@ -197,7 +197,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={formData.city}
                 onChange={(event) => setFormData((current) => ({ ...current, city: event.target.value }))}
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                placeholder="Ex: Cuiaba"
+                placeholder="Ex: Cuiabá"
                 required
               />
             </div>
@@ -244,7 +244,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                Tempo de profissao
+                Tempo de profissão
               </label>
               <input
                 type="text"
@@ -329,7 +329,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               ) : (
                 <Save size={18} className="mr-2" />
               )}
-              {isSaving ? 'Salvando...' : 'Salvar Alteracoes'}
+              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
             </button>
           </div>
         </form>

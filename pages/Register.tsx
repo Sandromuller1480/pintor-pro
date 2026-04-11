@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { ProfilePhotoCropModal } from '../components/ProfilePhotoCropModal';
 import { SPECIALTY_OPTIONS } from '../lib/painterProfileOptions';
 import {
@@ -116,7 +116,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert('A senha e a confirmacao de senha nao coincidem.');
+      alert('A senha e a confirmação de senha não coincidem.');
       return;
     }
 
@@ -164,7 +164,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     } catch (error) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'Erro inesperado.';
-      alert(`Erro ao enviar solicitacao.\n\n${errorMessage}`);
+      alert(`Erro ao enviar solicitação.\n\n${errorMessage}`);
       setIsSubmitting(false);
     }
   };
@@ -263,7 +263,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         >
           <div>CADASTRO EFETUADO COM SUCESSO!</div>
           <p className="mt-3 max-w-md text-[10px] font-medium normal-case tracking-normal text-white/90">
-            Verifique seu e-mail antes de entrar no painel caso a confirmacao de acesso esteja habilitada no Supabase.
+            Verifique seu e-mail antes de entrar no painel caso a confirmação de acesso esteja habilitada no Supabase.
           </p>
           {submissionFeedback?.processingWarning && (
             <p className="mt-2 max-w-md text-[10px] font-medium normal-case tracking-normal text-white/80">
@@ -276,7 +276,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         Seja a Elite: <span className="text-[#9A077B]">PINTOR PRO</span>
       </h1>
       <p className="text-slate-600 text-lg mb-12 font-medium">
-        Nao somos apenas um diretorio. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
+        Não somos apenas um diretório. Somos a vitrine dos melhores pintores do Brasil. Inicie sua jornada para o topo do mercado.
       </p>
       <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/5 rounded-full -translate-y-10 translate-x-10"></div>
@@ -564,7 +564,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         </div>
       </div>
       <p className="mt-8 text-slate-400 text-sm font-medium">
-        Sua inscricao passara por uma curadoria tecnica antes de ser publicada.
+        Sua inscrição passará por uma curadoria técnica antes de ser publicada.
       </p>
       <button
         onClick={() => setPage(Page.Home)}
@@ -581,3 +581,4 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     </div>
   );
 };
+

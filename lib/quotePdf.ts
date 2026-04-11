@@ -131,7 +131,7 @@ export const buildQuotePdfFileName = (painterName: string, createdAt: string) =>
 const blobToDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
   reader.onloadend = () => resolve(String(reader.result));
-  reader.onerror = () => reject(new Error('Nao foi possivel converter imagem para o PDF.'));
+  reader.onerror = () => reject(new Error('Não foi possível converter imagem para o PDF.'));
   reader.readAsDataURL(blob);
 });
 
@@ -361,7 +361,7 @@ export const generateQuotePdf = async (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...SLATE_TEXT);
-  doc.text('Atendimento organizado com a garantia e seguranca da Pintor Pro.', PAGE_MARGIN, y);
+  doc.text('Atendimento organizado com a garantia e segurança da Pintor Pro.', PAGE_MARGIN, y);
   y += 26;
 
   await addSectionTitle('1. Dados do cliente');
@@ -371,19 +371,19 @@ export const generateQuotePdf = async (
   await addField('E-mail', payload.clientEmail || '');
   await addField('Tipo de cliente', payload.clientType || '');
 
-  await addSectionTitle('2. Dados do imovel');
-  await addField('Endereco', payload.propertyAddress || '');
+  await addSectionTitle('2. Dados do imóvel');
+  await addField('Endereço', payload.propertyAddress || '');
   await addField('Cidade / Estado', payload.propertyCityState || '');
-  await addField('Tipo de imovel', payload.propertyType || '');
-  await addField('Situacao', payload.propertySituation || '');
+  await addField('Tipo de imóvel', payload.propertyType || '');
+  await addField('Situação', payload.propertySituation || '');
   await addField('Status', payload.propertyStatus || '');
 
-  await addSectionTitle('3. Escopo do servico');
-  await addField('Tipo de servico', payload.serviceType || '');
+  await addSectionTitle('3. Escopo do serviço');
+  await addField('Tipo de serviço', payload.serviceType || '');
   await addField('Acabamento', payload.finishType || '');
   await addField('Tipo de tinta', payload.paintType || '');
-  await addField('Situacao da parede', payload.wallState || '');
-  await addField('Preparacao necessaria', payload.prepServices.join(', '));
+  await addField('Situação da parede', payload.wallState || '');
+  await addField('Preparação necessária', payload.prepServices.join(', '));
 
   if (payload.ambientes.length > 0) {
     await addField(
@@ -393,7 +393,7 @@ export const generateQuotePdf = async (
           const parts = [
             ambiente.nome.trim() || `Ambiente ${index + 1}`,
             ambiente.area.trim() ? `${ambiente.area.trim()} m2` : '',
-            ambiente.tecnicaDecorativaArea?.trim() ? `Tecnica decorativa: ${ambiente.tecnicaDecorativaArea.trim()} m2` : '',
+            ambiente.tecnicaDecorativaArea?.trim() ? `Técnica decorativa: ${ambiente.tecnicaDecorativaArea.trim()} m2` : '',
             ambiente.peDireito.trim(),
             ambiente.superficie.trim(),
             ambiente.valor?.trim() ? formatCurrencyDisplay(ambiente.valor) : ''
@@ -409,17 +409,17 @@ export const generateQuotePdf = async (
   await addField('Altura do trabalho', payload.workHeight || '');
   await addField('Necessidades de acesso', payload.complexityNeeds.join(', '));
   await addField('Acesso ao local', payload.accessLevel || '');
-  await addField('Urgencia', payload.urgency || '');
-  await addField('Inicio ideal', formatDisplayDate(payload.startDate));
+  await addField('Urgência', payload.urgency || '');
+  await addField('Início ideal', formatDisplayDate(payload.startDate));
   await addField('Prazo estimado', payload.estimatedDeadline || '');
 
-  await addSectionTitle('5. Materiais e observacoes');
+  await addSectionTitle('5. Materiais e observações');
   await addField('Fornecimento de materiais', payload.materialSupply || '');
   await addField('Cores definidas', payload.colorsDefined || '');
   await addField('Quantidade de cores', payload.colorsQuantity || '');
   await addField('Consultoria de cores', payload.colorConsulting || '');
-  await addField('Servicos extras', payload.extraServices.join(', '));
-  await addField('Observacoes', payload.observations || '');
+  await addField('Serviços extras', payload.extraServices.join(', '));
+  await addField('Observações', payload.observations || '');
 
   const quoteHasPricing =
     payload.ambientes.some((ambiente) => hasCurrencyValue(ambiente.valor)) ||
@@ -432,7 +432,7 @@ export const generateQuotePdf = async (
   if (quoteHasPricing) {
     const ambientesSubtotal = payload.ambientes.reduce((sum, ambiente) => sum + parseCurrencyValue(ambiente.valor), 0);
 
-    await addSectionTitle('6. Valores do orcamento');
+    await addSectionTitle('6. Valores do orçamento');
     await addField('Subtotal dos ambientes', formatCurrencyDisplay(ambientesSubtotal));
     if (hasCurrencyValue(payload.materialsCost)) {
       await addField('Materiais', formatCurrencyDisplay(payload.materialsCost));
@@ -459,7 +459,7 @@ export const generateQuotePdf = async (
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(...SLATE_TEXT);
-  doc.text('Negociacao organizada pela plataforma, com relacao direta entre cliente e pintor.', PAGE_MARGIN + 16, y + 36);
+  doc.text('Negociação organizada pela plataforma, com relação direta entre cliente e pintor.', PAGE_MARGIN + 16, y + 36);
 
   await drawFooter(doc, pageWidth, pageHeight, brandLogoDataUrl, brandLogoDimensions);
 

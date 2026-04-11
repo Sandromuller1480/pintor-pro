@@ -47,7 +47,7 @@ export const DashboardPortfolioTab: React.FC<DashboardPortfolioTabProps> = ({
     <div className="animate-in fade-in duration-500">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black text-[#000747]">Meu Portfolio</h2>
+          <h2 className="text-3xl font-black text-[#000747]">Meu Portfólio</h2>
           <p className="text-slate-500 font-medium">Gerencie suas obras e impressione clientes.</p>
         </div>
         <button
@@ -70,8 +70,8 @@ export const DashboardPortfolioTab: React.FC<DashboardPortfolioTabProps> = ({
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center">
-          <h3 className="mb-2 text-xl font-black text-slate-900">Seu portfolio ainda esta vazio</h3>
-          <p className="font-medium text-slate-500">Adicione sua primeira obra e ela aparecera aqui sem recarregar a pagina.</p>
+          <h3 className="mb-2 text-xl font-black text-slate-900">Seu portfólio ainda está vazio</h3>
+          <p className="font-medium text-slate-500">Adicione sua primeira obra e ela aparecerá aqui sem recarregar a página.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 justify-items-start md:grid-cols-2 xl:grid-cols-3">
@@ -93,17 +93,17 @@ export const DashboardPortfolioTab: React.FC<DashboardPortfolioTabProps> = ({
                       alt={obra.titulo}
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center font-bold text-slate-400">Sem midia</div>
+                      <div className="flex h-full w-full items-center justify-center font-bold text-slate-400">Sem mídia</div>
                   )}
 
                   <div className="absolute inset-x-0 top-0 flex items-start justify-end p-4">
                     <div className="rounded-full bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md">
-                      {obra.status === 'EM ANDAMENTO' ? 'Em Andamento' : 'Concluido'}
+                      {obra.status === 'EM ANDAMENTO' ? 'Em Andamento' : 'Concluído'}
                     </div>
                   </div>
 
                   <div className="absolute bottom-4 left-4 rounded-full bg-white/94 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 shadow-sm backdrop-blur-sm">
-                    {mediaCount} midia(s) | 3 etapas
+                    {mediaCount} mídia(s) | 3 etapas
                   </div>
                 </div>
 

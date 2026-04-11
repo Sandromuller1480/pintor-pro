@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { getCurrentAdminProfile } from '../lib/adminAccess';
 import { getSessionRoleContext } from '../lib/authSession';
 import { Page, NavigateToPage } from '../types';
@@ -18,7 +18,7 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
     const normalized = message.toLowerCase();
 
     if (normalized.includes('email not confirmed')) {
-      return 'Seu e-mail ainda nao foi confirmado. Abra a mensagem enviada pela PINTOR PRO e tente novamente.';
+      return 'Seu e-mail ainda não foi confirmado. Abra a mensagem enviada pela PINTOR PRO e tente novamente.';
     }
 
     if (normalized.includes('invalid login credentials')) {
@@ -66,7 +66,7 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
       setPage(Page.Home);
     } catch (error) {
       console.error('Erro ao autenticar:', error);
-      setErrorMessage('Nao foi possivel concluir o login agora. Tente novamente em instantes.');
+      setErrorMessage('Não foi possível concluir o login agora. Tente novamente em instantes.');
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +140,7 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
 
         <div className="mt-8 pt-6 border-t border-slate-100 text-center relative z-10">
           <p className="text-sm font-medium text-slate-500">
-            Se ainda nao tem cadastro <button type="button" onClick={() => setPage(Page.Register)} className="text-[#9A077B] font-black uppercase tracking-widest hover:text-[#000747] transition">CLIQUE AQUI</button>
+            Se ainda não tem cadastro <button type="button" onClick={() => setPage(Page.Register)} className="text-[#9A077B] font-black uppercase tracking-widest hover:text-[#000747] transition">CLIQUE AQUI</button>
           </p>
         </div>
       </div>
@@ -151,3 +151,4 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
     </div>
   );
 };
+

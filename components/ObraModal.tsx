@@ -348,8 +348,8 @@ export const ObraModal: React.FC<ObraModalProps> = ({
       setIsSuccess(true);
       setSuccessMessage(
         isEditMode
-          ? 'Sua obra foi atualizada com sucesso. As novas etapas ja estao refletidas no portfolio.'
-          : 'Sua obra foi registrada com sucesso e ja esta visivel no seu portfolio.'
+          ? 'Sua obra foi atualizada com sucesso. As novas etapas já estão refletidas no portfólio.'
+          : 'Sua obra foi registrada com sucesso e já está visível no seu portfólio.'
       );
     } catch (rawError: any) {
       console.error(rawError);
@@ -357,7 +357,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
 
       setError(
         normalizedMessage.includes('stage_media') && normalizedMessage.includes('column')
-          ? 'O banco ainda nao recebeu a estrutura das etapas da obra. Rode o SQL add_portfolio_stage_media.sql no Supabase.'
+          ? 'O banco ainda não recebeu a estrutura das etapas da obra. Rode o SQL add_portfolio_stage_media.sql no Supabase.'
           : rawError?.message || 'Ocorreu um erro ao salvar a obra. Tente novamente.'
       );
     } finally {
@@ -375,12 +375,12 @@ export const ObraModal: React.FC<ObraModalProps> = ({
         <div className="flex items-center justify-between bg-gradient-to-r from-[#000747] to-[#9A077B] p-6 text-white shadow-md">
           <div>
             <h2 className="text-xl font-black tracking-wide">
-              {isEditMode ? 'Editar Obra do Portfolio' : 'Adicionar Nova Obra'}
+              {isEditMode ? 'Editar Obra do Portfólio' : 'Adicionar Nova Obra'}
             </h2>
             <p className="text-sm font-medium text-white/80">
               {isEditMode
-                ? 'Atualize as etapas da pintura, fotos e videos do seu processo.'
-                : 'Cadastre a obra completa, com fotos e videos separados por etapa.'}
+                ? 'Atualize as etapas da pintura, fotos e vídeos do seu processo.'
+                : 'Cadastre a obra completa, com fotos e vídeos separados por etapa.'}
             </p>
           </div>
           <button
@@ -423,15 +423,15 @@ export const ObraModal: React.FC<ObraModalProps> = ({
               <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 md:p-6">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9A077B]">Identificacao da obra</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9A077B]">Identificação da obra</p>
                     <h3 className="mt-2 text-xl font-black text-[#000747]">Dados principais</h3>
                   </div>
                   <span className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500 shadow-sm">
-                    {totalDraftMediaCount} midia(s) no rascunho
+                    {totalDraftMediaCount} mídia(s) no rascunho
                   </span>
                 </div>
 
-                <InputGroup label="Titulo da Obra">
+                <InputGroup label="Título da Obra">
                   <input
                     type="text"
                     value={titulo}
@@ -454,7 +454,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                 </InputGroup>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <InputGroup label="Tipo de Imovel">
+                  <InputGroup label="Tipo de Imóvel">
                     <select
                       value={tipoImovel}
                       onChange={(event) => setTipoImovel(event.target.value)}
@@ -476,7 +476,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                       disabled={isSubmitting}
                     >
                       <option value="">Selecione...</option>
-                      {['Textura', 'Acrilica', 'Verniz', 'Epoxi', 'Massa Corrida'].map((option) => (
+                        {['Textura', 'Acrílica', 'Verniz', 'Epóxi', 'Massa Corrida'].map((option) => (
                         <option key={option} value={option}>{option}</option>
                       ))}
                     </select>
@@ -521,8 +521,8 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                           <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">{stageDefinition.description}</p>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right shadow-sm">
-                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Midias da etapa</p>
-                          <p className="mt-2 text-sm font-black text-slate-700">{imageCount} foto(s) e {videoCount} video(s)</p>
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mídias da etapa</p>
+                          <p className="mt-2 text-sm font-black text-slate-700">{imageCount} foto(s) e {videoCount} vídeo(s)</p>
                         </div>
                       </div>
 
@@ -532,8 +532,8 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                         ) : (
                           <UploadCloud size={34} className="mb-3 text-slate-400" />
                         )}
-                        <p className="font-black text-slate-700">Adicionar fotos e videos desta etapa</p>
-                        <p className="mt-2 text-xs font-medium text-slate-400">Voce pode selecionar varios arquivos de uma vez.</p>
+                        <p className="font-black text-slate-700">Adicionar fotos e vídeos desta etapa</p>
+                        <p className="mt-2 text-xs font-medium text-slate-400">Você pode selecionar vários arquivos de uma vez.</p>
                         <input
                           type="file"
                           multiple
@@ -549,7 +549,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
 
                       {stageItems.length === 0 ? (
                         <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm font-semibold text-slate-400">
-                          Nenhuma midia adicionada nesta etapa ainda.
+                          Nenhuma mídia adicionada nesta etapa ainda.
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -558,7 +558,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                               <div className="flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3">
                                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                                   {mediaItem.mediaType === 'video' ? <Video size={14} /> : <Camera size={14} />}
-                                  {mediaItem.mediaType === 'video' ? 'Video' : 'Foto'}
+                                  {mediaItem.mediaType === 'video' ? 'Vídeo' : 'Foto'}
                                   {mediaItem.kind === 'new' && (
                                     <span className="rounded-full bg-[#9A077B]/10 px-2 py-0.5 text-[10px] tracking-[0.16em] text-[#9A077B]">novo</span>
                                   )}
@@ -568,7 +568,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                                   onClick={() => removeStageMediaItem(stageDefinition.key, mediaItem.id)}
                                   disabled={isSubmitting}
                                   className="rounded-full p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                                  aria-label="Remover midia desta etapa"
+                                  aria-label="Remover mídia desta etapa"
                                 >
                                   <Trash2 size={15} />
                                 </button>
@@ -607,7 +607,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                   };
                   return accumulator;
                 }, createEmptyPortfolioStageMedia())
-              )} itens no portfolio desta obra
+              )} itens no portfólio desta obra
             </div>
 
             <div className="ml-auto flex items-center gap-4">

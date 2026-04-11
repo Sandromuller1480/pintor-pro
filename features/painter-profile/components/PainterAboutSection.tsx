@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { CheckCircle } from 'lucide-react';
 import { Painter } from '../../../types';
 import { buildAboutSummary, formatPortfolioDate, getPlanLabel } from '../utils';
@@ -23,8 +23,8 @@ export const PainterAboutSection: React.FC<PainterAboutSectionProps> = ({
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
       <div className="p-4 bg-slate-50 rounded-2xl">
-        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Experiencia</div>
-        <div className="font-black text-slate-800">{painter.experienceTime || 'Nao informado'}</div>
+        <div className="text-xs font-bold text-slate-400 uppercase mb-1">Experiência</div>
+        <div className="font-black text-slate-800">{painter.experienceTime || 'Não informado'}</div>
       </div>
       <div className="p-4 bg-slate-50 rounded-2xl">
         <div className="text-xs font-bold text-slate-400 uppercase mb-1">Especialidades</div>
@@ -54,7 +54,7 @@ export const PainterAboutSection: React.FC<PainterAboutSectionProps> = ({
         </div>
       ) : (
         <p className="text-slate-500 text-sm">
-          Este pintor ainda nao informou especialidades publicas no cadastro.
+          Este pintor ainda não informou especialidades públicas no cadastro.
         </p>
       )}
     </div>
@@ -67,3 +67,4 @@ export const PainterAboutSection: React.FC<PainterAboutSectionProps> = ({
     )}
   </div>
 );
+

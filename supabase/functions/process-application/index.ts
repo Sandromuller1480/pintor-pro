@@ -261,7 +261,7 @@ Deno.serve(async (req) => {
   }
 
   if (updateError) {
-    console.error('Erro ao atualizar aplicacao:', updateError);
+    console.error('Erro ao atualizar aplicação:', updateError);
     return jsonResponse(500, { error: 'Failed to update application', details: updateError.message });
   }
 
@@ -319,9 +319,9 @@ Deno.serve(async (req) => {
       message.includes('notification_email_provider_id');
 
     if (isLegacySchema) {
-      console.warn('Colunas de rastreamento de email ainda nao existem em applications.');
+      console.warn('Colunas de rastreamento de e-mail ainda não existem em applications.');
     } else {
-      console.error('Erro ao salvar status do email na aplicacao:', notificationUpdateError);
+      console.error('Erro ao salvar status do e-mail na aplicação:', notificationUpdateError);
     }
   }
 
@@ -336,4 +336,5 @@ Deno.serve(async (req) => {
     emailProviderId
   });
 });
+
 

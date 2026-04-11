@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -157,26 +157,26 @@ const normalizeError = (error: unknown) => {
   }
 
   if (text.includes('painter_chat_threads') || text.includes('painter_chat_messages')) {
-    return 'O recurso de chat ainda nao foi configurado no banco. Rode o SQL chat_interno_schema.sql no Supabase.';
+    return 'O recurso de chat ainda não foi configurado no banco. Rode o SQL chat_interno_schema.sql no Supabase.';
   }
 
   if (text.includes('row-level security') || text.includes('permission denied')) {
-    return 'O chat nao conseguiu acessar o banco. Reaplique o SQL chat_interno_schema.sql e confirme se o perfil do pintor esta ativo.';
+    return 'O chat não conseguiu acessar o banco. Reaplique o SQL chat_interno_schema.sql e confirme se o perfil do pintor está ativo.';
   }
 
   if (text.includes('indisponivel para chat')) {
-    return 'Este perfil ainda nao esta habilitado para receber mensagens no chat.';
+    return 'Este perfil ainda não está habilitado para receber mensagens no chat.';
   }
 
   if (text.includes('cliente precisa iniciar uma sessao')) {
-    return 'Nao foi possivel iniciar a sessao segura do chat. Tente novamente em alguns segundos.';
+    return 'Não foi possível iniciar a sessão segura do chat. Tente novamente em alguns segundos.';
   }
 
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return 'Nao foi possivel usar o chat agora.';
+  return 'Não foi possível usar o chat agora.';
 };
 
 const formatMessageTimestamp = (value: string) => {
@@ -208,7 +208,7 @@ const ensureClientUser = async () => {
   const signInResult = await supabase.auth.signInAnonymously();
 
   if (signInResult.error || !signInResult.data.user) {
-    throw signInResult.error ?? new Error('Nao foi possivel iniciar a sessao do chat.');
+    throw signInResult.error ?? new Error('Não foi possível iniciar a sessão do chat.');
   }
 
   return signInResult.data.user;
@@ -342,7 +342,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
       try {
         if (!painterId) {
-          throw new Error('Nao foi possivel identificar o pintor para iniciar a conversa.');
+          throw new Error('Não foi possível identificar o pintor para iniciar a conversa.');
         }
 
         const nextClientProfile = await getCurrentClientProfile();
@@ -518,7 +518,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
     event.preventDefault();
 
     if (!painterId) {
-      setErrorMessage('Nao foi possivel identificar o pintor para iniciar a conversa.');
+      setErrorMessage('Não foi possível identificar o pintor para iniciar a conversa.');
       return;
     }
 
@@ -604,7 +604,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       }
 
       if (!threadId) {
-        throw new Error('Nao foi possivel identificar a conversa criada no chat.');
+        throw new Error('Não foi possível identificar a conversa criada no chat.');
       }
 
       setIsLoadingMessages(true);
@@ -633,7 +633,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
         message: ''
       });
       setReplyDraft('');
-      setSuccessMessage(`Conversa iniciada com ${painterName}. Agora voce pode continuar pelo chat.`);
+      setSuccessMessage(`Conversa iniciada com ${painterName}. Agora você pode continuar pelo chat.`);
     } catch (error) {
       setErrorMessage(normalizeError(error));
     } finally {
@@ -677,7 +677,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       const nextMessages = await fetchMessages(thread.id);
       setMessages(nextMessages);
       setReplyDraft('');
-      setSuccessMessage('Mensagem enviada. Se o pintor responder, ela aparecera aqui em tempo real.');
+      setSuccessMessage('Mensagem enviada. Se o pintor responder, ela aparecerá aqui em tempo real.');
     } catch (error) {
       setErrorMessage(normalizeError(error));
     } finally {
@@ -770,7 +770,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
                             }`}
                           >
                             <p className={`mb-1 text-[11px] font-black ${isClientMessage ? 'text-white/80' : 'text-slate-400'}`}>
-                              {isClientMessage ? 'Voce' : message.sender_name}
+                              {isClientMessage ? 'Você' : message.sender_name}
                             </p>
                             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.message}</p>
                             <p className={`mt-2 text-[10px] font-bold ${isClientMessage ? 'text-white/70' : 'text-slate-400'}`}>
@@ -875,7 +875,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
                       value={formData.clientEmail}
                       onChange={(event) => setFormData((current) => ({ ...current, clientEmail: event.target.value }))}
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                      placeholder="voce@email.com"
+                      placeholder="você@email.com"
                       required
                     />
                   </div>
@@ -940,3 +940,4 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
     </div>
   );
 };
+

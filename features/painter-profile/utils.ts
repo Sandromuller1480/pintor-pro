@@ -1,4 +1,4 @@
-import { Painter } from '../../types';
+﻿import { Painter } from '../../types';
 
 export const formatPortfolioDate = (value: string) => {
   const parsedDate = new Date(value);
@@ -73,7 +73,7 @@ export const buildAboutSummary = (currentPainter: Painter, publishedWorks: numbe
   }
 
   if (publishedWorks > 0) {
-    summaryParts.push(`Ja publicou ${publishedWorks} obra(s) no portfolio publico.`);
+    summaryParts.push(`Já publicou ${publishedWorks} obra(s) no portfólio público.`);
   }
 
   return summaryParts.join(' ');
@@ -82,3 +82,4 @@ export const buildAboutSummary = (currentPainter: Painter, publishedWorks: numbe
 export const isUuid = (value: string) => (
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 );
+

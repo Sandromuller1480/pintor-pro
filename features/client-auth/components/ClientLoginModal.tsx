@@ -72,7 +72,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
       onClose();
       onSuccess();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel fazer login agora.');
+      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível fazer login agora.');
     } finally {
       setIsSubmitting(false);
     }
@@ -136,7 +136,7 @@ export const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
                     }
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                  placeholder="voce@email.com"
+                  placeholder="cliente@email.com"
                   autoComplete="email"
                   required
                 />

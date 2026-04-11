@@ -1,4 +1,4 @@
-import type { CurrentAdminProfile } from './adminAccess';
+﻿import type { CurrentAdminProfile } from './adminAccess';
 import { supabase } from './supabase';
 
 export type AdminAuditLog = {
@@ -71,7 +71,7 @@ export const createAdminAuditLog = async ({
   metadata
 }: CreateAdminAuditLogInput) => {
   if (!adminProfile) {
-    throw new Error('Perfil administrativo nao encontrado para registrar auditoria.');
+    throw new Error('Perfil administrativo não encontrado para registrar auditoria.');
   }
 
   const changes = buildAdminAuditChanges(previousRecord, nextRecord);
@@ -99,9 +99,9 @@ export const createAdminAuditLog = async ({
 };
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
-  'application.approved': 'Aplicacao aprovada',
-  'application.pending': 'Aplicacao devolvida para pendencia',
-  'application.rejected': 'Aplicacao reprovada',
+  'application.approved': 'Aplicação aprovada',
+  'application.pending': 'Aplicação devolvida para pendência',
+  'application.rejected': 'Aplicação reprovada',
   'application.category_changed': 'Categoria operacional alterada',
   'application.leads_paused': 'Captacao de leads pausada',
   'application.leads_resumed': 'Captacao de leads reativada',
@@ -115,7 +115,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   'portfolio.blocked': 'Obra bloqueada',
   'portfolio.hidden': 'Obra ocultada da vitrine',
   'portfolio.shown': 'Obra exibida na vitrine',
-  'portfolio.status_changed': 'Status de moderacao alterado'
+  'portfolio.status_changed': 'Status de moderação alterado'
 };
 
 export const getAdminAuditActionLabel = (actionType: string) => (
@@ -159,3 +159,4 @@ export const formatAdminAuditValue = (value: unknown) => {
 
   return String(value);
 };
+

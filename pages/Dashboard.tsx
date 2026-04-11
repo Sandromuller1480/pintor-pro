@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MessageSquare } from 'lucide-react';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
@@ -262,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       } else {
         console.error('Erro ao carregar portfolio:', portfolioResult.reason);
         setPortfolioItems([]);
-        setPortfolioError('Nao foi possivel carregar suas obras agora.');
+        setPortfolioError('Não foi possível carregar suas obras agora.');
       }
 
       if (quotesResult.status === 'fulfilled') {
@@ -271,7 +271,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       } else {
         console.error('Erro ao carregar lista de orcamentos:', quotesResult.reason);
         setQuoteItems([]);
-        setQuotesError('Nao foi possivel carregar seus orcamentos agora.');
+        setQuotesError('Não foi possível carregar seus orçamentos agora.');
       }
 
       if (profileResult.status === 'fulfilled' && profileResult.value) {
@@ -717,7 +717,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   const handleSendChatReply = async () => {
     if (!selectedChatThreadId || !selectedChatThread || !currentProfile) {
-      setChatReplyError('Nao foi possivel identificar a conversa para responder.');
+      setChatReplyError('Não foi possível identificar a conversa para responder.');
       return;
     }
 
@@ -795,8 +795,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
       setChatReplyError(
         message.includes('row-level security') || message.includes('permission denied')
-          ? 'Sua conta nao conseguiu salvar a resposta no chat. Confirme se o SQL chat_interno_schema.sql foi aplicado e se este cadastro esta vinculado ao usuario autenticado.'
-          : 'Nao foi possivel enviar sua resposta agora.'
+          ? 'Sua conta não conseguiu salvar a resposta no chat. Confirme se o SQL chat_interno_schema.sql foi aplicado e se este cadastro está vinculado ao usuário autenticado.'
+          : 'Não foi possível enviar sua resposta agora.'
       );
     } finally {
       setIsSendingChatReply(false);
@@ -831,7 +831,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       setPage(Page.Home);
     } catch (error) {
       console.error('Erro ao encerrar sessao:', error);
-      alert('Nao foi possivel sair da conta agora. Tente novamente.');
+      alert('Não foi possível sair da conta agora. Tente novamente.');
       setIsSignOut(false);
     }
   };
@@ -912,7 +912,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       );
     } catch (error) {
       console.error('Erro ao visualizar PDF do orcamento:', error);
-      setQuotesError('Nao foi possivel abrir o PDF desse orcamento agora.');
+      setQuotesError('Não foi possível abrir o PDF desse orçamento agora.');
     }
   };
 
@@ -957,7 +957,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       );
     } catch (error) {
       console.error('Erro ao visualizar contrato do orcamento:', error);
-      setQuotesError('Nao foi possivel abrir o contrato desse orcamento agora.');
+      setQuotesError('Não foi possível abrir o contrato desse orçamento agora.');
     }
   };
 
@@ -967,7 +967,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   };
 
   const handleQuoteDelete = async (quote: SavedOrcamento) => {
-    const shouldDelete = window.confirm(`Excluir o orcamento "${quote.cliente_nome}"? Esta acao nao pode ser desfeita.`);
+    const shouldDelete = window.confirm(`Excluir o orçamento "${quote.cliente_nome}"? Esta ação não pode ser desfeita.`);
 
     if (!shouldDelete) {
       return;
@@ -979,7 +979,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       setQuotesError('');
     } catch (error) {
       console.error('Erro ao excluir orcamento:', error);
-      setQuotesError('Nao foi possivel excluir esse orcamento agora.');
+      setQuotesError('Não foi possível excluir esse orçamento agora.');
     }
   };
 
@@ -1013,7 +1013,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     if (!currentProfile?.applicationId) {
       setProfileFeedback({
         type: 'error',
-        message: 'Nao encontramos seu cadastro para editar o perfil.'
+        message: 'Não encontramos seu cadastro para editar o perfil.'
       });
       return;
     }
@@ -1024,7 +1024,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   const handleProfileUpdated = async (formData: EditProfileFormData) => {
     if (!currentProfile?.applicationId) {
-      throw new Error('Nao encontramos seu cadastro para salvar as alteracoes.');
+      throw new Error('Não encontramos seu cadastro para salvar as alterações.');
     }
 
     const normalizedSpecialties = Array.from(
@@ -1051,7 +1051,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     if (error) {
       console.error('Erro ao atualizar perfil do pintor:', error);
-      throw new Error('Nao foi possivel salvar as alteracoes do perfil agora.');
+      throw new Error('Não foi possível salvar as alterações do perfil agora.');
     }
 
     setCurrentProfile((profile) => {
@@ -1081,7 +1081,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     if (!currentProfile?.applicationId) {
       setSettingsFeedback({
         type: 'error',
-        message: 'Nao encontramos seu cadastro para salvar as configuracoes.'
+        message: 'Não encontramos seu cadastro para salvar as configurações.'
       });
       return;
     }
@@ -1103,13 +1103,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
       setSettingsFeedback({
         type: 'success',
-        message: 'Configuracoes atualizadas com sucesso.'
+        message: 'Configurações atualizadas com sucesso.'
       });
     } catch (error) {
-      console.error('Erro ao salvar configuracoes do pintor:', error);
+      console.error('Erro ao salvar configurações do pintor:', error);
       setSettingsFeedback({
         type: 'error',
-        message: 'Nao foi possivel salvar as configuracoes agora.'
+        message: 'Não foi possível salvar as configurações agora.'
       });
     } finally {
       setIsSavingSettings(false);
@@ -1120,7 +1120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     if (!currentProfile?.applicationId) {
       setSettingsFeedback({
         type: 'error',
-        message: 'Nao encontramos seu cadastro para excluir a conta.'
+        message: 'Não encontramos seu cadastro para excluir a conta.'
       });
       return;
     }
@@ -1151,8 +1151,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       setSettingsFeedback({
         type: 'error',
         message: message.includes('assinatura')
-          ? 'Nao foi possivel excluir a conta porque a assinatura nao foi cancelada automaticamente.'
-          : 'Nao foi possivel excluir sua conta agora.'
+          ? 'Não foi possível excluir a conta porque a assinatura não foi cancelada automaticamente.'
+          : 'Não foi possível excluir sua conta agora.'
       });
     } finally {
       setIsDeletingAccount(false);
@@ -1193,7 +1193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     if (!currentProfile?.applicationId) {
       setMediaFeedback({
         type: 'error',
-        message: 'Nao encontramos seu cadastro para salvar essa imagem.'
+        message: 'Não encontramos seu cadastro para salvar essa imagem.'
       });
       return;
     }
@@ -1264,8 +1264,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       setMediaFeedback({
         type: 'error',
         message: mediaType === 'profile'
-          ? 'Nao foi possivel atualizar a foto de perfil agora.'
-          : 'Nao foi possivel atualizar a foto de capa agora.'
+          ? 'Não foi possível atualizar a foto de perfil agora.'
+          : 'Não foi possível atualizar a foto de capa agora.'
       });
     } finally {
       setLoadingState(false);
@@ -1407,7 +1407,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
               right: '24px',
               bottom: '24px'
             }}
-            aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) nao lida(s)` : 'Abrir chat interno'}
+            aria-label={hasUnreadChats ? `Abrir chat com ${unreadChatCount} conversa(s) não lida(s)` : 'Abrir chat interno'}
           >
             <MessageSquare size={24} />
             {hasUnreadChats && (
@@ -1449,3 +1449,4 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-﻿
+
 import React, { useEffect, useState } from 'react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
@@ -137,10 +137,10 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const uniqueLocationsLabel = formatMetricValue(uniqueLocations.length);
   const uniqueSpecialtiesLabel = formatMetricValue(uniqueSpecialties.length);
   const socialProofLabel = totalReviews > 0 && averageRating > 0
-    ? `${averageRating.toFixed(1)} de media em ${totalReviewsLabel} avaliacoes publicas`
+    ? `${averageRating.toFixed(1)} de média em ${totalReviewsLabel} avaliações públicas`
     : `${totalPaintersLabel} perfis publicados na vitrine`;
   const homeMapBadgeCount = visibleHomePainterCount ?? totalPainters;
-  const homeMapBadgeLabel = visibleHomePainterCount === null ? 'Perfis ativos' : 'Na area atual';
+  const homeMapBadgeLabel = visibleHomePainterCount === null ? 'Perfis ativos' : 'Na área atual';
 
   return (
     <div className="overflow-x-hidden">
@@ -275,14 +275,14 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             </div>
 
             <div className="order-1 lg:order-2 space-y-8">
-              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Vitrine Publica</h2>
+              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Vitrine Pública</h2>
               <h3 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none">
-                {hasDirectoryData ? `${totalPaintersLabel} perfis reais` : 'A vitrine publica'} <br /> ja publicados <span className="text-[#B21492] underline decoration-slate-700">na plataforma.</span>
+                {hasDirectoryData ? `${totalPaintersLabel} perfis reais` : 'A vitrine pública'} <br /> já publicados <span className="text-[#B21492] underline decoration-slate-700">na plataforma.</span>
               </h3>
               <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-md">
                 {hasDirectoryData
-                  ? `Hoje a busca publica reune ${totalPaintersLabel} pintores, ${verifiedPaintersLabel} verificados, ${uniqueSpecialtiesLabel} especialidades cadastradas e presenca em ${uniqueLocationsLabel} regioes da vitrine.`
-                  : 'Os perfis aprovados aparecem aqui com cidade, especialidades, portfolio e selos de confianca.'}
+                  ? `Hoje a busca pública reúne ${totalPaintersLabel} pintores, ${verifiedPaintersLabel} verificados, ${uniqueSpecialtiesLabel} especialidades cadastradas e presença em ${uniqueLocationsLabel} regiões da vitrine.`
+                  : 'Os perfis aprovados aparecem aqui com cidade, especialidades, portfólio e selos de confiança.'}
               </p>
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-4 text-white">
@@ -291,7 +291,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                 </div>
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Perfis com selos, portfolio e avaliacoes publicas</span>
+                  <span className="font-bold text-lg">Perfis com selos, portfólio e avaliações públicas</span>
                 </div>
               </div>
             </div>
@@ -314,11 +314,11 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             </div>
             <div className="space-y-4">
               <div className="text-5xl font-black text-[#B21492] tracking-tighter">{totalReviewsLabel}</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Avaliacoes Publicas</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Avaliações Públicas</div>
             </div>
             <div className="space-y-4">
               <div className="text-5xl font-black text-[#B21492] tracking-tighter">{topRatedPainters > 0 ? topRatedPaintersLabel : uniqueLocationsLabel}</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{topRatedPainters > 0 ? 'Top Avaliados' : 'Regioes Ativas'}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{topRatedPainters > 0 ? 'Top Avaliados' : 'Regiões Ativas'}</div>
             </div>
           </div>
         </div>
@@ -418,4 +418,3 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
     </div>
   );
 };
-

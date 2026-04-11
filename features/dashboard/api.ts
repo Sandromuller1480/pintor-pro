@@ -1,4 +1,4 @@
-import { SavedObra } from '../../components/ObraModal';
+﻿import { SavedObra } from '../../components/ObraModal';
 import { SavedOrcamento } from '../../components/OrcamentoModal';
 import {
   DEFAULT_SERVICE_TIMEZONE,
@@ -284,24 +284,24 @@ export const normalizeChatThreadsError = (error: unknown) => {
   const message = error instanceof Error ? error.message.toLowerCase() : '';
 
   return message.includes('painter_chat_threads') || message.includes('does not exist')
-    ? 'A tabela do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-    : 'Nao foi possivel carregar as conversas do chat agora.';
+    ? 'A tabela do chat ainda não foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+    : 'Não foi possível carregar as conversas do chat agora.';
 };
 
 export const normalizeChatMessagesError = (error: unknown) => {
   const message = error instanceof Error ? error.message.toLowerCase() : '';
 
   return message.includes('painter_chat_messages') || message.includes('does not exist')
-    ? 'A tabela de mensagens do chat ainda nao foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
-    : 'Nao foi possivel carregar as mensagens dessa conversa agora.';
+    ? 'A tabela de mensagens do chat ainda não foi criada no banco. Rode o SQL chat_interno_schema.sql no Supabase.'
+    : 'Não foi possível carregar as mensagens dessa conversa agora.';
 };
 
 export const buildVisitErrorMessage = (error: unknown) => {
   const message = error instanceof Error ? error.message.toLowerCase() : '';
 
   return message.includes('painter_visit_requests') || message.includes('does not exist')
-    ? 'A tabela de visitas ainda nao foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
-    : 'Nao foi possivel carregar sua agenda de visitas agora.';
+    ? 'A tabela de visitas ainda não foi criada no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.'
+    : 'Não foi possível carregar sua agenda de visitas agora.';
 };
 
 const buildPeriodGrowthPercent = (currentPeriodViews: number, previousPeriodViews: number) => {
@@ -639,3 +639,4 @@ export const uploadPainterMedia = async ({
     url: getPublicMediaUrl(filePath)
   };
 };
+

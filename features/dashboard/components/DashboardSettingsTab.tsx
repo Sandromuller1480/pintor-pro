@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   BellRing,
@@ -175,7 +175,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
   const statusLabel = getApplicationStatusLabel(currentProfile?.applicationStatus);
   const locationLabel = currentProfile?.city
     ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
-    : 'Localizacao nao informada';
+    : 'Localização não informada';
   const scheduleSummary = buildBusinessHoursSummary(form);
 
   return (
@@ -183,11 +183,11 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
       <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-[#9A077B]">Configuracoes operacionais</p>
-            <h2 className="text-3xl font-black text-[#000747]">Controle como voce aparece e atende dentro da plataforma.</h2>
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-[#9A077B]">Configurações operacionais</p>
+            <h2 className="text-3xl font-black text-[#000747]">Controle como você aparece e atende dentro da plataforma.</h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-              Essas preferencias afetam seu perfil publico em tempo real. Se voce pausar o recebimento de contatos,
-              os botoes de chat e agendamento ficam indisponiveis para clientes ate a reativacao.
+              Essas preferências afetam seu perfil público em tempo real. Se você pausar o recebimento de contatos,
+              os botões de chat e agendamento ficam indisponíveis para clientes até a reativação.
             </p>
           </div>
           <button
@@ -197,7 +197,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
             className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#EFC6E3] transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
-            {isSaving ? 'Salvando...' : 'Salvar alteracoes'}
+            {isSaving ? 'Salvando...' : 'Salvar alterações'}
           </button>
         </div>
 
@@ -229,7 +229,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               </div>
               <div>
                 <h3 className="text-xl font-black text-[#000747]">Disponibilidade e atendimento</h3>
-                <p className="text-sm font-medium text-slate-500">Defina como clientes podem iniciar contato com voce.</p>
+                <p className="text-sm font-medium text-slate-500">Defina como clientes podem iniciar contato com você.</p>
               </div>
             </div>
 
@@ -237,28 +237,28 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               <SettingsToggleCard
                 icon={MessageSquare}
                 title="Permitir contato por chat"
-                description="Quando desativado, o botao Chamar no Chat fica bloqueado no seu perfil publico."
+                description="Quando desativado, o botão Chamar no Chat fica bloqueado no seu perfil público."
                 checked={form.allowChat}
                 onChange={(checked) => updateField('allowChat', checked)}
               />
               <SettingsToggleCard
                 icon={Clock3}
                 title="Permitir agendamento de visita"
-                description="Controla se clientes podem solicitar visitas tecnicas diretamente pela sua pagina publica."
+                description="Controla se clientes podem solicitar visitas técnicas diretamente pela sua página pública."
                 checked={form.allowVisitRequests}
                 onChange={(checked) => updateField('allowVisitRequests', checked)}
               />
               <SettingsToggleCard
                 icon={PauseCircle}
                 title="Pausar recebimento de novos contatos"
-                description="Desliga chat e agenda ao mesmo tempo, ideal para ferias, agenda lotada ou manutencao do atendimento."
+                description="Desliga chat e agenda ao mesmo tempo, ideal para férias, agenda lotada ou manutenção do atendimento."
                 checked={form.pauseLeadIntake}
                 onChange={(checked) => updateField('pauseLeadIntake', checked)}
               />
               <SettingsToggleCard
                 icon={CalendarDays}
                 title="Restringir atendimento ao horario de expediente"
-                description="Quando ligado, clientes so conseguem iniciar contato dentro dos dias e horarios configurados abaixo."
+                description="Quando ligado, clientes só conseguem iniciar contato dentro dos dias e horários configurados abaixo."
                 checked={form.businessHoursEnabled}
                 onChange={(checked) => updateField('businessHoursEnabled', checked)}
               />
@@ -302,7 +302,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
 
                 <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                   <label className="block">
-                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Inicio</span>
+                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Início</span>
                     <input
                       type="time"
                       value={form.workingHoursStart}
@@ -320,7 +320,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Fuso horario</span>
+                    <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Fuso horário</span>
                     <div className="relative">
                       <Globe2 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <select
@@ -339,7 +339,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 </div>
 
                 <div className="mt-6 rounded-2xl border border-[#9A077B]/10 bg-white px-4 py-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Resumo publico</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Resumo público</p>
                   <p className="mt-2 text-sm font-bold text-slate-700">{scheduleSummary}</p>
                 </div>
               </div>
@@ -352,8 +352,8 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 <BellRing size={20} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-[#000747]">Notificacoes</h3>
-                <p className="text-sm font-medium text-slate-500">Organize como voce quer acompanhar oportunidades no painel.</p>
+                <h3 className="text-xl font-black text-[#000747]">Notificações</h3>
+                <p className="text-sm font-medium text-slate-500">Organize como você quer acompanhar oportunidades no painel.</p>
               </div>
             </div>
 
@@ -361,14 +361,14 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               <SettingsToggleCard
                 icon={Mail}
                 title="Receber avisos por e-mail"
-                description="Mantem comunicacoes importantes de conversas, agenda e atualizacoes operacionais."
+                description="Mantém comunicações importantes de conversas, agenda e atualizações operacionais."
                 checked={form.emailNotifications}
                 onChange={(checked) => updateField('emailNotifications', checked)}
               />
               <SettingsToggleCard
                 icon={Briefcase}
-                title="Receber resumo diario"
-                description="Agrupa novas interacoes e status do painel em um resumo mais compacto ao longo do dia."
+                title="Receber resumo diário"
+                description="Agrupa novas interações e status do painel em um resumo mais compacto ao longo do dia."
                 checked={form.dailySummaryEnabled}
                 onChange={(checked) => updateField('dailySummaryEnabled', checked)}
               />
@@ -382,7 +382,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               </div>
               <div>
                 <h3 className="text-xl font-black text-[#000747]">Redes sociais</h3>
-                <p className="text-sm font-medium text-slate-500">Cadastre os links do seu Instagram e Facebook para futuras exibicoes e integracoes do seu perfil.</p>
+                <p className="text-sm font-medium text-slate-500">Cadastre os links do seu Instagram e Facebook para futuras exibições e integrações do seu perfil.</p>
               </div>
             </div>
 
@@ -418,7 +418,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               </label>
 
               <p className="text-xs font-medium leading-relaxed text-slate-500">
-                Dica: cole o link completo do seu perfil. Se voce digitar sem `https://`, a plataforma completa isso automaticamente ao salvar.
+                Dica: cole o link completo do seu perfil. Se você digitar sem `https://`, a plataforma completa isso automaticamente ao salvar.
               </p>
             </div>
           </div>
@@ -429,7 +429,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
             <h3 className="text-xl font-black text-[#000747]">Conta e plano</h3>
             <div className="mt-6 space-y-4">
               {[
-                { label: 'Conta principal', value: currentProfile?.email || 'Nao informada' },
+                { label: 'Conta principal', value: currentProfile?.email || 'Não informada' },
                 { label: 'Plano atual', value: planLabel },
                 { label: 'Status do cadastro', value: statusLabel },
                 { label: 'Cidade base', value: locationLabel }
@@ -443,7 +443,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
           </div>
 
           <div className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-[#000747] to-[#111F45] p-8 text-white shadow-sm">
-            <h3 className="text-xl font-black">Impacto publico agora</h3>
+            <h3 className="text-xl font-black">Impacto público agora</h3>
             <ul className="mt-6 space-y-4 text-sm font-medium leading-relaxed text-white/80">
               <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                 Chat: <span className="font-black text-white">{form.pauseLeadIntake ? 'Pausado' : form.allowChat ? 'Ativo' : 'Desativado'}</span>
@@ -468,8 +468,8 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               <div>
                 <h3 className="text-xl font-black text-red-700">Zona de risco</h3>
                 <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600">
-                  Exclui seu acesso, remove seu perfil publico, portfolio, orcamentos, agenda e conversas vinculadas a esta conta.
-                  Se houver assinatura ativa, a plataforma tenta cancelar a cobranca antes de concluir a exclusao.
+                  Exclui seu acesso, remove seu perfil público, portfólio, orçamentos, agenda e conversas vinculadas a esta conta.
+                  Se houver assinatura ativa, a plataforma tenta cancelar a cobrança antes de concluir a exclusão.
                 </p>
               </div>
             </div>
@@ -499,10 +499,10 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                 <AlertTriangle size={22} />
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-red-500">Alerta de exclusao</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-red-500">Alerta de exclusão</p>
                 <h3 className="mt-2 text-2xl font-black text-[#000747]">Tem certeza que deseja excluir sua conta?</h3>
                 <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-                  Essa acao remove seu acesso, seu perfil publico e os dados operacionais vinculados a este pintor.
+                  Essa ação remove seu acesso, seu perfil público e os dados operacionais vinculados a este pintor.
                 </p>
               </div>
             </div>
@@ -536,3 +536,4 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     </div>
   );
 };
+

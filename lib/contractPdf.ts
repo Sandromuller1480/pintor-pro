@@ -120,7 +120,7 @@ export const buildContractPdfFileName = (
 const blobToDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
   reader.onloadend = () => resolve(String(reader.result));
-  reader.onerror = () => reject(new Error('Nao foi possivel converter imagem para o PDF.'));
+  reader.onerror = () => reject(new Error('Não foi possível converter imagem para o PDF.'));
   reader.readAsDataURL(blob);
 });
 
@@ -365,7 +365,7 @@ export const generateContractPdf = async (
   doc.setFontSize(12);
   doc.setTextColor(...BRAND_BLUE);
   const contractTitleY = painterNameBottomY + 20;
-  doc.text('CONTRADO PRESTACAO DE SERVICO DE PINTURA', headerTextStartX, contractTitleY);
+  doc.text('CONTRATO DE PRESTAÇÃO DE SERVIÇO DE PINTURA', headerTextStartX, contractTitleY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
@@ -380,7 +380,7 @@ export const generateContractPdf = async (
   y = headerBottomY + 20;
 
   await addParagraph(
-    'Instrumento particular que organiza a contratacao direta entre cliente e profissional de pintura, com base nas informacoes registradas na plataforma Pintor Pro.'
+    'Instrumento particular que organiza a contratação direta entre cliente e profissional de pintura, com base nas informações registradas na plataforma Pintor Pro.'
   );
 
   await addSectionTitle('1. Partes');
@@ -400,7 +400,7 @@ export const generateContractPdf = async (
 
   await addSectionTitle('2. Objeto do contrato');
   await addParagraph(
-    `O presente contrato tem como objeto a execucao dos servicos de ${payload.serviceType || 'pintura imobiliaria'} no imovel ${payload.propertyType ? `do tipo ${payload.propertyType}` : 'objeto deste contrato'}, localizado em ${payload.propertyAddress || 'endereco a confirmar'}${payload.propertyCityState ? `, ${payload.propertyCityState}` : ''}.`
+    `O presente contrato tem como objeto a execução dos serviços de ${payload.serviceType || 'pintura imobiliária'} no imóvel ${payload.propertyType ? `do tipo ${payload.propertyType}` : 'objeto deste contrato'}, localizado em ${payload.propertyAddress || 'endereço a confirmar'}${payload.propertyCityState ? `, ${payload.propertyCityState}` : ''}.`
   );
 
   const environmentSummary = payload.ambientes
@@ -409,7 +409,7 @@ export const generateContractPdf = async (
         ambiente.nome.trim() || `Ambiente ${index + 1}`,
         ambiente.area.trim() ? `${ambiente.area.trim()} m2` : '',
         ambiente.tecnicaDecorativaArea?.trim() ? `Decorativo ${ambiente.tecnicaDecorativaArea.trim()} m2` : '',
-        ambiente.superficie.trim() ? `Superficie: ${ambiente.superficie.trim()}` : '',
+        ambiente.superficie.trim() ? `Superfície: ${ambiente.superficie.trim()}` : '',
         ambiente.valor?.trim() ? `Valor: ${formatCurrencyDisplay(ambiente.valor)}` : ''
       ].filter(Boolean);
 
@@ -423,61 +423,61 @@ export const generateContractPdf = async (
   }
 
   await addParagraph(
-    `Acabamentos previstos: ${payload.finishType || 'a definir entre as partes'}. Tipos de tinta previstos: ${payload.paintType || 'a definir entre as partes'}. Estado da superficie informado: ${payload.wallState || 'nao informado'}.`
+    `Acabamentos previstos: ${payload.finishType || 'a definir entre as partes'}. Tipos de tinta previstos: ${payload.paintType || 'a definir entre as partes'}. Estado da superfície informado: ${payload.wallState || 'não informado'}.`
   );
 
   if ((payload.prepServices ?? []).length > 0) {
-    await addParagraph(`Preparacao prevista: ${(payload.prepServices ?? []).join(', ')}.`);
+    await addParagraph(`Preparação prevista: ${(payload.prepServices ?? []).join(', ')}.`);
   }
 
   if ((payload.extraServices ?? []).length > 0) {
-    await addParagraph(`Servicos complementares previstos: ${(payload.extraServices ?? []).join(', ')}.`);
+    await addParagraph(`Serviços complementares previstos: ${(payload.extraServices ?? []).join(', ')}.`);
   }
 
   await addSectionTitle('4. Prazo');
   await addParagraph(
-    `O inicio estimado dos servicos sera ${payload.startDate ? formatDisplayDate(payload.startDate) : 'definido entre as partes'}, com prazo de execucao ${payload.estimatedDeadline || 'a combinar'}, podendo haver ajuste por condicoes climaticas, liberacao do ambiente, alteracoes solicitadas ou fatos alheios a vontade das partes.`
+    `O início estimado dos serviços será ${payload.startDate ? formatDisplayDate(payload.startDate) : 'definido entre as partes'}, com prazo de execução ${payload.estimatedDeadline || 'a combinar'}, podendo haver ajuste por condições climáticas, liberação do ambiente, alterações solicitadas ou fatos alheios à vontade das partes.`
   );
 
   await addSectionTitle('5. Valor e pagamento');
   await addParagraph(
-    `O valor total estimado deste contrato e ${parseCurrencyValue(payload.totalValue) > 0 ? formatCurrencyDisplay(payload.totalValue) : 'A COMBINAR ENTRE AS PARTES'}, observando o orcamento previamente aprovado.`
+    `O valor total estimado deste contrato é ${parseCurrencyValue(payload.totalValue) > 0 ? formatCurrencyDisplay(payload.totalValue) : 'A COMBINAR ENTRE AS PARTES'}, observando o orçamento previamente aprovado.`
   );
   await addParagraph(
-    'A forma de pagamento sera ajustada diretamente entre CONTRATANTE e CONTRATADO. A Pintor Pro nao intermedeia nem recebe pagamentos relativos a este contrato.'
+    'A forma de pagamento será ajustada diretamente entre CONTRATANTE e CONTRATADO. A Pintor Pro não intermedeia nem recebe pagamentos relativos a este contrato.'
   );
 
-  await addSectionTitle('6. Obrigacoes do contratado');
+  await addSectionTitle('6. Obrigações do contratado');
   await addBulletList([
-    'Executar os servicos com zelo tecnico, boa-fe e observancia do escopo aprovado.',
+    'Executar os serviços com zelo técnico, boa-fé e observância do escopo aprovado.',
     'Informar previamente ao contratante qualquer necessidade adicional que altere prazo, material ou valor.',
-    'Manter o ambiente organizado dentro do possivel durante a execucao dos trabalhos.',
+    'Manter o ambiente organizado dentro do possível durante a execução dos trabalhos.',
     'Comunicar impedimentos relevantes que possam atrasar o cronograma.'
   ]);
 
-  await addSectionTitle('7. Obrigacoes do contratante');
+  await addSectionTitle('7. Obrigações do contratante');
   await addBulletList([
-    'Disponibilizar acesso ao imovel, energia, agua e demais condicoes minimas para a execucao do servico.',
-    'Validar previamente cores, acabamentos, ambientes e demais especificacoes do servico.',
-    'Efetuar os pagamentos diretamente ao contratado nas condicoes ajustadas entre as partes.',
-    'Comunicar por escrito qualquer alteracao relevante no escopo antes da execucao.'
+    'Disponibilizar acesso ao imóvel, energia, água e demais condições mínimas para a execução do serviço.',
+    'Validar previamente cores, acabamentos, ambientes e demais especificações do serviço.',
+    'Efetuar os pagamentos diretamente ao contratado nas condições ajustadas entre as partes.',
+    'Comunicar por escrito qualquer alteração relevante no escopo antes da execução.'
   ]);
 
-  await addSectionTitle('8. Alteracoes, cancelamento e rescisao');
+  await addSectionTitle('8. Alterações, cancelamento e rescisão');
   await addParagraph(
-    'Qualquer alteracao de escopo, material, metragem, acabamento, tecnica decorativa, prazo ou valor devera ser ajustada por livre negociacao entre as partes. Em caso de cancelamento ou rescisao, recomenda-se registrar por escrito o que ja foi executado, os valores eventualmente devidos e os materiais ja empregados.'
+    'Qualquer alteração de escopo, material, metragem, acabamento, técnica decorativa, prazo ou valor deverá ser ajustada por livre negociação entre as partes. Em caso de cancelamento ou rescisão, recomenda-se registrar por escrito o que já foi executado, os valores eventualmente devidos e os materiais já empregados.'
   );
 
-  await addSectionTitle('9. Disposicoes gerais');
+  await addSectionTitle('9. Disposições gerais');
   await addParagraph(
-    'As partes declaram que leram e compreenderam este instrumento, comprometendo-se a agir com probidade, transparencia e boa-fe durante a contratacao e a execucao dos servicos.'
+    'As partes declaram que leram e compreenderam este instrumento, comprometendo-se a agir com probidade, transparência e boa-fé durante a contratação e a execução dos serviços.'
   );
   await addParagraph(
-    'Este documento e um modelo base operacional. Para contratos com exigencias especificas, maior risco, garantias especiais, parcelamentos complexos ou obras de alto valor, recomenda-se revisao juridica antes da assinatura.'
+    'Este documento é um modelo-base operacional. Para contratos com exigências específicas, maior risco, garantias especiais, parcelamentos complexos ou obras de alto valor, recomenda-se revisão jurídica antes da assinatura.'
   );
 
   if (payload.observations?.trim()) {
-    await addSectionTitle('10. Observacoes complementares');
+    await addSectionTitle('10. Observações complementares');
     await addParagraph(payload.observations.trim());
   }
 

@@ -127,7 +127,7 @@ export const DashboardChatInbox: React.FC<DashboardChatInboxProps> = ({
                           }`}
                         >
                           <p className={`mb-1 text-[11px] font-black ${isPainterMessage ? 'text-white/80' : 'text-slate-400'}`}>
-                            {isPainterMessage ? 'Voce' : message.sender_name}
+                              {isPainterMessage ? 'Você' : message.sender_name}
                           </p>
                           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.message}</p>
                           <p className={`mt-2 text-[10px] font-bold ${isPainterMessage ? 'text-white/70' : 'text-slate-400'}`}>
@@ -184,7 +184,7 @@ export const DashboardChatInbox: React.FC<DashboardChatInboxProps> = ({
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
             <h4 className="mb-2 text-base font-black text-slate-900">Nenhuma conversa recebida ainda</h4>
             <p className="text-sm font-medium text-slate-500">
-              Quando um cliente clicar em "Chamar no Chat", a conversa aparecera aqui.
+              Quando um cliente clicar em "Chamar no Chat", a conversa aparecerá aqui.
             </p>
           </div>
         ) : (
@@ -216,8 +216,8 @@ export const DashboardChatInbox: React.FC<DashboardChatInboxProps> = ({
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Ultima mensagem</p>
-                  <p className="text-sm leading-relaxed text-slate-600">{thread.last_message_preview || 'Sem mensagem visivel.'}</p>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Última mensagem</p>
+                  <p className="text-sm leading-relaxed text-slate-600">{thread.last_message_preview || 'Sem mensagem visível.'}</p>
                 </div>
               </button>
             ))}

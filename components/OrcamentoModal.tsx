@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { X, Plus, Trash2, Camera, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateQuotePdf } from '../lib/quotePdf';
@@ -32,12 +32,12 @@ type OrcamentoFormData = {
   imovelEndereco: string;
   imovelCidadeEstado: string;
   imovelTipo: string;
-  imovelSituacao: string;
+  imovelSituação: string;
   imovelStatus: string;
   pinturaTipoServico: string;
   pinturaAcabamento: string[];
   pinturaTinta: string[];
-  prepSituacaoParede: string;
+  prepSituaçãoParede: string;
   compAlturaTrabalho: string;
   compAcesso: string;
   coresJaDefinidas: string;
@@ -45,7 +45,7 @@ type OrcamentoFormData = {
   coresConsultoria: string;
   prazoDataInicio: string;
   prazoEstimado: string;
-  prazoUrgencia: string;
+  prazoUrgência: string;
   fornecimentoMateriais: string;
   valorMateriais: string;
   valorDeslocamento: string;
@@ -154,12 +154,12 @@ const INITIAL_FORM_DATA: OrcamentoFormData = {
   imovelEndereco: '',
   imovelCidadeEstado: '',
   imovelTipo: 'Casa',
-  imovelSituacao: '',
+  imovelSituação: '',
   imovelStatus: '',
   pinturaTipoServico: '',
   pinturaAcabamento: [],
   pinturaTinta: [],
-  prepSituacaoParede: '',
+  prepSituaçãoParede: '',
   compAlturaTrabalho: '',
   compAcesso: '',
   coresJaDefinidas: '',
@@ -167,7 +167,7 @@ const INITIAL_FORM_DATA: OrcamentoFormData = {
   coresConsultoria: '',
   prazoDataInicio: '',
   prazoEstimado: '',
-  prazoUrgencia: '',
+  prazoUrgência: '',
   fornecimentoMateriais: '',
   valorMateriais: '',
   valorDeslocamento: '',
@@ -183,7 +183,7 @@ const INITIAL_AMBIENTE = (): Ambiente => ({
   nome: '',
   area: '',
   tecnicaDecorativaArea: '',
-  peDireito: 'Padrao',
+  peDireito: 'Padrão',
   superficie: '',
   valor: ''
 });
@@ -328,14 +328,14 @@ const buildQuoteWhatsappMessage = (
   });
   const messageLines = [
     `Ola, ${formData.clienteNome.trim()}!`,
-    `Seu orcamento foi preparado por ${painterName || 'seu pintor'} pela plataforma Pintor Pro.`,
-    'Este atendimento conta com a organizacao, garantia e seguranca da Pintor Pro para proteger a negociacao entre as partes.',
+    `Seu orçamento foi preparado por ${painterName || 'seu pintor'} pela plataforma Pintor Pro.`,
+    'Este atendimento conta com a organização, garantia e segurança da Pintor Pro para proteger a negociação entre as partes.',
     '',
-    'Resumo do orcamento:',
-    `Tipo de servico: ${formData.pinturaTipoServico || 'A combinar'}`,
-    `Imovel: ${formData.imovelTipo || 'Nao informado'}`,
-    `Local: ${formData.imovelCidadeEstado.trim() || 'Nao informado'}`,
-    `Urgencia: ${formData.prazoUrgencia || 'Nao informada'}`
+    'Resumo do orçamento:',
+    `Tipo de serviço: ${formData.pinturaTipoServico || 'A combinar'}`,
+    `Imóvel: ${formData.imovelTipo || 'Não informado'}`,
+    `Local: ${formData.imovelCidadeEstado.trim() || 'Não informado'}`,
+    `Urgência: ${formData.prazoUrgência || 'Não informada'}`
   ];
 
   if (ambientesValidos.length > 0) {
@@ -355,10 +355,10 @@ const buildQuoteWhatsappMessage = (
   }
 
   if (formData.observacoes.trim()) {
-    messageLines.push('', `Observacoes: ${formData.observacoes.trim()}`);
+    messageLines.push('', `Observações: ${formData.observacoes.trim()}`);
   }
 
-  messageLines.push('', 'Se quiser, posso ajustar algum detalhe para deixar a proposta ideal para voce.');
+  messageLines.push('', 'Se quiser, posso ajustar algum detalhe para deixar a proposta ideal para você.');
 
   return messageLines.join('\n');
 };
@@ -431,7 +431,7 @@ const normalizeStoredAmbientes = (value: unknown): Ambiente[] => {
           : '',
         peDireito: typeof ambiente.peDireito === 'string' && ambiente.peDireito.trim()
           ? ambiente.peDireito
-          : 'Padrao',
+          : 'Padrão',
         superficie: typeof ambiente.superficie === 'string' ? ambiente.superficie : '',
         valor: formatCurrencyInputValue(
           typeof ambiente.valor === 'string' || typeof ambiente.valor === 'number'
@@ -453,12 +453,12 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   imovelEndereco: quote.imovel_endereco || '',
   imovelCidadeEstado: quote.imovel_cidade_estado || '',
   imovelTipo: quote.imovel_tipo || 'Casa',
-  imovelSituacao: normalizePropertySituation(quote.imovel_situacao),
+  imovelSituação: normalizePropertySituation(quote.imovel_situacao),
   imovelStatus: normalizePropertyStatus(quote.imovel_status),
   pinturaTipoServico: quote.pintura_tipo_servico || '',
   pinturaAcabamento: normalizeStoredFinishTypes(quote.pintura_acabamentos, quote.pintura_acabamento),
   pinturaTinta: normalizeStoredFinishTypes(quote.pintura_tintas, quote.pintura_tinta),
-  prepSituacaoParede: quote.prep_situacao_parede || '',
+  prepSituaçãoParede: quote.prep_situacao_parede || '',
   compAlturaTrabalho: quote.comp_altura_trabalho || '',
   compAcesso: quote.comp_acesso || '',
   coresJaDefinidas: quote.cores_ja_definidas || '',
@@ -466,7 +466,7 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   coresConsultoria: quote.cores_consultoria || '',
   prazoDataInicio: quote.prazo_data_inicio || '',
   prazoEstimado: quote.prazo_estimado || '',
-  prazoUrgencia: quote.prazo_urgencia || '',
+  prazoUrgência: quote.prazo_urgencia || '',
   fornecimentoMateriais: quote.fornecimento_materiais || '',
   valorMateriais: formatCurrencyInputValue(quote.valor_materiais),
   valorDeslocamento: formatCurrencyInputValue(quote.valor_deslocamento),
@@ -665,7 +665,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
     }
 
     if (!formData.confirmacaoInformacoes || !formData.autorizacaoContato) {
-      setErrorMessage('Confirme as informacoes e a autorizacao de contato para salvar o orcamento.');
+      setErrorMessage('Confirme as informações e a autorização de contato para salvar o orçamento.');
       return;
     }
 
@@ -687,7 +687,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
       }
 
       if (!user) {
-        throw new Error('Voce precisa estar autenticado para salvar um orcamento.');
+        throw new Error('Você precisa estar autenticado para salvar um orçamento.');
       }
 
       const painterDisplayName =
@@ -723,7 +723,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         imovel_endereco: formData.imovelEndereco.trim() || null,
         imovel_cidade_estado: formData.imovelCidadeEstado.trim() || null,
         imovel_tipo: formData.imovelTipo || null,
-        imovel_situacao: formData.imovelSituacao || null,
+        imovel_situacao: formData.imovelSituação || null,
         imovel_status: formData.imovelStatus || null,
         ambientes: ambientesValidos,
         pintura_tipo_servico: formData.pinturaTipoServico || null,
@@ -731,7 +731,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         pintura_acabamentos: formData.pinturaAcabamento,
         pintura_tinta: formData.pinturaTinta.length > 0 ? formData.pinturaTinta.join(', ') : null,
         pintura_tintas: formData.pinturaTinta,
-        prep_situacao_parede: formData.prepSituacaoParede || null,
+        prep_situacao_parede: formData.prepSituaçãoParede || null,
         prep_servicos_necessarios: prepServicos,
         comp_altura_trabalho: formData.compAlturaTrabalho || null,
         comp_necessidade: compNecessidade,
@@ -742,7 +742,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         cores_consultoria: formData.coresConsultoria || null,
         prazo_data_inicio: formData.prazoDataInicio || null,
         prazo_estimado: formData.prazoEstimado.trim() || null,
-        prazo_urgencia: formData.prazoUrgencia || null,
+        prazo_urgencia: formData.prazoUrgência || null,
         fornecimento_materiais: formData.fornecimentoMateriais || null,
         valor_materiais: formData.valorMateriais.trim() ? parseCurrencyValue(formData.valorMateriais) : null,
         valor_deslocamento: formData.valorDeslocamento.trim() ? parseCurrencyValue(formData.valorDeslocamento) : null,
@@ -788,12 +788,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             .eq('id', savedQuote.id);
 
           if (updateError) {
-            console.error('Erro ao salvar anexos do orcamento:', updateError);
+            console.error('Erro ao salvar anexos do orçamento:', updateError);
           } else {
             savedQuote.imagens_paths = nextImagePaths;
           }
         } catch (uploadError) {
-          console.error('Erro ao enviar anexos do orcamento:', uploadError);
+          console.error('Erro ao enviar anexos do orçamento:', uploadError);
         }
       }
 
@@ -813,12 +813,12 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             propertyAddress: formData.imovelEndereco.trim() || undefined,
             propertyCityState: formData.imovelCidadeEstado.trim() || undefined,
             propertyType: formData.imovelTipo || undefined,
-            propertySituation: formData.imovelSituacao || undefined,
+            propertySituation: formData.imovelSituação || undefined,
             propertyStatus: formData.imovelStatus || undefined,
             serviceType: formData.pinturaTipoServico || undefined,
             finishType: formData.pinturaAcabamento.length > 0 ? formData.pinturaAcabamento.join(', ') : undefined,
             paintType: formData.pinturaTinta.length > 0 ? formData.pinturaTinta.join(', ') : undefined,
-            wallState: formData.prepSituacaoParede || undefined,
+            wallState: formData.prepSituaçãoParede || undefined,
             prepServices: prepServicos,
             workHeight: formData.compAlturaTrabalho || undefined,
             complexityNeeds: compNecessidade,
@@ -829,7 +829,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             colorConsulting: formData.coresConsultoria || undefined,
             startDate: formData.prazoDataInicio || undefined,
             estimatedDeadline: formData.prazoEstimado.trim() || undefined,
-            urgency: formData.prazoUrgencia || undefined,
+            urgency: formData.prazoUrgência || undefined,
             materialSupply: formData.fornecimentoMateriais || undefined,
             materialsCost: validQuoteTotals.valorMateriais,
             travelCost: validQuoteTotals.valorDeslocamento,
@@ -840,7 +840,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             ambientes: ambientesValidos
           });
         } catch (pdfError) {
-          console.error('Erro ao gerar PDF do orcamento:', pdfError);
+          console.error('Erro ao gerar PDF do orçamento:', pdfError);
         }
 
         const whatsappUrl = buildQuoteWhatsappUrl(formData.clienteTelefone, whatsappMessage);
@@ -864,8 +864,8 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         whatsappDraftWindow.close();
       }
 
-      console.error('Erro ao salvar orcamento:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel salvar o orcamento.');
+      console.error('Erro ao salvar orçamento:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível salvar o orçamento.');
       setIsSubmitting(false);
     }
   };
@@ -876,10 +876,10 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         <div className="bg-gradient-to-r from-[#000747] to-[#9A077B] p-6 text-white flex justify-between items-center z-10 shadow-md">
           <div>
             <h2 className="text-xl font-black tracking-wide">
-              {isEditing ? 'Edicao Profissional de Orcamento' : 'Formulario Profissional de Orcamento'}
+              {isEditing ? 'Edição Profissional de Orçamento' : 'Formulário Profissional de Orçamento'}
             </h2>
             <p className="text-white/80 text-sm font-medium">
-              {isEditing ? 'Atualize os dados do PDF e da negociacao no painel' : 'Pintura imobiliaria com salvamento real no painel'}
+              {isEditing ? 'Atualize os dados do PDF e da negociação no painel' : 'Pintura imobiliária com salvamento real no painel'}
             </p>
           </div>
           <button onClick={handleClose} disabled={isSubmitting} className="p-2 hover:bg-white/20 rounded-full transition disabled:opacity-50">
@@ -912,7 +912,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
               <InputGroup label="Tipo de cliente">
                 <div className="flex flex-wrap gap-3 mt-2">
-                  {['Pessoa fisica', 'Empresa', 'Imobiliaria'].map((item) => (
+                  {['Pessoa física', 'Empresa', 'Imobiliaria'].map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-100">
                       <input type="radio" name="clienteTipo" value={item} checked={formData.clienteTipo === item} onChange={(e) => updateField('clienteTipo', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm font-medium text-slate-700">{item}</span>
@@ -922,32 +922,32 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
             </div>
 
-            <SectionTitle title="2. Dados do Imovel" />
+            <SectionTitle title="2. Dados do Imóvel" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-1 md:col-span-2">
-                <InputGroup label="Endereco completo">
-                  <input type="text" value={formData.imovelEndereco} onChange={(e) => updateField('imovelEndereco', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="Rua, numero, bairro" />
+                <InputGroup label="Endereço completo">
+                  <input type="text" value={formData.imovelEndereco} onChange={(e) => updateField('imovelEndereco', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="Rua, número, bairro" />
                 </InputGroup>
               </div>
               <InputGroup label="Cidade / Estado">
                 <input type="text" value={formData.imovelCidadeEstado} onChange={(e) => updateField('imovelCidadeEstado', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700" placeholder="Cidade - UF" />
               </InputGroup>
-              <InputGroup label="Tipo de imovel">
+              <InputGroup label="Tipo de imóvel">
                 <select value={formData.imovelTipo} onChange={(e) => updateField('imovelTipo', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] text-slate-700">
                   {['Casa', 'Apartamento', 'Comercial', 'Industrial', 'Rural'].map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </InputGroup>
-              <InputGroup label="Situacao">
+              <InputGroup label="Situação">
                 <div className="flex flex-wrap gap-4 mt-2">
                   {PROPERTY_SITUATION_OPTIONS.map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="radio" name="imovelSituacao" value={item} checked={formData.imovelSituacao === item} onChange={(e) => updateField('imovelSituacao', e.target.value)} className="accent-[#9A077B]" />
+                      <input type="radio" name="imovelSituação" value={item} checked={formData.imovelSituação === item} onChange={(e) => updateField('imovelSituação', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
                     </label>
                   ))}
                 </div>
               </InputGroup>
-              <InputGroup label="Imovel esta">
+              <InputGroup label="Imóvel esta">
                 <div className="flex flex-wrap gap-4 mt-2">
                   {PROPERTY_STATUS_OPTIONS.map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
@@ -959,7 +959,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
             </div>
 
-            <SectionTitle title="3. Detalhamento das Areas" />
+            <SectionTitle title="3. Detalhamento das Áreas" />
             <div className="space-y-4">
               {ambientes.map((ambiente, index) => (
                 <div key={ambiente.id} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl relative">
@@ -975,7 +975,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                     <InputGroup label="Ambiente">
                       <input type="text" placeholder="Ex: Sala" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.nome} onChange={(e) => updateAmbiente(ambiente.id, 'nome', e.target.value)} />
                     </InputGroup>
-                    <InputGroup label="Area (m2)">
+                    <InputGroup label="Área (m2)">
                       <input type="text" placeholder="Ex: 25" className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.area} onChange={(e) => updateAmbiente(ambiente.id, 'area', e.target.value)} />
                     </InputGroup>
                     <InputGroup label="Decorativo m2">
@@ -987,9 +987,9 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                         onChange={(e) => updateAmbiente(ambiente.id, 'tecnicaDecorativaArea', e.target.value)}
                       />
                     </InputGroup>
-                    <InputGroup label="Pe direito">
+                    <InputGroup label="Pé-direito">
                       <select className="w-full border rounded-lg px-3 py-2 text-sm outline-[#9A077B]" value={ambiente.peDireito} onChange={(e) => updateAmbiente(ambiente.id, 'peDireito', e.target.value)}>
-                        <option value="Padrao">Padrao</option>
+                        <option value="Padrão">Padrão</option>
                         <option value="Alto">Alto</option>
                       </select>
                     </InputGroup>
@@ -1020,7 +1020,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
 
             <SectionTitle title="4. Tipo de Pintura" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <InputGroup label="Tipo de servico">
+              <InputGroup label="Tipo de serviço">
                 {['Pintura interna', 'Pintura externa', 'Ambas'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
                     <input type="radio" name="pinturaServico" value={item} checked={formData.pinturaTipoServico === item} onChange={(e) => updateField('pinturaTipoServico', e.target.value)} className="accent-[#9A077B]" />
@@ -1042,7 +1042,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                 ))}
               </InputGroup>
               <InputGroup label="Tipo de tinta">
-                {['Acrilica', 'Latex', 'Epoxi', 'Esmalte', 'Emborrachada', 'A definir'].map((item) => (
+                {['Acrílica', 'Látex', 'Epóxi', 'Esmalte', 'Emborrachada', 'A definir'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
                     <input
                       type="checkbox"
@@ -1056,21 +1056,21 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
             </div>
 
-            <SectionTitle title="5. Preparacao da Superficie" />
+            <SectionTitle title="5. Preparação da Superfície" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <InputGroup label="Situacao atual da parede">
+              <InputGroup label="Situação atual da parede">
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {['Nova', 'Boa', 'Com rachaduras', 'Com infiltracao', 'Descascando'].map((item) => (
+                  {['Nova', 'Boa', 'Com rachaduras', 'Com infiltração', 'Descascando'].map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer bg-slate-50 px-3 py-2 border rounded-lg">
-                      <input type="radio" name="prepSituacao" value={item} checked={formData.prepSituacaoParede === item} onChange={(e) => updateField('prepSituacaoParede', e.target.value)} className="accent-[#9A077B]" />
+                      <input type="radio" name="prepSituação" value={item} checked={formData.prepSituaçãoParede === item} onChange={(e) => updateField('prepSituaçãoParede', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
                     </label>
                   ))}
                 </div>
               </InputGroup>
-              <InputGroup label="Servicos necessarios">
+              <InputGroup label="Serviços necessários">
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  {['Lixamento', 'Massa corrida', 'Massa acrilica', 'Selador', 'Fundo preparador', 'Tratamento de mofo', 'Correcao de fissuras'].map((item) => (
+                  {['Lixamento', 'Massa corrida', 'Massa acrílica', 'Selador', 'Fundo preparador', 'Tratamento de mofo', 'Correção de fissuras'].map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
                       <input type="checkbox" checked={prepServicos.includes(item)} onChange={() => toggleArrayItem(setPrepServicos, prepServicos, item)} className="accent-[#9A077B] w-4 h-4 rounded" />
                       <span className="text-sm text-slate-700">{item}</span>
@@ -1080,10 +1080,10 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
             </div>
 
-            <SectionTitle title="6. Complexidade do Servico" />
+            <SectionTitle title="6. Complexidade do Serviço" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <InputGroup label="Altura do trabalho">
-                {['Ate 3m', '3m a 6m', 'Acima de 6m'].map((item) => (
+                {['Até 3m', '3m a 6m', 'Acima de 6m'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
                     <input type="radio" name="compAltura" value={item} checked={formData.compAlturaTrabalho === item} onChange={(e) => updateField('compAlturaTrabalho', e.target.value)} className="accent-[#9A077B]" />
                     <span className="text-sm text-slate-700">{item}</span>
@@ -1091,7 +1091,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                 ))}
               </InputGroup>
               <InputGroup label="Necessidade de">
-                {['Andaime', 'Escada', 'Plataforma elevatoria'].map((item) => (
+                {['Andaime', 'Escada', 'Plataforma elevatória'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2">
                     <input type="checkbox" checked={compNecessidade.includes(item)} onChange={() => toggleArrayItem(setCompNecessidade, compNecessidade, item)} className="accent-[#9A077B] w-4 h-4 rounded" />
                     <span className="text-sm text-slate-700">{item}</span>
@@ -1099,7 +1099,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                 ))}
               </InputGroup>
               <InputGroup label="Acesso ao local">
-                {['Facil', 'Medio', 'Dificil'].map((item) => (
+                {['Fácil', 'Médio', 'Difícil'].map((item) => (
                   <label key={item} className="flex items-center space-x-2 cursor-pointer mt-2 bg-slate-50 px-3 py-2 border rounded-lg">
                     <input type="radio" name="compAcesso" value={item} checked={formData.compAcesso === item} onChange={(e) => updateField('compAcesso', e.target.value)} className="accent-[#9A077B]" />
                     <span className="text-sm text-slate-700">{item}</span>
@@ -1108,9 +1108,9 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
             </div>
 
-            <SectionTitle title="7. Servicos Extras" />
+            <SectionTitle title="7. Serviços Extras" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['Protecao de moveis', 'Protecao de piso', 'Limpeza pos-obra', 'Remocao de tinta antiga', 'Aplicacao de textura', 'Grafiato', 'Efeito decorativo'].map((item) => (
+              {['Proteção de móveis', 'Proteção de piso', 'Limpeza pós-obra', 'Remoção de tinta antiga', 'Aplicação de textura', 'Grafiato', 'Efeito decorativo'].map((item) => (
                 <label key={item} className="flex items-center space-x-2 cursor-pointer p-3 bg-slate-50 border rounded-xl hover:bg-slate-100 transition">
                   <input type="checkbox" checked={servicosExtras.includes(item)} onChange={() => toggleArrayItem(setServicosExtras, servicosExtras, item)} className="accent-[#9A077B] w-4 h-4" />
                   <span className="text-sm font-medium text-slate-700 leading-tight">{item}</span>
@@ -1118,11 +1118,11 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               ))}
             </div>
 
-            <SectionTitle title="8. Cores e Personalizacao" />
+            <SectionTitle title="8. Cores e Personalização" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <InputGroup label="Ja possui cores definidas?">
+              <InputGroup label="Já possui cores definidas?">
                 <div className="flex gap-4 mt-2">
-                  {['Sim', 'Nao'].map((item) => (
+                  {['Sim', 'Não'].map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
                       <input type="radio" name="coresDefinidas" value={item} checked={formData.coresJaDefinidas === item} onChange={(e) => updateField('coresJaDefinidas', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
@@ -1137,7 +1137,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
               <InputGroup label="Deseja consultoria de cores?">
                 <div className="flex gap-4 mt-2">
-                  {['Sim', 'Nao'].map((item) => (
+                  {['Sim', 'Não'].map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">
                       <input type="radio" name="coresConsultoria" value={item} checked={formData.coresConsultoria === item} onChange={(e) => updateField('coresConsultoria', e.target.value)} className="accent-[#9A077B]" />
                       <span className="text-sm text-slate-700">{item}</span>
@@ -1149,18 +1149,18 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <SectionTitle title="9. Prazo e Urgencia" />
-                <InputGroup label="Data ideal de inicio">
+                <SectionTitle title="9. Prazo e Urgência" />
+                <InputGroup label="Data ideal de início">
                   <input type="date" value={formData.prazoDataInicio} onChange={(e) => updateField('prazoDataInicio', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-[#9A077B]" />
                 </InputGroup>
-                <InputGroup label="Prazo estimado na cabeca do cliente">
+                <InputGroup label="Prazo estimado na cabeça do cliente">
                   <input type="text" value={formData.prazoEstimado} onChange={(e) => updateField('prazoEstimado', e.target.value)} placeholder="Ex: 1 semana, 15 dias" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-[#9A077B]" />
                 </InputGroup>
-                <InputGroup label="Urgencia">
+                <InputGroup label="Urgência">
                   <div className="flex flex-wrap gap-2 mt-2">
                     {['Normal', 'Urgente', 'Muito urgente'].map((item) => (
                       <label key={item} className="flex items-center space-x-2 cursor-pointer bg-slate-50 px-3 py-2 border rounded-lg">
-                        <input type="radio" name="prazoUrgencia" value={item} checked={formData.prazoUrgencia === item} onChange={(e) => updateField('prazoUrgencia', e.target.value)} className="accent-[#9A077B]" />
+                        <input type="radio" name="prazoUrgência" value={item} checked={formData.prazoUrgência === item} onChange={(e) => updateField('prazoUrgência', e.target.value)} className="accent-[#9A077B]" />
                         <span className="text-sm text-slate-700">{item}</span>
                       </label>
                     ))}
@@ -1169,7 +1169,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </div>
               <div>
                 <SectionTitle title="10. Fornecimento" />
-                <InputGroup label="Materiais serao">
+                <InputGroup label="Materiais serão">
                   <div className="flex flex-col gap-3 mt-2">
                     {['Fornecidos pelo cliente', 'Fornecidos pelo profissional', 'A combinar'].map((item) => (
                       <label key={item} className="flex items-center space-x-3 cursor-pointer bg-slate-50 px-4 py-3 border rounded-xl hover:bg-slate-100 transition">
@@ -1182,7 +1182,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </div>
             </div>
 
-            <SectionTitle title="11. Composicao de Valores" />
+            <SectionTitle title="11. Composição de Valores" />
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <InputGroup label="Materiais (R$)">
                 <input
@@ -1244,38 +1244,38 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-red-400">Desconto aplicado</p>
                 <p className="mt-2 text-2xl font-black text-red-600">{formatCurrencyDisplay(quoteTotals.valorDesconto)}</p>
-                <p className="mt-2 text-sm font-medium text-red-500">Esse valor sera abatido do total final.</p>
+                <p className="mt-2 text-sm font-medium text-red-500">Esse valor será abatido do total final.</p>
               </div>
               <div className="rounded-2xl bg-[#000747] p-4 text-white shadow-lg shadow-[#000747]/15">
-                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/60">Total automatico da obra</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/60">Total automático da obra</p>
                 <p className="mt-2 text-2xl font-black">{formatCurrencyDisplay(quoteTotals.total)}</p>
-                <p className="mt-2 text-sm font-medium text-white/75">Calculado automaticamente no final do orcamento.</p>
+                <p className="mt-2 text-sm font-medium text-white/75">Calculado automaticamente no final do orçamento.</p>
               </div>
             </div>
 
             <SectionTitle title="12. Imagens do Local (Opcionais)" />
             <label className="border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
               <Camera size={32} className="text-slate-400 mb-2" />
-              <p className="font-bold text-slate-600">Clique para adicionar fotos ou videos do local</p>
+              <p className="font-bold text-slate-600">Clique para adicionar fotos ou vídeos do local</p>
               <p className="text-xs text-slate-400 mt-1">Arquivos opcionais. Selecionados: {attachments.length}</p>
               <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={(e) => setAttachments(Array.from(e.target.files ?? []))} />
             </label>
 
-            <SectionTitle title="13. Observacoes" />
-            <InputGroup label="Detalhes adicionais ou restricoes">
-              <textarea rows={4} value={formData.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700 resize-none" placeholder="Ex: Predio so aceita obras das 9h as 17h. Existem moveis pesados na sala..." />
+            <SectionTitle title="13. Observações" />
+            <InputGroup label="Detalhes adicionais ou restrições">
+              <textarea rows={4} value={formData.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700 resize-none" placeholder="Ex: Prédio só aceita obras das 9h às 17h. Existem móveis pesados na sala..." />
             </InputGroup>
 
             <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl mt-8">
-              <SectionTitle title="14. Confirmacao Final" />
+              <SectionTitle title="14. Confirmação Final" />
               <div className="space-y-4">
                 <label className="flex items-start space-x-3 cursor-pointer">
                   <input type="checkbox" checked={formData.confirmacaoInformacoes} onChange={(e) => updateField('confirmacaoInformacoes', e.target.checked)} className="accent-[#9A077B] w-5 h-5 mt-0.5" />
-                  <span className="text-sm font-medium text-slate-700">Confirmo que as informacoes detalhadas acima sao verdadeiras e podem ser usadas para dimensionar o orcamento.</span>
+                  <span className="text-sm font-medium text-slate-700">Confirmo que as informações detalhadas acima são verdadeiras e podem ser usadas para dimensionar o orçamento.</span>
                 </label>
                 <label className="flex items-start space-x-3 cursor-pointer">
                   <input type="checkbox" checked={formData.autorizacaoContato} onChange={(e) => updateField('autorizacaoContato', e.target.checked)} className="accent-[#9A077B] w-5 h-5 mt-0.5" />
-                  <span className="text-sm font-medium text-slate-700">Autorizo o uso destes dados para contato posterior via WhatsApp ou ligacao.</span>
+                  <span className="text-sm font-medium text-slate-700">Autorizo o uso destes dados para contato posterior via WhatsApp ou ligação.</span>
                 </label>
               </div>
             </div>
@@ -1293,7 +1293,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
           </button>
           <button onClick={() => void handleSubmit()} disabled={isSubmitting} className="px-8 py-3 rounded-xl font-black bg-[#9A077B] hover:bg-[#7F0665] text-white shadow-lg shadow-[#EFC6E3] transition uppercase tracking-widest flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
             {isSubmitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <CheckCircle2 size={18} className="mr-2" />}
-            {isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alteracoes' : 'Gerar Orcamento')}
+            {isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Gerar Orçamento')}
           </button>
           </div>
         </div>
@@ -1301,3 +1301,4 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ArrowRight, Camera, Eye, MapPin } from 'lucide-react';
 import { PortfolioWorkViewerModal } from '../../../components/PortfolioWorkViewerModal';
 import { PortfolioItem } from '../../../types';
@@ -27,12 +27,12 @@ export const PainterPortfolioSection: React.FC<PainterPortfolioSectionProps> = (
 
       {isLoading ? (
         <div className="rounded-[32px] border border-slate-100 bg-white p-10 text-center font-bold uppercase tracking-widest text-slate-400 shadow-sm">
-          Carregando portfolio...
+          Carregando portfólio...
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-[32px] border border-slate-100 bg-white p-10 text-center shadow-sm">
-          <h3 className="mb-3 text-xl font-black text-slate-900">Portfolio ainda nao publicado</h3>
-          <p className="text-slate-500">Este pintor ainda nao adicionou obras publicas ao perfil.</p>
+          <h3 className="mb-3 text-xl font-black text-slate-900">Portfólio ainda não publicado</h3>
+          <p className="text-slate-500">Este pintor ainda não adicionou obras públicas ao perfil.</p>
         </div>
       ) : (
         <>
@@ -53,16 +53,16 @@ export const PainterPortfolioSection: React.FC<PainterPortfolioSectionProps> = (
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center font-bold text-slate-400">
-                      Midia indisponivel
+                      Mídia indisponível
                     </div>
                   )}
                   <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                     <div className="flex items-center rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#9A077B] backdrop-blur-sm">
                       <Camera className="mr-1 h-3 w-3" />
-                      {item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Concluido'}
+                      {item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Concluído'}
                     </div>
                     <div className="rounded-full bg-slate-900/75 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">
-                      {item.totalMediaCount} midia(s)
+                      {item.totalMediaCount} mídia(s)
                     </div>
                   </div>
                 </div>
@@ -98,7 +98,7 @@ export const PainterPortfolioSection: React.FC<PainterPortfolioSectionProps> = (
                     onClick={() => setSelectedItem(item)}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                   >
-                    Ver portfolio desta obra
+                    Ver portfólio desta obra
                     <ArrowRight className="h-4 w-4 text-[#9A077B]" />
                   </button>
                 </div>
@@ -127,3 +127,4 @@ export const PainterPortfolioSection: React.FC<PainterPortfolioSectionProps> = (
     </>
   );
 };
+

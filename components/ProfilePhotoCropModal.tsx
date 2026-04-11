@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 type ProfilePhotoCropModalProps = {
@@ -77,7 +77,7 @@ const getCenteredPosition = (dimensions: ImageDimensions, zoom: number, frameSiz
 const loadImageElement = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image();
   image.onload = () => resolve(image);
-  image.onerror = () => reject(new Error('Nao foi possivel carregar a imagem selecionada.'));
+  image.onerror = () => reject(new Error('Não foi possível carregar a imagem selecionada.'));
   image.src = src;
 });
 
@@ -384,7 +384,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
       const context = canvas.getContext('2d');
 
       if (!context) {
-        throw new Error('Nao foi possivel preparar o editor de imagem.');
+        throw new Error('Não foi possível preparar o editor de imagem.');
       }
 
       const ratio = OUTPUT_SIZE / frameSize;
@@ -404,7 +404,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((nextBlob) => {
           if (!nextBlob) {
-            reject(new Error('Nao foi possivel exportar a foto enquadrada.'));
+            reject(new Error('Não foi possível exportar a foto enquadrada.'));
             return;
           }
 
@@ -421,7 +421,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
       onConfirm(croppedFile);
     } catch (error) {
       console.error('Erro ao ajustar enquadramento da foto de perfil:', error);
-      alert(error instanceof Error ? error.message : 'Nao foi possivel ajustar a foto de perfil.');
+      alert(error instanceof Error ? error.message : 'Não foi possível ajustar a foto de perfil.');
     } finally {
       setIsSaving(false);
     }
@@ -466,7 +466,7 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
               {previewUrl && (
                 <img
                   src={previewUrl}
-                  alt="Pre-visualizacao da foto de perfil"
+                  alt="Pré-visualização da foto de perfil"
                   onLoad={handleImageLoad}
                   draggable={false}
                   className="absolute select-none"
@@ -549,3 +549,4 @@ export const ProfilePhotoCropModal: React.FC<ProfilePhotoCropModalProps> = ({
     </div>
   );
 };
+

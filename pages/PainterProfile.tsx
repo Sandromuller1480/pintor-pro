@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Heart, Loader2, MapPin, Share2, Shield, Star } from 'lucide-react';
 import { MOCK_PAINTERS } from '../constants';
 import { ScheduleVisitModal } from '../components/ScheduleVisitModal';
@@ -221,7 +221,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       const normalizedMessage = String(error.message || '').toLowerCase();
 
       if (normalizedMessage.includes('painter_profile_shares')) {
-        throw new Error('O banco ainda nao recebeu o rastreamento de compartilhamentos. Rode o SQL add_client_profile_engagement.sql no Supabase.');
+        throw new Error('O banco ainda não recebeu o rastreamento de compartilhamentos. Rode o SQL add_client_profile_engagement.sql no Supabase.');
       }
 
       throw error;
@@ -307,11 +307,11 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           });
 
         if (error && !cancelled) {
-          console.error('Erro ao registrar visualizacao publica do perfil:', error);
+          console.error('Erro ao registrar visualização pública do perfil:', error);
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Erro ao preparar visualizacao publica do perfil:', error);
+          console.error('Erro ao preparar visualização pública do perfil:', error);
         }
       }
     };
@@ -491,7 +491,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         showActionFeedback('success', 'Link do perfil copiado para compartilhamento.');
       } catch (error) {
         console.error('Erro ao compartilhar perfil:', error);
-        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Nao foi possivel compartilhar este perfil agora.');
+        showActionFeedback('error', error instanceof Error && error.message ? error.message : 'Não foi possível compartilhar este perfil agora.');
       }
     };
 
@@ -507,7 +507,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     const socialUrl = network === 'facebook' ? painterFacebookUrl : painterInstagramUrl;
 
     if (!socialUrl) {
-      showActionFeedback('error', `O perfil de ${network === 'facebook' ? 'Facebook' : 'Instagram'} deste pintor ainda nao foi informado.`);
+      showActionFeedback('error', `O perfil de ${network === 'facebook' ? 'Facebook' : 'Instagram'} deste pintor ainda não foi informado.`);
       return;
     }
 
@@ -523,7 +523,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       }
 
       if (!resolvedClientProfile || !publicApplicationId) {
-        showActionFeedback('error', 'Nao foi possivel identificar o cliente ou o pintor para favoritar.');
+        showActionFeedback('error', 'Não foi possível identificar o cliente ou o pintor para favoritar.');
         return;
       }
 
@@ -562,7 +562,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         }
       } catch (error) {
         console.error('Erro ao atualizar favorito do cliente:', error);
-        showActionFeedback('error', 'Nao foi possivel atualizar seus favoritos agora.');
+        showActionFeedback('error', 'Não foi possível atualizar seus favoritos agora.');
       } finally {
         setFavoriteLoading(false);
       }
@@ -590,7 +590,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     if (rating < 1 || rating > 5) {
       setReviewFeedback({
         type: 'error',
-        message: 'Selecione de 1 a 5 estrelas antes de publicar a avaliacao.'
+        message: 'Selecione de 1 a 5 estrelas antes de publicar a avaliação.'
       });
       return;
     }
@@ -618,7 +618,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
         const normalizedMessage = String(error.message || '').toLowerCase();
         throw new Error(
           normalizedMessage.includes('client_auth_user_id')
-            ? 'O banco ainda nao recebeu a escrita segura de avaliacoes. Rode o SQL add_client_profile_engagement.sql no Supabase.'
+            ? 'O banco ainda não recebeu a escrita segura de avaliações. Rode o SQL add_client_profile_engagement.sql no Supabase.'
             : error.message
         );
       }
@@ -646,15 +646,15 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
       setReviewFeedback({
         type: 'success',
-        message: currentClientReview ? 'Sua avaliacao foi atualizada com sucesso.' : 'Sua avaliacao foi publicada com sucesso.'
+        message: currentClientReview ? 'Sua avaliação foi atualizada com sucesso.' : 'Sua avaliação foi publicada com sucesso.'
       });
     } catch (error) {
-      console.error('Erro ao publicar avaliacao do cliente:', error);
+      console.error('Erro ao publicar avaliação do cliente:', error);
       setReviewFeedback({
         type: 'error',
         message: error instanceof Error && error.message
           ? error.message
-          : 'Nao foi possivel publicar sua avaliacao agora.'
+          : 'Não foi possível publicar sua avaliação agora.'
       });
     } finally {
       setIsSubmittingReview(false);
@@ -717,7 +717,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           return;
         }
 
-        console.error('Erro ao atualizar status publico do pintor em tempo real:', error);
+        console.error('Erro ao atualizar status público do pintor em tempo real:', error);
       }
     };
 
@@ -859,9 +859,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       }
 
       if (error) {
-        console.error('Erro ao carregar portfolio publico do pintor:', error);
+        console.error('Erro ao carregar portfólio público do pintor:', error);
         setPortfolioItems([]);
-        setPortfolioError('Nao foi possivel carregar o portfolio deste pintor agora.');
+        setPortfolioError('Não foi possível carregar o portfólio deste pintor agora.');
         setPortfolioLoading(false);
         return;
       }
@@ -934,9 +934,9 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       }
 
       if (error) {
-        console.error('Erro ao carregar avaliacoes publicas do pintor:', error);
+        console.error('Erro ao carregar avaliações públicas do pintor:', error);
         setReviewItems([]);
-        setReviewsError('Nao foi possivel carregar as avaliacoes deste pintor agora.');
+        setReviewsError('Não foi possível carregar as avaliações deste pintor agora.');
         setReviewsLoading(false);
         return;
       }
@@ -976,8 +976,8 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
     return (
       <div className="bg-slate-50 min-h-screen flex items-center justify-center px-4">
         <div className="max-w-xl w-full bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm text-center">
-          <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil nao encontrado</h1>
-          <p className="text-slate-500 mb-8">O pintor solicitado nao esta disponivel ou foi removido.</p>
+          <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil não encontrado</h1>
+          <p className="text-slate-500 mb-8">O pintor solicitado não está disponível ou foi removido.</p>
           <button
             onClick={() => setPage?.(Page.FindPainter)}
             className="bg-[#9A077B] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"

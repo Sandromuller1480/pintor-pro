@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CalendarDays,
@@ -124,7 +124,7 @@ const fetchCitiesByUf = async (uf: string) => {
       fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${normalizedUf}/municipios?orderBy=nome`)
         .then(async (response) => {
           if (!response.ok) {
-            throw new Error('Nao foi possivel carregar as cidades.');
+            throw new Error('Não foi possível carregar as cidades.');
           }
 
           const data = await response.json() as Array<{ nome: string }>;
@@ -144,7 +144,7 @@ const fetchAllCities = async () => {
     allMunicipalitiesPromise = fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome')
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error('Nao foi possivel carregar a base nacional de cidades.');
+          throw new Error('Não foi possível carregar a base nacional de cidades.');
         }
 
         const data = await response.json() as Array<{
@@ -180,7 +180,7 @@ const fetchCepAddress = async (cep: string) => {
   const response = await fetch(`https://viacep.com.br/ws/${normalizedCep}/json/`);
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel consultar o CEP informado.');
+    throw new Error('Não foi possível consultar o CEP informado.');
   }
 
   const data = await response.json() as ViaCepAddress;
@@ -206,7 +206,7 @@ const fetchStreetSuggestions = async (uf: string, city: string, street: string) 
   );
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel buscar sugestoes de endereco.');
+    throw new Error('Não foi possível buscar sugestões de endereço.');
   }
 
   const data = await response.json() as ViaCepStreetSuggestion[] | { erro?: boolean };
@@ -255,11 +255,11 @@ const getTodayDate = () => {
 };
 
 const normalizeInsertError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : 'Nao foi possivel registrar a solicitacao de visita agora.';
+  const message = error instanceof Error ? error.message : 'Não foi possível registrar a solicitação de visita agora.';
   const normalizedMessage = message.toLowerCase();
 
   if (normalizedMessage.includes('painter_visit_requests') || normalizedMessage.includes('does not exist')) {
-    return 'O recurso de agendamento ainda nao foi configurado no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.';
+    return 'O recurso de agendamento ainda não foi configurado no banco. Rode o SQL agendamentos_visitas_schema.sql no Supabase.';
   }
 
   return message;
@@ -521,7 +521,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     event.preventDefault();
 
     if (!painterId) {
-      setErrorMessage('Nao foi possivel identificar o pintor para este agendamento.');
+      setErrorMessage('Não foi possível identificar o pintor para este agendamento.');
       return;
     }
 
@@ -536,7 +536,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       !formData.city.trim() ||
       !formData.state.trim()
     ) {
-      setErrorMessage('Preencha nome, telefone, e-mail, data, horario, rua, bairro, cidade e UF da visita.');
+      setErrorMessage('Preencha nome, telefone, e-mail, data, horário, rua, bairro, cidade e UF da visita.');
       return;
     }
 
@@ -564,7 +564,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
         throw error;
       }
 
-      setSuccessMessage(`Solicitacao de visita enviada para ${painterName}.`);
+      setSuccessMessage(`Solicitação de visita enviada para ${painterName}.`);
     } catch (error) {
       console.error('Erro ao solicitar visita:', error);
       setErrorMessage(normalizeInsertError(error));
@@ -592,7 +592,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           <div>
             <h3 className="text-xl sm:text-2xl font-black text-[#000747]">Agendar Visita</h3>
             <p className="text-sm text-slate-500 font-medium">
-              Envie uma solicitacao de visita para {painterName}{painterLocation ? ` em ${painterLocation}` : ''}.
+              Envie uma solicitação de visita para {painterName}{painterLocation ? ` em ${painterLocation}` : ''}.
             </p>
           </div>
           <button
@@ -612,9 +612,9 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
               <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 <CheckCircle2 size={30} />
               </div>
-              <h4 className="text-2xl font-black text-slate-900 mb-3">Solicitacao enviada</h4>
+              <h4 className="text-2xl font-black text-slate-900 mb-3">Solicitação enviada</h4>
               <p className="text-slate-500 font-medium max-w-lg mx-auto mb-6">
-                {successMessage} O pintor podera visualizar esse pedido e retornar a confirmacao pelo painel.
+                {successMessage} O pintor poderá visualizar esse pedido e retornar a confirmação pelo painel.
               </p>
               <button
                 type="button"
@@ -665,7 +665,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     value={formData.clientEmail}
                     onChange={(event) => updateField('clientEmail', event.target.value)}
                     className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                    placeholder="voce@email.com"
+                    placeholder="você@email.com"
                     required
                   />
                 </div>
@@ -687,7 +687,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                    Horario desejado
+                    Horário desejado
                   </label>
                   <div className="relative">
                     <Clock3 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -703,7 +703,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 <div className="md:col-span-2 rounded-[26px] border border-slate-200 bg-slate-50/70 p-4">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Endereco da visita
+                      Endereço da visita
                     </label>
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                       {isLookingUpCep ? 'Buscando CEP...' : isLoadingCities ? 'Buscando cidades...' : isLoadingStreets ? 'Buscando logradouros...' : 'Preenchimento inteligente'}
@@ -770,7 +770,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                           onChange={(event) => handleStreetChange(event.target.value)}
                           onBlur={(event) => applyStreetSuggestion(event.target.value)}
                           className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                          placeholder="Digite a rua e escolha uma sugestao"
+                    placeholder="Digite a rua e escolha uma sugestão"
                           required
                         />
                         <datalist id={streetDatalistId}>
@@ -819,7 +819,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     </div>
                     <div className="md:col-span-6">
                       <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Ponto de referencia
+                        Ponto de referência
                       </label>
                       <input
                         type="text"
@@ -833,14 +833,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                    Observacoes
+                    Observações
                   </label>
                   <textarea
                     rows={4}
                     value={formData.notes}
                     onChange={(event) => updateField('notes', event.target.value)}
                     className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition resize-none"
-                    placeholder="Ex: preciso de visita tecnica para medir fachada e avaliar infiltrações."
+                    placeholder="Ex: preciso de visita técnica para medir fachada e avaliar infiltrações."
                   />
                 </div>
               </div>
@@ -881,3 +881,4 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     </div>
   );
 };
+

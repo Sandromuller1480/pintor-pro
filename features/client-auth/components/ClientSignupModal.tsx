@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, Mail, Phone, User, X } from 'lucide-react';
 import { clientSignupService } from '../../../lib/services/clientSignupService';
 
@@ -93,7 +93,7 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setErrorMessage('A senha e a confirmacao de senha nao coincidem.');
+      setErrorMessage('A senha e a confirmação de senha não coincidem.');
       return;
     }
 
@@ -112,10 +112,10 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
       setSuccessMessage(
         result.requiresEmailConfirmation
           ? 'Cadastro criado com sucesso. Verifique seu e-mail para confirmar o acesso e continuar buscando pintores.'
-          : 'Cadastro criado com sucesso. Agora voce ja pode continuar e encontrar um pintor.'
+          : 'Cadastro criado com sucesso. Agora você já pode continuar e encontrar um pintor.'
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nao foi possivel concluir o cadastro agora.';
+      const message = error instanceof Error ? error.message : 'Não foi possível concluir o cadastro agora.';
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -164,7 +164,7 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                 <CheckCircle2 size={30} />
               </div>
-              <h4 className="mb-3 text-2xl font-black text-slate-900">Cadastro concluido</h4>
+              <h4 className="mb-3 text-2xl font-black text-slate-900">Cadastro concluído</h4>
               <p className="mx-auto mb-6 max-w-md text-slate-500">{successMessage}</p>
               <button
                 type="button"
@@ -204,7 +204,7 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
                     value={formData.email}
                     onChange={(event) => updateField('email', event.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[#9A077B]"
-                    placeholder="voce@email.com"
+                    placeholder="você@email.com"
                     required
                   />
                 </div>
@@ -291,3 +291,4 @@ export const ClientSignupModal: React.FC<ClientSignupModalProps> = ({
     </div>
   );
 };
+

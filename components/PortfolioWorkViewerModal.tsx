@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { CalendarDays, Edit3, MapPin, PlayCircle, X } from 'lucide-react';
 import {
   getPortfolioTotalMediaCount,
@@ -67,10 +67,10 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-white/14 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-white">
-                  {item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Concluido'}
+                  {item.status === 'EM ANDAMENTO' ? 'Em andamento' : 'Concluído'}
                 </span>
                 <span className="rounded-full bg-white/14 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-white">
-                  {totalMediaCount} midia(s)
+                  {totalMediaCount} mídia(s)
                 </span>
               </div>
 
@@ -91,7 +91,7 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                   type="button"
                   onClick={onClose}
                   className="ml-2 rounded-full bg-white/14 p-2.5 text-white transition hover:bg-white/22"
-                  aria-label="Fechar visualizacao da obra"
+                  aria-label="Fechar visualização da obra"
                 >
                   <X size={20} />
                 </button>
@@ -136,13 +136,13 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                       <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-500">{stageDefinition.description}</p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                      {stageMediaCount} midia(s)
+                      {stageMediaCount} mídia(s)
                     </span>
                   </div>
 
                   {stageMediaCount === 0 ? (
                     <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-semibold text-slate-400">
-                      Esta etapa ainda nao recebeu fotos ou videos.
+                      Esta etapa ainda não recebeu fotos ou vídeos.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -158,7 +158,7 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
                             <span>Video da etapa</span>
                             <span className="flex items-center gap-1">
                               <PlayCircle size={14} />
-                              Reproducao
+                              Reprodução
                             </span>
                           </div>
                           <video src={videoUrl} className="h-64 w-full object-cover" controls playsInline preload="metadata" />
@@ -175,3 +175,4 @@ export const PortfolioWorkViewerModal: React.FC<PortfolioWorkViewerModalProps> =
     </div>
   );
 };
+

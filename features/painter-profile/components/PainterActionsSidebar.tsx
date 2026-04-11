@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Calendar, Info, Loader2, MessageSquare, Shield } from 'lucide-react';
 
 interface PainterActionsSidebarProps {
@@ -49,7 +49,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
     <aside className="lg:col-span-4">
       <div className="sticky top-28 space-y-6">
         <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-slate-100">
-          <h3 className="text-xl font-black mb-6">Solicitar Orcamento</h3>
+          <h3 className="text-xl font-black mb-6">Solicitar Orçamento</h3>
           <div className="space-y-4 mb-8">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Taxa de Resposta</span>
@@ -61,7 +61,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
                 {isOutsideBusinessHours
                   ? 'Fora do horario'
                   : visitDisabled
-                    ? 'Indisponivel agora'
+                    ? 'Indisponível agora'
                     : 'Disponivel em 10 dias'}
               </span>
             </div>
@@ -120,7 +120,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
           )}
 
           <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold flex items-center justify-center">
-            <Shield className="w-3 h-3 mr-1" /> Negociacao Protegida PINTOR PRO
+            <Shield className="w-3 h-3 mr-1" /> Negociação Protegida PINTOR PRO
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             </div>
             <h4 className="font-black text-lg mb-4">Pagamento Direto</h4>
             <p className="text-slate-400 text-xs leading-relaxed mb-6">
-              A negociacao fica protegida na plataforma, mas o pagamento e combinado diretamente entre cliente e pintor.
+              A negociação fica protegida na plataforma, mas o pagamento é combinado diretamente entre cliente e pintor.
             </p>
             <button className="text-sm font-bold border-b border-[#C93EA6] text-[#C93EA6]">Saiba mais como funciona</button>
           </div>
@@ -142,3 +142,4 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
     </aside>
   );
 };
+

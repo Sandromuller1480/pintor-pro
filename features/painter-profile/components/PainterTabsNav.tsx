@@ -7,16 +7,16 @@ interface PainterTabsNavProps {
 }
 
 export const PainterTabsNav: React.FC<PainterTabsNavProps> = ({ activeTab, onChange }) => (
-  <div className="flex gap-8 border-b border-slate-200 overflow-x-auto">
+  <div className="flex gap-8 overflow-x-auto border-b border-slate-200">
     {(['portfolio', 'about', 'reviews'] as const).map((tab) => (
       <button
         key={tab}
         onClick={() => onChange(tab)}
-        className={`pb-4 text-sm font-bold uppercase tracking-widest transition whitespace-nowrap ${
-          activeTab === tab ? 'text-[#9A077B] border-b-2 border-[#9A077B]' : 'text-slate-400 hover:text-[#000747]'
+        className={`whitespace-nowrap border-b-2 pb-4 text-sm font-bold uppercase tracking-widest transition ${
+          activeTab === tab ? 'border-[#9A077B] text-[#9A077B]' : 'border-transparent text-slate-400 hover:text-[#000747]'
         }`}
       >
-        {tab === 'portfolio' ? 'Portfolio' : tab === 'about' ? 'Sobre o Pintor' : 'Avaliações'}
+        {tab === 'portfolio' ? 'Portfólio' : tab === 'about' ? 'Sobre o Pintor' : 'Avaliações'}
       </button>
     ))}
   </div>

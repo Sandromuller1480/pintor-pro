@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import {
   CalendarCheck2,
   CalendarDays,
@@ -34,7 +34,7 @@ const VISIT_STATUS_OPTIONS = [
   { value: 'pending', label: 'Pendente' },
   { value: 'confirmed', label: 'Confirmada' },
   { value: 'rescheduled', label: 'Reagendada' },
-  { value: 'completed', label: 'Visita concluida' },
+  { value: 'completed', label: 'Visita concluída' },
   { value: 'cancelled', label: 'Cancelada' },
   { value: 'no_show', label: 'Cliente ausente' }
 ] as const;
@@ -123,7 +123,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
       console.error('Erro ao atualizar status da visita:', error);
       setFeedback({
         type: 'error',
-        message: 'Nao foi possivel atualizar essa visita agora.'
+        message: 'Não foi possível atualizar essa visita agora.'
       });
     } finally {
       setSavingVisitId(null);
@@ -140,7 +140,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
     if (!draft.preferredDate || !draft.preferredTime || !normalizedLocation) {
       setFeedback({
         type: 'error',
-        message: 'Preencha data, horario e local antes de salvar a visita.'
+        message: 'Preencha data, horário e local antes de salvar a visita.'
       });
       return;
     }
@@ -176,7 +176,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
       console.error('Erro ao salvar ajustes da visita:', error);
       setFeedback({
         type: 'error',
-        message: 'Nao foi possivel salvar os ajustes dessa visita agora.'
+        message: 'Não foi possível salvar os ajustes dessa visita agora.'
       });
     } finally {
       setSavingVisitId(null);
@@ -185,7 +185,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
 
   const handleDeleteVisit = async (visit: SavedVisitRequest) => {
     const confirmed = window.confirm(
-      `Excluir o agendamento de ${visit.client_name}? Essa acao remove o registro do banco de dados e nao pode ser desfeita.`
+      `Excluir o agendamento de ${visit.client_name}? Essa ação remove o registro do banco de dados e não pode ser desfeita.`
     );
 
     if (!confirmed) {
@@ -204,13 +204,13 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
 
       setFeedback({
         type: 'success',
-        message: 'Agendamento excluido com sucesso.'
+        message: 'Agendamento excluído com sucesso.'
       });
     } catch (error) {
       console.error('Erro ao excluir visita:', error);
       setFeedback({
         type: 'error',
-        message: 'Nao foi possivel excluir esse agendamento agora.'
+        message: 'Não foi possível excluir esse agendamento agora.'
       });
     } finally {
       setSavingVisitId(null);
@@ -221,7 +221,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
     <div className="animate-in fade-in duration-500">
       <div className="mb-8">
         <h2 className="text-3xl font-black text-[#000747]">Agenda</h2>
-        <p className="text-slate-500 font-medium">Organize visitas, confirme atendimentos e registre quando a obra ja foi vistoriada.</p>
+        <p className="text-slate-500 font-medium">Organize visitas, confirme atendimentos e registre quando a obra já foi vistoriada.</p>
       </div>
 
       {errorMessage && (
@@ -254,7 +254,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-3">Nenhuma visita agendada ainda</h3>
             <p className="text-slate-500 font-medium leading-relaxed">
-              Quando um cliente solicitar uma visita pelo seu perfil publico, o pedido aparecera aqui.
+              Quando um cliente solicitar uma visita pelo seu perfil público, o pedido aparecerá aqui.
             </p>
           </div>
         </div>
@@ -273,7 +273,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                 tone: 'bg-emerald-50 text-emerald-700 border-emerald-100'
               },
               {
-                label: 'Concluidas',
+                label: 'Concluídas',
                 value: completedVisitsCount,
                 tone: 'bg-slate-100 text-slate-700 border-slate-200'
               },
@@ -325,7 +325,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                       <p className="font-bold text-slate-800">{formatShortDate(visit.preferred_date)}</p>
                     </div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Horario</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Horário</p>
                       <p className="font-bold text-slate-800">{visit.preferred_time.slice(0, 5)}</p>
                     </div>
                   </div>
@@ -340,7 +340,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
 
                   {visit.notes && (
                     <div className="pt-4 border-t border-slate-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Observacoes do cliente</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Observações do cliente</p>
                       <p className="text-sm text-slate-600 leading-relaxed">{visit.notes}</p>
                     </div>
                   )}
@@ -363,13 +363,13 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                     {!isFinalStatus && visit.status !== 'completed' && (
                       <button
                         type="button"
-                        onClick={() => void handleQuickStatusUpdate(visit, 'completed', 'Visita concluida registrada com sucesso.')}
+                        onClick={() => void handleQuickStatusUpdate(visit, 'completed', 'Visita concluída registrada com sucesso.')}
                         disabled={isSaving}
                         className="rounded-xl bg-[#000747] px-4 py-2.5 text-sm font-black text-white transition hover:bg-[#020b72] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <span className="flex items-center gap-2">
                           {isSaving ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck2 size={16} />}
-                          Marcar concluida
+                          Marcar concluída
                         </span>
                       </button>
                     )}
@@ -419,7 +419,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Editar agendamento</p>
                           <p className="mt-1 text-sm font-medium text-slate-500">
-                            Se voce alterar data, horario ou local, a visita sera marcada como reagendada automaticamente.
+                            Se você alterar data, horário ou local, a visita será marcada como reagendada automaticamente.
                           </p>
                         </div>
                       </div>
@@ -436,7 +436,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                         </label>
 
                         <label className="text-sm font-bold text-slate-600">
-                          <span className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-400">Novo horario</span>
+                          <span className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-400">Novo horário</span>
                           <div className="relative">
                             <Clock3 size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
@@ -454,7 +454,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                             type="text"
                             value={draft.location}
                             onChange={(event) => setDraft((currentDraft) => currentDraft ? { ...currentDraft, location: event.target.value } : currentDraft)}
-                            placeholder="Endereco completo da visita"
+                            placeholder="Endereço completo da visita"
                             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-[#9A077B]"
                           />
                         </label>
@@ -493,7 +493,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                           disabled={isSaving}
                           className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Fechar edicao
+                          Fechar edição
                         </button>
                       </div>
                     </div>
@@ -507,3 +507,5 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
     </div>
   );
 };
+
+

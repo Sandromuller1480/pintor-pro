@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+﻿import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type DeletePainterAccountRequest = {
   applicationId?: string;
@@ -101,7 +101,7 @@ async function cancelStripeSubscriptionIfNeeded(params: {
   }
 
   if (!params.stripeSecretKey) {
-    throw new Error('Nao foi possivel cancelar a assinatura ativa porque STRIPE_SECRET_KEY nao esta configurada.');
+    throw new Error('Não foi possível cancelar a assinatura ativa porque STRIPE_SECRET_KEY não está configurada.');
   }
 
   for (const subscriptionId of subscriptionIds) {
@@ -418,3 +418,4 @@ Deno.serve(async (req) => {
     deletedApplicationIds: applicationIds
   });
 });
+

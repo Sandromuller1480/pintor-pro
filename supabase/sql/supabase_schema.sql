@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- CONSOLIDADO DA VITRINE PUBLICA, PRESENCA E CONFIGURACOES
 -- Este arquivo NAO substitui os schemas base de clientes,
 -- portfolio, orcamentos, agenda e chat.
@@ -279,7 +279,7 @@ SELECT
   a.id,
   a.full_name AS name,
   CASE
-    WHEN COALESCE(NULLIF(TRIM(a.city), ''), '') = '' THEN 'Localizacao nao informada'
+    WHEN COALESCE(NULLIF(TRIM(a.city), ''), '') = '' THEN 'Localização não informada'
     WHEN COALESCE(NULLIF(TRIM(a.uf), ''), '') = '' THEN TRIM(a.city)
     ELSE TRIM(a.city) || ' - ' || TRIM(a.uf)
   END AS location,
@@ -297,12 +297,12 @@ SELECT
     WHEN COALESCE(array_length(a.specialties, 1), 0) > 0 AND COALESCE(NULLIF(TRIM(a.experience_time), ''), '') <> '' THEN
       'Especialidades: ' ||
       array_to_string(a.specialties[1:LEAST(array_length(a.specialties, 1), 3)], ', ') ||
-      '. Experiencia: ' || TRIM(a.experience_time) || '.'
+      '. Experiência: ' || TRIM(a.experience_time) || '.'
     WHEN COALESCE(array_length(a.specialties, 1), 0) > 0 THEN
       'Especialidades: ' ||
       array_to_string(a.specialties[1:LEAST(array_length(a.specialties, 1), 3)], ', ') || '.'
     WHEN COALESCE(NULLIF(TRIM(a.experience_time), ''), '') <> '' THEN
-      'Experiencia: ' || TRIM(a.experience_time) || '.'
+      'Experiência: ' || TRIM(a.experience_time) || '.'
     ELSE
       'Perfil profissional ativo na PINTOR PRO.'
   END AS description,
@@ -354,3 +354,4 @@ USING (
       AND a.status = 'accepted'
   )
 );
+

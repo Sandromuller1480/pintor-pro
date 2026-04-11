@@ -264,17 +264,17 @@ const formatLastActivityLabel = (value: string | undefined, isOnline?: boolean) 
   const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
 
   if (diffMinutes < 60) {
-    return `Ultima atividade ha ${diffMinutes} min`;
+    return `Última atividade há ${diffMinutes} min`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
 
   if (diffHours < 24) {
-    return `Ultima atividade ha ${diffHours} h`;
+    return `Última atividade há ${diffHours} h`;
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `Ultima atividade ha ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
+  return `Última atividade há ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
 };
 
 export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
@@ -981,7 +981,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         </div>
 
         <div className={`absolute bottom-6 hidden rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 shadow-xl backdrop-blur md:block ${showDirectoryButton && onOpenDirectory ? 'right-20' : 'right-6'}`}>
-          {visiblePainterCount} pintor(es) na area
+          {visiblePainterCount} pintor(es) na área
         </div>
       </div>
     </div>
