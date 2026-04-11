@@ -144,7 +144,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
         </div>
 
         <div className="bg-white border border-slate-100 shadow-sm rounded-[40px] p-8 mb-12">
-          <h3 className="text-slate-900 font-black uppercase tracking-[0.2em] text-xs mb-3">Dados para cobranca</h3>
+          <h3 className="text-slate-900 font-black uppercase tracking-[0.2em] text-xs mb-3">Dados para cobrança</h3>
           <p className="text-sm text-slate-500 font-medium mb-6">
             Para planos pagos, informe o e-mail que receberá comprovantes e comunicações da assinatura.
           </p>
