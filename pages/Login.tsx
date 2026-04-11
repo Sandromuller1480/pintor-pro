@@ -78,7 +78,7 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
         Acesso <span className="text-[#9A077B]">Restrito</span>
       </h1>
       <p className="text-slate-600 text-lg mb-12 font-medium">
-        Bem-vindo de volta! Acesse sua Area do Pintor.
+        Bem-vindo de volta! Acesse sua Área do Pintor.
       </p>
 
       <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">

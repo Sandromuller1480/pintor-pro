@@ -164,7 +164,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                     onClick={() => setPage(Page.Login)}
                     className="bg-[#9A077B] text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3] uppercase tracking-widest"
                   >
-                    Area do Pintor
+                    Área do Pintor
                   </button>
                 </>
               )}
