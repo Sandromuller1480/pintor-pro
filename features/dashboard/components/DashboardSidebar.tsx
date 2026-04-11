@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   BellRing,
   Briefcase,
@@ -7,7 +7,9 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
-  Star
+  Star,
+  Users,
+  WalletCards
 } from 'lucide-react';
 import { Logo } from '../../../components/Logo';
 import { CurrentPainterProfile, DashboardTab } from '../types';
@@ -31,6 +33,8 @@ const NAV_ITEMS: Array<{
   { id: 'inicio', label: 'Visão Geral', icon: LayoutDashboard },
   { id: 'portfolio', label: 'Meu Portfólio', icon: Briefcase },
   { id: 'orcamentos', label: 'Orçamentos', icon: FileText },
+  { id: 'financeiro', label: 'Controle Financeiro', icon: WalletCards },
+  { id: 'equipe', label: 'Gestão de Equipe', icon: Users },
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },
   { id: 'config', label: 'Configurações', icon: Settings }
 ];

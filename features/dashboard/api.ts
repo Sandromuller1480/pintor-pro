@@ -20,9 +20,13 @@ import { resolvePortfolioRecordMedia } from '../../lib/portfolioMedia';
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
+  FinancialEntryForm,
   PainterProfileEngagementMetrics,
   PainterProfileViewMetrics,
   PainterSettingsForm,
+  SavedFinancialEntry,
+  SavedTeamMember,
+  TeamMemberForm,
   UpdateVisitRequestInput,
   SavedChatMessage,
   SavedChatThread,
@@ -39,6 +43,11 @@ const QUOTE_SELECT_FIELDS = [
   'imovel_endereco',
   'imovel_cidade_estado',
   'imovel_tipo',
+  'edificio_nome',
+  'edificio_total_pavimentos',
+  'edificio_pavimento_atendido',
+  'edificio_possui_elevador',
+  'edificio_tipo_atendimento',
   'imovel_situacao',
   'imovel_status',
   'ambientes',
@@ -68,6 +77,36 @@ const QUOTE_SELECT_FIELDS = [
   'imagens_paths',
   'observacoes',
   'status',
+  'created_at'
+].join(', ');
+
+const FINANCIAL_ENTRY_SELECT_FIELDS = [
+  'id',
+  'painter_id',
+  'entry_type',
+  'title',
+  'category',
+  'related_client_name',
+  'amount',
+  'entry_date',
+  'payment_method',
+  'status',
+  'notes',
+  'created_at'
+].join(', ');
+
+const TEAM_MEMBER_SELECT_FIELDS = [
+  'id',
+  'painter_id',
+  'full_name',
+  'role',
+  'phone',
+  'daily_rate',
+  'has_nr35',
+  'nr35_expiration_date',
+  'status',
+  'specialties',
+  'notes',
   'created_at'
 ].join(', ');
 
@@ -174,6 +213,122 @@ export const fetchQuoteItems = async (userId: string) => {
   }
 
   return (data ?? []) as unknown as SavedOrcamento[];
+};
+
+export const fetchFinancialEntries = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('painter_financial_entries')
+    .select(FINANCIAL_ENTRY_SELECT_FIELDS)
+    .eq('painter_id', userId)
+    .order('entry_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as unknown as SavedFinancialEntry[];
+};
+
+export const createFinancialEntry = async (
+  userId: string,
+  payload: FinancialEntryForm
+) => {
+  const normalizedAmount = Number(payload.amount || 0);
+  const { data, error } = await supabase
+    .from('painter_financial_entries')
+    .insert({
+      painter_id: userId,
+      entry_type: payload.entryType,
+      title: payload.title.trim(),
+      category: payload.category.trim() || null,
+      related_client_name: payload.relatedClientName.trim() || null,
+      amount: Number.isFinite(normalizedAmount) ? normalizedAmount : 0,
+      entry_date: payload.entryDate,
+      payment_method: payload.paymentMethod.trim() || null,
+      status: payload.entryType === 'entrada' ? 'recebido' : 'pago',
+      notes: payload.notes.trim() || null
+    })
+    .select(FINANCIAL_ENTRY_SELECT_FIELDS)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as unknown as SavedFinancialEntry;
+};
+
+export const deleteFinancialEntry = async (entryId: string, userId: string) => {
+  const { error } = await supabase
+    .from('painter_financial_entries')
+    .delete()
+    .eq('id', entryId)
+    .eq('painter_id', userId);
+
+  if (error) {
+    throw error;
+  }
+};
+
+export const fetchTeamMembers = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('painter_team_members')
+    .select(TEAM_MEMBER_SELECT_FIELDS)
+    .eq('painter_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as unknown as SavedTeamMember[];
+};
+
+export const createTeamMember = async (
+  userId: string,
+  payload: TeamMemberForm
+) => {
+  const normalizedDailyRate = Number(payload.dailyRate || 0);
+  const specialties = payload.specialties
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const { data, error } = await supabase
+    .from('painter_team_members')
+    .insert({
+      painter_id: userId,
+      full_name: payload.fullName.trim(),
+      role: payload.role,
+      phone: payload.phone.trim() || null,
+      daily_rate: Number.isFinite(normalizedDailyRate) ? normalizedDailyRate : null,
+      has_nr35: payload.hasNr35,
+      nr35_expiration_date: payload.hasNr35 ? (payload.nr35ExpirationDate || null) : null,
+      status: payload.status,
+      specialties,
+      notes: payload.notes.trim() || null
+    })
+    .select(TEAM_MEMBER_SELECT_FIELDS)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as unknown as SavedTeamMember;
+};
+
+export const deleteTeamMember = async (memberId: string, userId: string) => {
+  const { error } = await supabase
+    .from('painter_team_members')
+    .delete()
+    .eq('id', memberId)
+    .eq('painter_id', userId);
+
+  if (error) {
+    throw error;
+  }
 };
 
 export const deleteQuoteItem = async (quote: SavedOrcamento): Promise<void> => {

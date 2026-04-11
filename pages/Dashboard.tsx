@@ -9,9 +9,14 @@ import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
 import {
   buildVisitErrorMessage,
+  createFinancialEntry,
+  createTeamMember,
+  deleteFinancialEntry,
   deleteQuoteItem,
   deleteCurrentPainterAccount,
+  deleteTeamMember,
   deleteVisitRequest,
+  fetchFinancialEntries,
   fetchChatMessages,
   fetchChatThreads,
   fetchCurrentPainterProfile,
@@ -19,6 +24,7 @@ import {
   fetchPortfolioItems,
   fetchPainterProfileViewMetrics,
   fetchQuoteItems,
+  fetchTeamMembers,
   updateVisitRequest,
   fetchVisitItems,
   normalizeChatMessagesError,
@@ -34,18 +40,24 @@ import { DashboardPortfolioTab } from '../features/dashboard/components/Dashboar
 import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQuotesTab';
 import { DashboardSettingsTab } from '../features/dashboard/components/DashboardSettingsTab';
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
+import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
+import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
   DashboardMetrics,
   DashboardTab,
   FeedbackMessage,
+  FinancialEntryForm,
+  SavedFinancialEntry,
+  SavedTeamMember,
   PainterProfileEngagementMetrics,
   PainterProfileViewMetrics,
   PainterSettingsForm,
   SavedChatMessage,
   SavedChatThread,
-  SavedVisitRequest
+  SavedVisitRequest,
+  TeamMemberForm
 } from '../features/dashboard/types';
 import { createUuid } from '../features/dashboard/utils';
 import { NavigateToPage, Page } from '../types';
@@ -56,6 +68,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
+  const [authUserId, setAuthUserId] = useState('');
   const [userName, setUserName] = useState('Pintor');
   const [currentProfile, setCurrentProfile] = useState<CurrentPainterProfile | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -120,6 +133,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [portfolioItems, setPortfolioItems] = useState<SavedObra[]>([]);
   const [quoteItems, setQuoteItems] = useState<SavedOrcamento[]>([]);
+  const [financialItems, setFinancialItems] = useState<SavedFinancialEntry[]>([]);
+  const [teamItems, setTeamItems] = useState<SavedTeamMember[]>([]);
   const [editingQuote, setEditingQuote] = useState<SavedOrcamento | null>(null);
   const [visitItems, setVisitItems] = useState<SavedVisitRequest[]>([]);
   const [chatThreads, setChatThreads] = useState<SavedChatThread[]>([]);
@@ -127,10 +142,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
   const [isLoadingVisits, setIsLoadingVisits] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [isLoadingFinancial, setIsLoadingFinancial] = useState(false);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
   const [portfolioError, setPortfolioError] = useState('');
   const [quotesError, setQuotesError] = useState('');
   const [visitsError, setVisitsError] = useState('');
   const [chatsError, setChatsError] = useState('');
+  const [financialError, setFinancialError] = useState('');
+  const [teamError, setTeamError] = useState('');
   const [isOrcamentoModalOpen, setIsOrcamentoModalOpen] = useState(false);
   const [isObraModalOpen, setIsObraModalOpen] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -148,6 +167,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [profileFeedback, setProfileFeedback] = useState<FeedbackMessage | null>(null);
   const [settingsFeedback, setSettingsFeedback] = useState<FeedbackMessage | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSavingFinancial, setIsSavingFinancial] = useState(false);
+  const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const profileInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -244,6 +265,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         typeof data.user.user_metadata?.full_name === 'string' && data.user.user_metadata.full_name.trim()
           ? data.user.user_metadata.full_name.trim()
           : normalizedEmail.split('@')[0];
+      setAuthUserId(data.user.id);
 
       const [portfolioResult, quotesResult, profileResult] = await Promise.allSettled([
         fetchPortfolioItems(data.user.id),
@@ -665,6 +687,82 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       void supabase.removeChannel(messagesChannel);
     };
   }, [isChatInboxOpen, selectedChatThreadId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!authUserId) {
+      setFinancialItems([]);
+      setFinancialError('');
+      setIsLoadingFinancial(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const loadFinancialEntries = async () => {
+      setIsLoadingFinancial(true);
+      try {
+        const data = await fetchFinancialEntries(authUserId);
+        if (!isMounted) return;
+        setFinancialItems(data);
+        setFinancialError('');
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Erro ao carregar controle financeiro:', error);
+        setFinancialItems([]);
+        setFinancialError('Não foi possível carregar os lançamentos financeiros agora.');
+      } finally {
+        if (isMounted) {
+          setIsLoadingFinancial(false);
+        }
+      }
+    };
+
+    void loadFinancialEntries();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUserId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!authUserId) {
+      setTeamItems([]);
+      setTeamError('');
+      setIsLoadingTeam(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const loadTeamMembers = async () => {
+      setIsLoadingTeam(true);
+      try {
+        const data = await fetchTeamMembers(authUserId);
+        if (!isMounted) return;
+        setTeamItems(data);
+        setTeamError('');
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Erro ao carregar equipe:', error);
+        setTeamItems([]);
+        setTeamError('Não foi possível carregar os membros da equipe agora.');
+      } finally {
+        if (isMounted) {
+          setIsLoadingTeam(false);
+        }
+      }
+    };
+
+    void loadTeamMembers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUserId]);
 
   useEffect(() => {
     if (!selectedChatThreadId || !chatThreads.some((thread) => thread.id === selectedChatThreadId)) {
@@ -1150,8 +1248,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       setCurrentProfile(null);
       setPortfolioItems([]);
       setQuoteItems([]);
+      setFinancialItems([]);
+      setTeamItems([]);
       setVisitItems([]);
       setChatThreads([]);
+      setAuthUserId('');
       setSettingsFeedback(null);
       setPage(Page.Home);
     } catch (error) {
@@ -1282,6 +1383,98 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
   };
 
+  const handleFinancialCreate = async (form: FinancialEntryForm) => {
+    if (!authUserId) {
+      setFinancialError('Não foi possível identificar o usuário para salvar o lançamento.');
+      return;
+    }
+
+    if (!form.title.trim() || !form.amount || !form.entryDate) {
+      setFinancialError('Preencha título, valor e data para salvar o lançamento.');
+      return;
+    }
+
+    setIsSavingFinancial(true);
+    setFinancialError('');
+
+    try {
+      const savedEntry = await createFinancialEntry(authUserId, form);
+      setFinancialItems((currentItems) => [savedEntry, ...currentItems]);
+    } catch (error) {
+      console.error('Erro ao salvar lançamento financeiro:', error);
+      setFinancialError('Não foi possível salvar o lançamento financeiro agora.');
+    } finally {
+      setIsSavingFinancial(false);
+    }
+  };
+
+  const handleFinancialDelete = async (entry: SavedFinancialEntry) => {
+    if (!authUserId) {
+      setFinancialError('Não foi possível identificar o usuário para excluir o lançamento.');
+      return;
+    }
+
+    const shouldDelete = window.confirm(`Excluir o lançamento "${entry.title}"?`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      await deleteFinancialEntry(entry.id, authUserId);
+      setFinancialItems((currentItems) => currentItems.filter((item) => item.id !== entry.id));
+      setFinancialError('');
+    } catch (error) {
+      console.error('Erro ao excluir lançamento financeiro:', error);
+      setFinancialError('Não foi possível excluir o lançamento financeiro agora.');
+    }
+  };
+
+  const handleTeamCreate = async (form: TeamMemberForm) => {
+    if (!authUserId) {
+      setTeamError('Não foi possível identificar o usuário para salvar o membro.');
+      return;
+    }
+
+    if (!form.fullName.trim()) {
+      setTeamError('Informe o nome do membro da equipe.');
+      return;
+    }
+
+    setIsSavingTeam(true);
+    setTeamError('');
+
+    try {
+      const savedMember = await createTeamMember(authUserId, form);
+      setTeamItems((currentItems) => [savedMember, ...currentItems]);
+    } catch (error) {
+      console.error('Erro ao salvar membro da equipe:', error);
+      setTeamError('Não foi possível salvar o membro da equipe agora.');
+    } finally {
+      setIsSavingTeam(false);
+    }
+  };
+
+  const handleTeamDelete = async (member: SavedTeamMember) => {
+    if (!authUserId) {
+      setTeamError('Não foi possível identificar o usuário para excluir o membro.');
+      return;
+    }
+
+    const shouldDelete = window.confirm(`Excluir o membro "${member.full_name}" da equipe?`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      await deleteTeamMember(member.id, authUserId);
+      setTeamItems((currentItems) => currentItems.filter((item) => item.id !== member.id));
+      setTeamError('');
+    } catch (error) {
+      console.error('Erro ao excluir membro da equipe:', error);
+      setTeamError('Não foi possível excluir o membro da equipe agora.');
+    }
+  };
+
   let content: React.ReactNode = null;
   switch (activeTab) {
     case 'inicio':
@@ -1333,6 +1526,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           onViewPdf={(quote) => void handleQuoteViewPdf(quote)}
           onViewContract={(quote) => void handleQuoteViewContract(quote)}
           onDelete={(quote) => void handleQuoteDelete(quote)}
+        />
+      );
+      break;
+    case 'financeiro':
+      content = (
+        <DashboardFinancialTab
+          items={financialItems}
+          isLoading={isLoadingFinancial}
+          isSaving={isSavingFinancial}
+          errorMessage={financialError}
+          onCreate={(form) => void handleFinancialCreate(form)}
+          onDelete={(entry) => void handleFinancialDelete(entry)}
+        />
+      );
+      break;
+    case 'equipe':
+      content = (
+        <DashboardTeamTab
+          items={teamItems}
+          isLoading={isLoadingTeam}
+          isSaving={isSavingTeam}
+          errorMessage={teamError}
+          onCreate={(form) => void handleTeamCreate(form)}
+          onDelete={(member) => void handleTeamDelete(member)}
         />
       );
       break;
