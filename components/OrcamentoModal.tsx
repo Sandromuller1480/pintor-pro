@@ -32,6 +32,11 @@ type OrcamentoFormData = {
   imovelEndereco: string;
   imovelCidadeEstado: string;
   imovelTipo: string;
+  edificioNome: string;
+  edificioTotalPavimentos: string;
+  edificioPavimentoAtendido: string;
+  edificioPossuiElevador: string;
+  edificioTipoAtendimento: string;
   imovelSituação: string;
   imovelStatus: string;
   pinturaTipoServico: string;
@@ -66,6 +71,11 @@ export type SavedOrcamento = {
   imovel_endereco?: string | null;
   imovel_cidade_estado: string | null;
   imovel_tipo: string | null;
+  edificio_nome?: string | null;
+  edificio_total_pavimentos?: number | null;
+  edificio_pavimento_atendido?: string | null;
+  edificio_possui_elevador?: string | null;
+  edificio_tipo_atendimento?: string | null;
   imovel_situacao?: string | null;
   imovel_status?: string | null;
   ambientes?: Ambiente[] | null;
@@ -101,6 +111,9 @@ export type SavedOrcamento = {
 const QUOTE_MEDIA_BUCKET = 'orcamentos-media';
 const PROPERTY_SITUATION_OPTIONS = ['Novo', 'Reforma'] as const;
 const PROPERTY_STATUS_OPTIONS = ['Vazio', 'Mobiliado'] as const;
+const PROPERTY_TYPE_OPTIONS = ['Casa', 'Apartamento', 'Edifício', 'Comercial', 'Industrial', 'Rural'] as const;
+const BUILDING_SERVICE_TYPE_OPTIONS = ['Fachada', 'Áreas comuns', 'Unidades', 'Cobertura', 'Garagem', 'Misto'] as const;
+const YES_NO_OPTIONS = ['Sim', 'Não'] as const;
 type CurrencyFormField = 'valorMateriais' | 'valorDeslocamento' | 'valorAjusteExtra' | 'valorDesconto';
 
 const QUOTE_SELECT_FIELDS = [
@@ -113,6 +126,11 @@ const QUOTE_SELECT_FIELDS = [
   'imovel_endereco',
   'imovel_cidade_estado',
   'imovel_tipo',
+  'edificio_nome',
+  'edificio_total_pavimentos',
+  'edificio_pavimento_atendido',
+  'edificio_possui_elevador',
+  'edificio_tipo_atendimento',
   'imovel_situacao',
   'imovel_status',
   'ambientes',
@@ -154,6 +172,11 @@ const INITIAL_FORM_DATA: OrcamentoFormData = {
   imovelEndereco: '',
   imovelCidadeEstado: '',
   imovelTipo: 'Casa',
+  edificioNome: '',
+  edificioTotalPavimentos: '',
+  edificioPavimentoAtendido: '',
+  edificioPossuiElevador: '',
+  edificioTipoAtendimento: '',
   imovelSituação: '',
   imovelStatus: '',
   pinturaTipoServico: '',
@@ -338,6 +361,28 @@ const buildQuoteWhatsappMessage = (
     `Urgência: ${formData.prazoUrgência || 'Não informada'}`
   ];
 
+  if (formData.imovelTipo === 'Edifício') {
+    if (formData.edificioNome.trim()) {
+      messageLines.push(`Edifício / condomínio: ${formData.edificioNome.trim()}`);
+    }
+
+    if (formData.edificioTotalPavimentos.trim()) {
+      messageLines.push(`Total de pavimentos: ${formData.edificioTotalPavimentos.trim()}`);
+    }
+
+    if (formData.edificioPavimentoAtendido.trim()) {
+      messageLines.push(`Pavimento(s) atendido(s): ${formData.edificioPavimentoAtendido.trim()}`);
+    }
+
+    if (formData.edificioPossuiElevador) {
+      messageLines.push(`Possui elevador: ${formData.edificioPossuiElevador}`);
+    }
+
+    if (formData.edificioTipoAtendimento) {
+      messageLines.push(`Tipo de atendimento: ${formData.edificioTipoAtendimento}`);
+    }
+  }
+
   if (ambientesValidos.length > 0) {
     const ambienteNames = ambientesValidos
       .map((ambiente, index) => ambiente.nome.trim() || `Ambiente ${index + 1}`)
@@ -453,6 +498,15 @@ const mapQuoteToFormData = (quote: SavedOrcamento): OrcamentoFormData => ({
   imovelEndereco: quote.imovel_endereco || '',
   imovelCidadeEstado: quote.imovel_cidade_estado || '',
   imovelTipo: quote.imovel_tipo || 'Casa',
+  edificioNome: quote.edificio_nome || '',
+  edificioTotalPavimentos: quote.edificio_total_pavimentos != null ? String(quote.edificio_total_pavimentos) : '',
+  edificioPavimentoAtendido: quote.edificio_pavimento_atendido || '',
+  edificioPossuiElevador: YES_NO_OPTIONS.includes((quote.edificio_possui_elevador || '') as (typeof YES_NO_OPTIONS)[number])
+    ? (quote.edificio_possui_elevador || '')
+    : '',
+  edificioTipoAtendimento: BUILDING_SERVICE_TYPE_OPTIONS.includes((quote.edificio_tipo_atendimento || '') as (typeof BUILDING_SERVICE_TYPE_OPTIONS)[number])
+    ? (quote.edificio_tipo_atendimento || '')
+    : '',
   imovelSituação: normalizePropertySituation(quote.imovel_situacao),
   imovelStatus: normalizePropertyStatus(quote.imovel_status),
   pinturaTipoServico: quote.pintura_tipo_servico || '',
@@ -712,6 +766,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         valorDesconto: formData.valorDesconto
       });
       const whatsappMessage = buildQuoteWhatsappMessage(painterDisplayName, formData, ambientesValidos);
+      const isBuilding = formData.imovelTipo === 'Edifício';
 
       const quotePayload = {
         pintor_id: user.id,
@@ -723,6 +778,13 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
         imovel_endereco: formData.imovelEndereco.trim() || null,
         imovel_cidade_estado: formData.imovelCidadeEstado.trim() || null,
         imovel_tipo: formData.imovelTipo || null,
+        edificio_nome: isBuilding ? (formData.edificioNome.trim() || null) : null,
+        edificio_total_pavimentos: isBuilding && formData.edificioTotalPavimentos.trim()
+          ? Number.parseInt(formData.edificioTotalPavimentos.trim(), 10) || null
+          : null,
+        edificio_pavimento_atendido: isBuilding ? (formData.edificioPavimentoAtendido.trim() || null) : null,
+        edificio_possui_elevador: isBuilding ? (formData.edificioPossuiElevador || null) : null,
+        edificio_tipo_atendimento: isBuilding ? (formData.edificioTipoAtendimento || null) : null,
         imovel_situacao: formData.imovelSituação || null,
         imovel_status: formData.imovelStatus || null,
         ambientes: ambientesValidos,
@@ -813,6 +875,11 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
             propertyAddress: formData.imovelEndereco.trim() || undefined,
             propertyCityState: formData.imovelCidadeEstado.trim() || undefined,
             propertyType: formData.imovelTipo || undefined,
+            buildingName: isBuilding ? (formData.edificioNome.trim() || undefined) : undefined,
+            buildingFloors: isBuilding ? (formData.edificioTotalPavimentos.trim() || undefined) : undefined,
+            buildingServicedFloors: isBuilding ? (formData.edificioPavimentoAtendido.trim() || undefined) : undefined,
+            buildingHasElevator: isBuilding ? (formData.edificioPossuiElevador || undefined) : undefined,
+            buildingServiceType: isBuilding ? (formData.edificioTipoAtendimento || undefined) : undefined,
             propertySituation: formData.imovelSituação || undefined,
             propertyStatus: formData.imovelStatus || undefined,
             serviceType: formData.pinturaTipoServico || undefined,
@@ -934,9 +1001,74 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
               </InputGroup>
               <InputGroup label="Tipo de imóvel">
                 <select value={formData.imovelTipo} onChange={(e) => updateField('imovelTipo', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] text-slate-700">
-                  {['Casa', 'Apartamento', 'Comercial', 'Industrial', 'Rural'].map((item) => <option key={item} value={item}>{item}</option>)}
+                  {PROPERTY_TYPE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </InputGroup>
+              {formData.imovelTipo === 'Edifício' && (
+                <>
+                  <div className="col-span-1 md:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InputGroup label="Nome do edifício / condomínio">
+                        <input
+                          type="text"
+                          value={formData.edificioNome}
+                          onChange={(e) => updateField('edificioNome', e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                          placeholder="Ex: Residencial Vista Bela"
+                        />
+                      </InputGroup>
+                      <InputGroup label="Total de pavimentos">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={formData.edificioTotalPavimentos}
+                          onChange={(e) => updateField('edificioTotalPavimentos', e.target.value.replace(/\D/g, ''))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                          placeholder="Ex: 12"
+                        />
+                      </InputGroup>
+                      <InputGroup label="Pavimento(s) atendido(s)">
+                        <input
+                          type="text"
+                          value={formData.edificioPavimentoAtendido}
+                          onChange={(e) => updateField('edificioPavimentoAtendido', e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] transition text-slate-700"
+                          placeholder="Ex: 1 ao 3 / Cobertura / Fachada"
+                        />
+                      </InputGroup>
+                      <InputGroup label="Tipo de atendimento">
+                        <select
+                          value={formData.edificioTipoAtendimento}
+                          onChange={(e) => updateField('edificioTipoAtendimento', e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-[#9A077B] text-slate-700"
+                        >
+                          <option value="">Selecione...</option>
+                          {BUILDING_SERVICE_TYPE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </InputGroup>
+                    </div>
+                  </div>
+                  <div className="col-span-1 md:col-span-2">
+                    <InputGroup label="Possui elevador">
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        {YES_NO_OPTIONS.map((item) => (
+                          <label key={item} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="edificioPossuiElevador"
+                              value={item}
+                              checked={formData.edificioPossuiElevador === item}
+                              onChange={(e) => updateField('edificioPossuiElevador', e.target.value)}
+                              className="accent-[#9A077B]"
+                            />
+                            <span className="text-sm text-slate-700">{item}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </InputGroup>
+                  </div>
+                </>
+              )}
               <InputGroup label="Situação">
                 <div className="flex flex-wrap gap-4 mt-2">
                   {PROPERTY_SITUATION_OPTIONS.map((item) => (

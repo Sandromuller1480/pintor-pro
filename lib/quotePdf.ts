@@ -24,6 +24,11 @@ type QuotePdfPayload = {
   propertyAddress?: string;
   propertyCityState?: string;
   propertyType?: string;
+  buildingName?: string;
+  buildingFloors?: string | number | null;
+  buildingServicedFloors?: string | null;
+  buildingHasElevator?: string | null;
+  buildingServiceType?: string | null;
   propertySituation?: string;
   propertyStatus?: string;
   serviceType?: string;
@@ -384,6 +389,14 @@ export const generateQuotePdf = async (
   await addField('Tipo de tinta', payload.paintType || '');
   await addField('Situação da parede', payload.wallState || '');
   await addField('Preparação necessária', payload.prepServices.join(', '));
+
+  if (payload.propertyType === 'Edifício') {
+    await addField('Edifício / condomínio', payload.buildingName || '');
+    await addField('Total de pavimentos', payload.buildingFloors != null ? String(payload.buildingFloors) : '');
+    await addField('Pavimento(s) atendido(s)', payload.buildingServicedFloors || '');
+    await addField('Possui elevador', payload.buildingHasElevator || '');
+    await addField('Tipo de atendimento', payload.buildingServiceType || '');
+  }
 
   if (payload.ambientes.length > 0) {
     await addField(

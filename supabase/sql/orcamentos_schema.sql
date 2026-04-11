@@ -18,6 +18,11 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
     imovel_endereco TEXT,
     imovel_cidade_estado TEXT,
     imovel_tipo TEXT,
+    edificio_nome TEXT,
+    edificio_total_pavimentos INTEGER,
+    edificio_pavimento_atendido TEXT,
+    edificio_possui_elevador TEXT,
+    edificio_tipo_atendimento TEXT,
     imovel_situacao TEXT,
     imovel_status TEXT,
 

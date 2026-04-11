@@ -878,6 +878,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           propertyAddress: quote.imovel_endereco || undefined,
           propertyCityState: quote.imovel_cidade_estado || undefined,
           propertyType: quote.imovel_tipo || undefined,
+          buildingName: quote.edificio_nome || undefined,
+          buildingFloors: quote.edificio_total_pavimentos ?? undefined,
+          buildingServicedFloors: quote.edificio_pavimento_atendido || undefined,
+          buildingHasElevator: quote.edificio_possui_elevador || undefined,
+          buildingServiceType: quote.edificio_tipo_atendimento || undefined,
           propertySituation: quote.imovel_situacao || undefined,
           propertyStatus: quote.imovel_status || undefined,
           serviceType: quote.pintura_tipo_servico || undefined,
@@ -937,6 +942,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           propertyAddress: quote.imovel_endereco || undefined,
           propertyCityState: quote.imovel_cidade_estado || undefined,
           propertyType: quote.imovel_tipo || undefined,
+          buildingName: quote.edificio_nome || undefined,
+          buildingFloors: quote.edificio_total_pavimentos ?? undefined,
+          buildingServicedFloors: quote.edificio_pavimento_atendido || undefined,
+          buildingHasElevator: quote.edificio_possui_elevador || undefined,
+          buildingServiceType: quote.edificio_tipo_atendimento || undefined,
           serviceType: quote.pintura_tipo_servico || undefined,
           finishType: Array.isArray(quote.pintura_acabamentos) && quote.pintura_acabamentos.length > 0
             ? quote.pintura_acabamentos.join(', ')

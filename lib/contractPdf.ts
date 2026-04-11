@@ -25,6 +25,11 @@ type ContractPdfPayload = {
   propertyAddress?: string | null;
   propertyCityState?: string | null;
   propertyType?: string | null;
+  buildingName?: string | null;
+  buildingFloors?: string | number | null;
+  buildingServicedFloors?: string | null;
+  buildingHasElevator?: string | null;
+  buildingServiceType?: string | null;
   serviceType?: string | null;
   finishType?: string | null;
   paintType?: string | null;
@@ -402,6 +407,22 @@ export const generateContractPdf = async (
   await addParagraph(
     `O presente contrato tem como objeto a execução dos serviços de ${payload.serviceType || 'pintura imobiliária'} no imóvel ${payload.propertyType ? `do tipo ${payload.propertyType}` : 'objeto deste contrato'}, localizado em ${payload.propertyAddress || 'endereço a confirmar'}${payload.propertyCityState ? `, ${payload.propertyCityState}` : ''}.`
   );
+
+  if (payload.propertyType === 'Edifício') {
+    const buildingDetails = [
+      payload.buildingName ? `Edifício / condomínio: ${payload.buildingName}` : '',
+      payload.buildingFloors != null && String(payload.buildingFloors).trim()
+        ? `Total de pavimentos: ${String(payload.buildingFloors).trim()}`
+        : '',
+      payload.buildingServicedFloors ? `Pavimento(s) atendido(s): ${payload.buildingServicedFloors}` : '',
+      payload.buildingHasElevator ? `Possui elevador: ${payload.buildingHasElevator}` : '',
+      payload.buildingServiceType ? `Tipo de atendimento: ${payload.buildingServiceType}` : ''
+    ].filter(Boolean);
+
+    if (buildingDetails.length > 0) {
+      await addParagraph(buildingDetails.join(' | '));
+    }
+  }
 
   const environmentSummary = payload.ambientes
     .map((ambiente, index) => {
