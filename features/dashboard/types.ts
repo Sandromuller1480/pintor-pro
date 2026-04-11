@@ -1,4 +1,4 @@
-export type DashboardTab = 'inicio' | 'portfolio' | 'orcamentos' | 'agenda' | 'config';
+export type DashboardTab = 'inicio' | 'portfolio' | 'orcamentos' | 'financeiro' | 'equipe' | 'agenda' | 'config';
 
 export type CurrentPainterProfile = {
   applicationId: string;
@@ -147,4 +147,65 @@ export type SavedChatMessage = {
 export type FeedbackMessage = {
   type: 'success' | 'error';
   message: string;
+};
+
+export type FinancialEntryType = 'entrada' | 'saida';
+
+export type FinancialEntryStatus = 'pendente' | 'recebido' | 'pago' | 'cancelado';
+
+export type SavedFinancialEntry = {
+  id: string;
+  painter_id: string;
+  entry_type: FinancialEntryType | string;
+  title: string;
+  category: string | null;
+  related_client_name: string | null;
+  amount: number | null;
+  entry_date: string;
+  payment_method: string | null;
+  status: FinancialEntryStatus | string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type FinancialEntryForm = {
+  entryType: FinancialEntryType;
+  title: string;
+  category: string;
+  relatedClientName: string;
+  amount: string;
+  entryDate: string;
+  paymentMethod: string;
+  notes: string;
+};
+
+export type TeamMemberRole = 'pintor_profissional' | 'ajudante';
+
+export type TeamMemberStatus = 'ativo' | 'inativo';
+
+export type SavedTeamMember = {
+  id: string;
+  painter_id: string;
+  full_name: string;
+  role: TeamMemberRole | string;
+  phone: string | null;
+  daily_rate: number | null;
+  has_nr35: boolean;
+  nr35_expiration_date: string | null;
+  status: TeamMemberStatus | string;
+  specialties: string[] | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type TeamMemberForm = {
+  fullName: string;
+  role: TeamMemberRole;
+  phone: string;
+  dailyRate: string;
+  hasNr35: boolean;
+  nr35ExpirationDate: string;
+  status: TeamMemberStatus;
+  specialties: string;
+  notes: string;
 };
