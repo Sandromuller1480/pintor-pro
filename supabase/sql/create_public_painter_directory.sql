@@ -170,7 +170,10 @@ SELECT
   COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone,
   a.whatsapp AS whatsapp,
   a.instagram_url AS instagram_url,
-  a.facebook_url AS facebook_url
+  a.facebook_url AS facebook_url,
+  a.street,
+  a.neighborhood,
+  a.address_number
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

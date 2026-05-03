@@ -107,6 +107,19 @@ const matchesLocationQuery = (source: string, normalizedQuery: string) => {
     .every((term) => normalizedSource.includes(term));
 };
 
+const buildPainterGeocodingQuery = (painter: Painter) => {
+  const streetLine = [painter.street?.trim(), painter.addressNumber?.trim()]
+    .filter(Boolean)
+    .join(', ');
+  const cityLine = painter.location === 'Localização não informada'
+    ? ''
+    : painter.location.trim();
+
+  return [streetLine, painter.neighborhood?.trim(), cityLine]
+    .filter((item): item is string => Boolean(item))
+    .join(', ');
+};
+
 const clampLat = (lat: number) => Math.max(-85.05112878, Math.min(85.05112878, lat));
 
 const wrapLng = (lng: number) => {
@@ -379,11 +392,23 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       ...seedCoordinates
     }));
 
+    const geocodingTargetsByPainterId = new Map<string, string>();
+
+    painters.forEach((painter) => {
+      if (painter.coordinates) {
+        return;
+      }
+
+      const geocodingTarget = buildPainterGeocodingQuery(painter) || painter.location;
+
+      if (isGeocodableLocation(geocodingTarget)) {
+        geocodingTargetsByPainterId.set(painter.id, geocodingTarget);
+      }
+    });
+
     const uniqueLocations: string[] = Array.from(
       new Set<string>(
-        painters
-          .filter((painter) => !painter.coordinates && isGeocodableLocation(painter.location))
-          .map((painter) => painter.location)
+        Array.from(geocodingTargetsByPainterId.values())
       )
     );
 
@@ -413,7 +438,9 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
             const nextCoordinates = { ...currentCoordinates };
 
             painters.forEach((painter) => {
-              if (!painter.coordinates && normalizeLocationKey(painter.location) === normalizeLocationKey(location)) {
+              const geocodingTarget = geocodingTargetsByPainterId.get(painter.id);
+
+              if (!painter.coordinates && geocodingTarget && normalizeLocationKey(geocodingTarget) === normalizeLocationKey(location)) {
                 nextCoordinates[painter.id] = coordinates;
               }
             });

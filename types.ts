@@ -9,6 +9,9 @@ export interface Painter {
   whatsapp?: string;
   instagramUrl?: string;
   facebookUrl?: string;
+  street?: string;
+  neighborhood?: string;
+  addressNumber?: string;
   location: string;
   rating: number;
   reviewsCount: number;

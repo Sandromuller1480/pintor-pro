@@ -146,6 +146,15 @@ function mapPainterRowToPainter(item: any): Painter {
             : undefined,
         instagramUrl: normalizeExternalProfileUrl(item.instagram_url),
         facebookUrl: normalizeExternalProfileUrl(item.facebook_url),
+        street: typeof item.street === 'string' && item.street.trim()
+            ? item.street.trim()
+            : undefined,
+        neighborhood: typeof item.neighborhood === 'string' && item.neighborhood.trim()
+            ? item.neighborhood.trim()
+            : undefined,
+        addressNumber: typeof item.address_number === 'string' && item.address_number.trim()
+            ? item.address_number.trim()
+            : undefined,
         location: item.location,
         rating: Number(item.rating ?? 0),
         reviewsCount: Number(item.reviews_count ?? 0),
