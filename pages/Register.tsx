@@ -544,7 +544,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                     onChange={() => toggleSpecialty(option)}
                   />
                   <div
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center mr-3 transition-colors ${
+                    className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                       formData.specialty.includes(option)
                         ? 'bg-white border-white text-[#9A077B]'
                         : 'bg-slate-50 border-slate-200 group-hover:border-[#C93EA6]'
