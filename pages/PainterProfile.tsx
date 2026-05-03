@@ -991,21 +991,29 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      <div className="relative h-64 lg:h-80 w-full overflow-hidden">
+      <div className="relative h-[360px] md:h-64 lg:h-80 w-full overflow-hidden">
         <img src={painter.banner} alt="Banner" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-        <div className="absolute bottom-8 left-0 w-full">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-end">
-            <div className="flex gap-6 items-end">
-              <img
-                src={painter.avatar}
-                alt={painter.name}
-                className="w-24 h-24 lg:w-32 lg:h-32 rounded-3xl border-4 border-white shadow-xl object-cover relative z-10"
-              />
-                <div className="pb-2">
-                  <div className="flex items-center gap-3 text-white mb-2">
-                    <h1 className="text-3xl font-black">{painter.name}</h1>
-                    {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/10"></div>
+
+        <div className="absolute inset-0 md:hidden">
+          <div className="mx-auto flex h-full max-w-7xl flex-col justify-start px-4 py-5">
+            <div className="rounded-[28px] border border-white/15 bg-black/20 p-4 shadow-xl backdrop-blur-[3px]">
+              <div className="flex items-start gap-3">
+                <img
+                  src={painter.avatar}
+                  alt={painter.name}
+                  className="h-20 w-20 shrink-0 rounded-[26px] border-4 border-white shadow-xl object-cover"
+                />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2 text-white">
+                    <h1 className="min-w-0 break-words text-[clamp(1.85rem,8vw,2.75rem)] font-black leading-[0.92]">
+                      {painter.name}
+                    </h1>
+                    {painter.verified && <Shield className="mt-1 h-5 w-5 shrink-0 text-[#C93EA6] fill-[#C93EA6]" />}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {painter.isOnline === true && (
                       <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur-md">
                         <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
@@ -1018,7 +1026,58 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 text-sm font-medium text-white/90">
+                {hasRealReviews ? (
+                  <span className="flex items-start gap-2 rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                    <Star className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400 fill-yellow-400" />
+                    <span className="break-words leading-relaxed">
+                      {painter.rating.toFixed(1)} ({painter.reviewsCount} avaliações)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex items-start gap-2 rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                    <Star className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
+                    <span className="break-words leading-relaxed">Sem avaliações ainda</span>
+                  </span>
+                )}
+
+                <span className="flex items-start gap-2 rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="break-words leading-relaxed">{painter.location}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-8 left-0 hidden w-full md:block">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-end">
+            <div className="flex gap-6 items-end">
+              <img
+                src={painter.avatar}
+                alt={painter.name}
+                className="w-24 h-24 lg:w-32 lg:h-32 rounded-3xl border-4 border-white shadow-xl object-cover relative z-10"
+              />
+              <div className="pb-2">
+                <div className="flex items-center gap-3 text-white mb-2">
+                  <h1 className="text-3xl font-black">{painter.name}</h1>
+                  {painter.verified && <Shield className="w-6 h-6 text-[#C93EA6] fill-[#C93EA6]" />}
+                  {painter.isOnline === true && (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur-md">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
+                      Online agora
+                    </span>
+                  )}
+                  {painter.isOnline === false && (
+                    <span className="inline-flex items-center rounded-full border border-slate-300/25 bg-slate-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-100 backdrop-blur-md">
+                      Indisponivel
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
                   {hasRealReviews ? (
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
