@@ -172,7 +172,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={(event) => void handleSubmit(event)} className="max-h-[calc(92vh-88px)] overflow-y-auto px-6 py-6">
+        <form onSubmit={(event) => void handleSubmit(event)} className="max-h-[calc(92vh-88px)] overflow-y-auto px-6 py-6 pb-8 md:pb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
@@ -260,7 +260,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
               Especialidades
             </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-5 rounded-3xl border border-slate-200 max-h-72 overflow-y-auto">
+            <div className="grid max-h-[15.5rem] grid-cols-1 gap-3 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 md:max-h-72 md:grid-cols-2 md:p-5">
               {specialtyOptions.map((option) => {
                 const isSelected = formData.specialties.includes(option);
 
@@ -310,7 +310,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           )}
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="sticky bottom-0 -mx-6 mt-8 flex justify-end gap-3 bg-white/95 px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-sm md:static md:mx-0 md:mt-6 md:bg-transparent md:px-0 md:pb-0 md:pt-0">
             <button
               type="button"
               onClick={onClose}
