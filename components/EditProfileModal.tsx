@@ -260,7 +260,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
               Especialidades
             </label>
-            <div className="grid max-h-[15.5rem] grid-cols-1 gap-3 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 md:max-h-72 md:grid-cols-2 md:p-5">
+            <div className="grid max-h-[11.5rem] grid-cols-1 gap-3 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 md:max-h-72 md:grid-cols-2 md:p-5">
               {specialtyOptions.map((option) => {
                 const isSelected = formData.specialties.includes(option);
 
