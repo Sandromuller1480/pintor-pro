@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquare } from 'lucide-react';
+import { Menu, MessageSquare } from 'lucide-react';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
@@ -156,6 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isChatInboxOpen, setIsChatInboxOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [selectedChatThreadId, setSelectedChatThreadId] = useState<string | null>(null);
   const [activeChatMessages, setActiveChatMessages] = useState<SavedChatMessage[]>([]);
   const [isLoadingActiveChatMessages, setIsLoadingActiveChatMessages] = useState(false);
@@ -618,6 +619,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const handleTabChange = (tab: DashboardTab) => {
     setActiveTab(tab);
     setIsChatInboxOpen(false);
+    setIsMobileSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -633,6 +635,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       void markChatThreadsAsRead(unreadThreadIds);
     }
   }, [isChatInboxOpen, chatThreads]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileSidebarOpen]);
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMobileSidebarOpen]);
 
   useEffect(() => {
     if (!isChatInboxOpen) {
@@ -1588,16 +1636,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50">
+      <button
+        type="button"
+        onClick={() => setIsMobileSidebarOpen(true)}
+        className="fixed left-4 top-4 z-30 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-[#000747] shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(15,23,42,0.16)] lg:hidden"
+        aria-label="Abrir menu do painel"
+        aria-controls="dashboard-mobile-menu"
+        aria-expanded={isMobileSidebarOpen}
+      >
+        <Menu size={22} />
+      </button>
+
       <DashboardSidebar
         activeTab={activeTab}
         currentProfile={currentProfile}
         pendingVisitCount={pendingVisitCount}
         isSigningOut={isSignOut}
+        isMobileOpen={isMobileSidebarOpen}
         onTabChange={handleTabChange}
         onGoHome={() => setPage(Page.Home)}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onLogout={() => void handleLogout()}
       />
-      <main className="ml-64 flex-1 p-10 max-w-7xl relative">
+      <main className="relative w-full max-w-7xl flex-1 px-4 pb-10 pt-24 sm:px-6 sm:pb-12 lg:ml-64 lg:px-10 lg:pt-10">
         {content}
       </main>
 

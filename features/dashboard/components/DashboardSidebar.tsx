@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   BellRing,
   Briefcase,
@@ -9,7 +9,8 @@ import {
   Settings,
   Star,
   Users,
-  WalletCards
+  WalletCards,
+  X
 } from 'lucide-react';
 import { Logo } from '../../../components/Logo';
 import { CurrentPainterProfile, DashboardTab } from '../types';
@@ -20,8 +21,10 @@ interface DashboardSidebarProps {
   currentProfile: CurrentPainterProfile | null;
   pendingVisitCount: number;
   isSigningOut: boolean;
+  isMobileOpen: boolean;
   onTabChange: (tab: DashboardTab) => void;
   onGoHome: () => void;
+  onCloseMobile: () => void;
   onLogout: () => void;
 }
 
@@ -30,13 +33,13 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: typeof LayoutDashboard;
 }> = [
-  { id: 'inicio', label: 'Visão Geral', icon: LayoutDashboard },
-  { id: 'portfolio', label: 'Meu Portfólio', icon: Briefcase },
-  { id: 'orcamentos', label: 'Orçamentos', icon: FileText },
+  { id: 'inicio', label: 'Vis\u00e3o Geral', icon: LayoutDashboard },
+  { id: 'portfolio', label: 'Meu Portf\u00f3lio', icon: Briefcase },
+  { id: 'orcamentos', label: 'Or\u00e7amentos', icon: FileText },
   { id: 'financeiro', label: 'Controle Financeiro', icon: WalletCards },
-  { id: 'equipe', label: 'Gestão de Equipe', icon: Users },
+  { id: 'equipe', label: 'Gest\u00e3o de Equipe', icon: Users },
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },
-  { id: 'config', label: 'Configurações', icon: Settings }
+  { id: 'config', label: 'Configura\u00e7\u00f5es', icon: Settings }
 ];
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
@@ -44,15 +47,28 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   currentProfile,
   pendingVisitCount,
   isSigningOut,
+  isMobileOpen,
   onTabChange,
   onGoHome,
+  onCloseMobile,
   onLogout
-}) => (
-  <div className="fixed flex h-full w-64 flex-col border-r border-slate-200 bg-white">
-    <div className="flex cursor-pointer items-center justify-center border-b border-slate-100 p-6" onClick={onGoHome}>
-      <Logo className="h-10" color="#000747" />
-    </div>
+}) => {
+  const handleTabClick = (tab: DashboardTab) => {
+    onTabChange(tab);
+    onCloseMobile();
+  };
 
+  const handleGoHomeClick = () => {
+    onCloseMobile();
+    onGoHome();
+  };
+
+  const handleLogoutClick = () => {
+    onCloseMobile();
+    onLogout();
+  };
+
+  const renderNavigation = () => (
     <nav className="flex-1 space-y-2 p-4">
       {NAV_ITEMS.map((item) => {
         const isActive = activeTab === item.id;
@@ -61,7 +77,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         return (
           <button
             key={item.id}
-            onClick={() => onTabChange(item.id)}
+            type="button"
+            onClick={() => handleTabClick(item.id)}
             className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition ${
               isActive
                 ? 'bg-[#9A077B]/10 text-[#9A077B]'
@@ -89,7 +106,9 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         );
       })}
     </nav>
+  );
 
+  const renderFooter = () => (
     <div className="border-t border-slate-100 p-4">
       <div className="relative mb-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#000747] to-[#9A077B] p-4 text-white shadow-lg shadow-[#000747]/20">
         <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-white/10 blur-xl" />
@@ -104,7 +123,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </div>
 
       <button
-        onClick={onLogout}
+        type="button"
+        onClick={handleLogoutClick}
         disabled={isSigningOut}
         className="flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-sm font-bold text-red-500 transition hover:bg-red-50"
       >
@@ -112,5 +132,55 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         <span>{isSigningOut ? 'Saindo...' : 'Sair da Conta'}</span>
       </button>
     </div>
-  </div>
-);
+  );
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-slate-900/45 transition-opacity duration-200 lg:hidden ${
+          isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={onCloseMobile}
+        aria-hidden="true"
+      />
+
+      <aside
+        id="dashboard-mobile-menu"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(85vw,20rem)] max-w-xs flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 lg:hidden ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        aria-hidden={!isMobileOpen}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <button type="button" className="flex items-center justify-center" onClick={handleGoHomeClick}>
+            <Logo className="h-9" color="#000747" />
+          </button>
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            aria-label="Fechar menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {renderNavigation()}
+        {renderFooter()}
+      </aside>
+
+      <aside className="fixed hidden h-full w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+        <button
+          type="button"
+          className="flex items-center justify-center border-b border-slate-100 p-6"
+          onClick={onGoHome}
+        >
+          <Logo className="h-10" color="#000747" />
+        </button>
+
+        {renderNavigation()}
+        {renderFooter()}
+      </aside>
+    </>
+  );
+};
