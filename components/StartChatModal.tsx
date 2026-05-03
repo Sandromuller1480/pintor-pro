@@ -11,13 +11,18 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getCurrentClientProfile, type CurrentClientProfile } from '../lib/services/clientSignupService';
+import {
+  getCurrentClientProfile,
+  isAnonymousSessionUser,
+  type CurrentClientProfile
+} from '../lib/services/clientSignupService';
 
 type StartChatModalProps = {
   isOpen: boolean;
   painterId: string | null;
   painterName: string;
   painterLocation?: string;
+  currentClientProfile?: CurrentClientProfile | null;
   onClose: () => void;
 };
 
@@ -31,6 +36,7 @@ type FormData = {
 type ChatThread = {
   id: string;
   application_id: string;
+  client_user_id?: string | null;
   client_name: string;
   client_phone: string;
   client_email: string;
@@ -194,15 +200,39 @@ const formatMessageTimestamp = (value: string) => {
   }).format(parsedDate);
 };
 
-const ensureClientUser = async () => {
+const isClientProfileSession = (
+  userId: string,
+  currentClientProfile?: CurrentClientProfile | null
+) => (
+  Boolean(currentClientProfile?.authUserId) && currentClientProfile?.authUserId === userId
+);
+
+const ensureClientUser = async (
+  currentClientProfile?: CurrentClientProfile | null
+) => {
   const sessionResult = await supabase.auth.getSession();
 
   if (sessionResult.error) {
     throw sessionResult.error;
   }
 
-  if (sessionResult.data.session?.user) {
-    return sessionResult.data.session.user;
+  const sessionUser = sessionResult.data.session?.user ?? null;
+
+  if (sessionUser) {
+    if (
+      isAnonymousSessionUser(sessionUser) ||
+      isClientProfileSession(sessionUser.id, currentClientProfile)
+    ) {
+      return sessionUser;
+    }
+
+    const resolvedClientProfile = currentClientProfile ?? await getCurrentClientProfile();
+
+    if (isClientProfileSession(sessionUser.id, resolvedClientProfile)) {
+      return sessionUser;
+    }
+
+    throw new Error('Faça login como cliente para acessar esta conversa.');
   }
 
   const signInResult = await supabase.auth.signInAnonymously();
@@ -214,13 +244,22 @@ const ensureClientUser = async () => {
   return signInResult.data.user;
 };
 
-const fetchThread = async (painterId: string, threadId: string) => {
-  const { data, error } = await supabase
+const fetchThread = async (
+  painterId: string,
+  threadId: string,
+  clientUserId?: string
+) => {
+  let query = supabase
     .from('painter_chat_threads')
-    .select('id, application_id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
+    .select('id, application_id, client_user_id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
     .eq('id', threadId)
-    .eq('application_id', painterId)
-    .maybeSingle();
+    .eq('application_id', painterId);
+
+  if (clientUserId) {
+    query = query.eq('client_user_id', clientUserId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw error;
@@ -229,14 +268,22 @@ const fetchThread = async (painterId: string, threadId: string) => {
   return (data ?? null) as ChatThread | null;
 };
 
-const fetchLatestThread = async (painterId: string) => {
-  const { data, error } = await supabase
+const fetchLatestThread = async (
+  painterId: string,
+  clientUserId?: string
+) => {
+  let query = supabase
     .from('painter_chat_threads')
-    .select('id, application_id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
+    .select('id, application_id, client_user_id, client_name, client_phone, client_email, status, unread_for_painter, last_message_preview, last_message_at, created_at')
     .eq('application_id', painterId)
     .order('last_message_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (clientUserId) {
+    query = query.eq('client_user_id', clientUserId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw error;
@@ -264,12 +311,14 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
   painterId,
   painterName,
   painterLocation,
+  currentClientProfile: currentClientProfileProp,
   onClose
 }) => {
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [thread, setThread] = useState<ChatThread | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentClientProfile, setCurrentClientProfile] = useState<CurrentClientProfile | null>(null);
+  const [chatClientUserId, setChatClientUserId] = useState('');
   const [replyDraft, setReplyDraft] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -339,15 +388,17 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       setErrorMessage('');
       setSuccessMessage('');
       setReplyDraft('');
+      setChatClientUserId('');
 
       try {
         if (!painterId) {
           throw new Error('Não foi possível identificar o pintor para iniciar a conversa.');
         }
 
-        const nextClientProfile = await getCurrentClientProfile();
+        const nextClientProfile = currentClientProfileProp ?? await getCurrentClientProfile();
         setCurrentClientProfile(nextClientProfile);
-        await ensureClientUser();
+        const chatUser = await ensureClientUser(nextClientProfile);
+        setChatClientUserId(chatUser.id);
 
         if (cancelled) {
           return;
@@ -357,7 +408,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
         let nextThread: ChatThread | null = null;
 
         if (storedSession?.threadId) {
-          nextThread = await fetchThread(painterId, storedSession.threadId);
+          nextThread = await fetchThread(painterId, storedSession.threadId, chatUser.id);
 
           if (!nextThread) {
             clearStoredSession(painterId);
@@ -365,7 +416,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
         }
 
         if (!nextThread) {
-          nextThread = await fetchLatestThread(painterId);
+          nextThread = await fetchLatestThread(painterId, chatUser.id);
         }
 
         if (cancelled) {
@@ -440,7 +491,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       }
 
       try {
-        const nextThread = await fetchThread(painterId, thread.id);
+        const nextThread = await fetchThread(painterId, thread.id, chatClientUserId || undefined);
 
         if (cancelled) {
           return;
@@ -498,7 +549,7 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
       void supabase.removeChannel(messagesChannel);
       void supabase.removeChannel(threadChannel);
     };
-  }, [isOpen, painterId, thread?.id]);
+  }, [chatClientUserId, isOpen, painterId, thread?.id]);
 
   useEffect(() => {
     if (!isOpen || visibleMessages.length === 0) {
@@ -542,7 +593,8 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
     setSuccessMessage('');
 
     try {
-      const clientUser = await ensureClientUser();
+      const resolvedClientProfile = currentClientProfile ?? currentClientProfileProp ?? null;
+      const clientUser = await ensureClientUser(resolvedClientProfile);
       const normalizedPayload = {
         applicationId: painterId,
         clientUserId: clientUser.id,
@@ -609,7 +661,9 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
 
       setIsLoadingMessages(true);
 
-      const currentThread = await fetchThread(painterId, threadId);
+      setChatClientUserId(clientUser.id);
+
+      const currentThread = await fetchThread(painterId, threadId, clientUser.id);
       const fallbackThread: ChatThread = currentThread ?? {
         id: threadId,
         application_id: painterId,
@@ -660,7 +714,11 @@ export const StartChatModal: React.FC<StartChatModalProps> = ({
     setSuccessMessage('');
 
     try {
+      const resolvedClientProfile = currentClientProfile ?? currentClientProfileProp ?? null;
+      const clientUser = await ensureClientUser(resolvedClientProfile);
       const messageId = createUuid();
+
+      setChatClientUserId(clientUser.id);
 
       const insertResult = await supabase.from('painter_chat_messages').insert({
         id: messageId,
