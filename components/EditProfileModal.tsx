@@ -142,16 +142,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={() => {
-        if (!isSaving) {
-          onClose();
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 pr-24 backdrop-blur-sm sm:p-4 sm:pr-4"
+        onClick={() => {
+          if (!isSaving) {
+            onClose();
         }
       }}
     >
       <div
-        className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-[32px] bg-white shadow-2xl shadow-slate-950/20 border border-slate-200"
+        className="w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 sm:max-h-[92vh]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-slate-200 bg-slate-50">
@@ -172,7 +172,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={(event) => void handleSubmit(event)} className="max-h-[calc(92vh-88px)] overflow-y-auto px-6 py-6 pb-8 md:pb-6">
+        <form onSubmit={(event) => void handleSubmit(event)} className="max-h-[calc(88vh-88px)] overflow-y-auto px-6 py-6 pb-8 md:pb-6 sm:max-h-[calc(92vh-88px)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
