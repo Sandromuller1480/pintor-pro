@@ -33,6 +33,10 @@ interface PublicPainterMapProps {
   showDirectoryButton?: boolean;
   variant?: 'default' | 'home';
   size?: 'default' | 'compact';
+  focusRequest?: {
+    location: string;
+    requestId: number;
+  } | null;
 }
 
 const TILE_SIZE = 256;
@@ -85,6 +89,22 @@ const isGeocodableLocation = (value: string) => {
   const normalized = normalizeLocationKey(value);
 
   return Boolean(normalized) && normalized !== 'localizacao nao informada';
+};
+
+const matchesLocationQuery = (source: string, normalizedQuery: string) => {
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const normalizedSource = normalizeLocationKey(source);
+
+  if (normalizedSource.includes(normalizedQuery)) {
+    return true;
+  }
+
+  return normalizedQuery
+    .split(' ')
+    .every((term) => normalizedSource.includes(term));
 };
 
 const clampLat = (lat: number) => Math.max(-85.05112878, Math.min(85.05112878, lat));
@@ -285,7 +305,8 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
   primaryActionLabel = 'Entrar em contato',
   showDirectoryButton = true,
   variant = 'default',
-  size = 'default'
+  size = 'default',
+  focusRequest = null
 }) => {
   const isHomeVariant = variant === 'home';
   const mapViewportClassName = size === 'compact'
@@ -600,6 +621,62 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       setSelectedPainterId(null);
     }
   }, [markers, selectedPainterId]);
+
+  useEffect(() => {
+    if (!focusRequest?.location) {
+      return;
+    }
+
+    let cancelled = false;
+    const normalizedFocusLocation = normalizeLocationKey(focusRequest.location);
+
+    if (!normalizedFocusLocation) {
+      return;
+    }
+
+    const focusMapOnLocation = async () => {
+      const matchedMarkers = markers.filter((marker) => (
+        matchesLocationQuery(marker.painter.location, normalizedFocusLocation)
+      ));
+
+      hasUserInteractedRef.current = true;
+      setSelectedPainterId(null);
+      setHoveredPainterId(null);
+
+      if (matchedMarkers.length > 0 && containerSize.width > 0 && containerSize.height > 0) {
+        const nextView = fitMarkersToView(matchedMarkers, containerSize.width, containerSize.height);
+        const nextZoom = matchedMarkers.length === 1
+          ? Math.max(nextView.zoom, 10)
+          : Math.max(nextView.zoom, 8);
+
+        if (!cancelled) {
+          setCenter(nextView.center);
+          setZoom(nextZoom);
+        }
+
+        return;
+      }
+
+      try {
+        const coordinates = await geocodeLocation(focusRequest.location);
+
+        if (!coordinates || cancelled) {
+          return;
+        }
+
+        setCenter(coordinates);
+        setZoom(10);
+      } catch (error) {
+        console.error(`Erro ao focar o mapa em ${focusRequest.location}:`, error);
+      }
+    };
+
+    void focusMapOnLocation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [containerSize.height, containerSize.width, focusRequest, markers]);
 
   const hoveredMarker = hoveredPainterId
     ? visibleMarkers.find((marker) => marker.painter.id === hoveredPainterId) ?? null

@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PainterCard } from '../components/PainterCard';
 import { PublicPainterMap } from '../components/PublicPainterMap';
-import { Search, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { paintersService } from '../lib/services/paintersService';
 
 interface FindPainterProps {
   setPage: NavigateToPage;
 }
+
+type LocationFocusRequest = {
+  location: string;
+  requestId: number;
+};
 
 const normalizeText = (value: string) => (
   value
@@ -38,9 +43,7 @@ const matchesNormalizedTerm = (source: string, query: string) => {
 };
 
 export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
-  const [searchDraft, setSearchDraft] = useState('');
   const [locationDraft, setLocationDraft] = useState('');
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [appliedLocationTerm, setAppliedLocationTerm] = useState('');
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +53,8 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
   const [onlyTopRated, setOnlyTopRated] = useState(false);
   const [onlyOnline, setOnlyOnline] = useState(false);
   const [visiblePainterIds, setVisiblePainterIds] = useState<string[] | null>(null);
+  const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
+  const [locationFocusRequest, setLocationFocusRequest] = useState<LocationFocusRequest | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -110,20 +115,45 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
       .slice(0, 10);
   }, [painters]);
 
+  const availableLocations = useMemo(() => {
+    const uniqueLocations = new Map<string, string>();
+
+    painters.forEach((painter) => {
+      const location = painter.location?.trim();
+
+      if (!location) {
+        return;
+      }
+
+      const normalizedLocation = normalizeText(location);
+
+      if (!normalizedLocation || uniqueLocations.has(normalizedLocation)) {
+        return;
+      }
+
+      uniqueLocations.set(normalizedLocation, location);
+    });
+
+    return Array.from(uniqueLocations.values())
+      .sort((firstItem, secondItem) => firstItem.localeCompare(secondItem, 'pt-BR'));
+  }, [painters]);
+
+  const locationSuggestions = useMemo(() => {
+    const trimmedDraft = locationDraft.trim();
+
+    if (!trimmedDraft) {
+      return availableLocations.slice(0, 8);
+    }
+
+    return availableLocations
+      .filter((location) => matchesNormalizedTerm(location, trimmedDraft))
+      .slice(0, 8);
+  }, [availableLocations, locationDraft]);
+
   const filteredPainters = useMemo(() => {
-    const normalizedSearchTerm = normalizeText(appliedSearchTerm);
     const normalizedLocationTerm = normalizeText(appliedLocationTerm);
 
     return painters.filter((painter) => {
-      const painterSearchIndex = [
-        painter.name,
-        painter.description,
-        painter.location,
-        ...(painter.specialties ?? [])
-      ].join(' ');
-
-      const matchesSearch = !normalizedSearchTerm || matchesNormalizedTerm(painterSearchIndex, normalizedSearchTerm);
-
       const matchesLocation = !normalizedLocationTerm || matchesNormalizedTerm(painter.location, normalizedLocationTerm);
 
       const matchesSpecialties = selectedSpecialties.length === 0 ||
@@ -135,9 +165,9 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
       const matchesTopRated = !onlyTopRated || painter.topRated;
       const matchesOnline = !onlyOnline || painter.isOnline === true;
 
-      return matchesSearch && matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated && matchesOnline;
+      return matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated && matchesOnline;
     });
-  }, [appliedLocationTerm, appliedSearchTerm, onlyOnline, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
+  }, [appliedLocationTerm, onlyOnline, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
 
   const filteredPainterIdsKey = useMemo(
     () => filteredPainters.map((painter) => painter.id).join('|'),
@@ -158,19 +188,25 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
 
   const handleSearchSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
-    setAppliedSearchTerm(searchDraft);
-    setAppliedLocationTerm(locationDraft);
+    const nextLocation = locationDraft.trim();
+
+    setAppliedLocationTerm(nextLocation);
+    setLocationFocusRequest(nextLocation ? {
+      location: nextLocation,
+      requestId: Date.now()
+    } : null);
+    setIsLocationSuggestionsOpen(false);
   };
 
   const clearFilters = () => {
-    setSearchDraft('');
     setLocationDraft('');
-    setAppliedSearchTerm('');
     setAppliedLocationTerm('');
     setSelectedSpecialties([]);
     setOnlyVerified(false);
     setOnlyTopRated(false);
     setOnlyOnline(false);
+    setIsLocationSuggestionsOpen(false);
+    setLocationFocusRequest(null);
   };
 
   const toggleSpecialty = (specialty: string) => {
@@ -186,26 +222,51 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
           <form className="grid grid-cols-1 md:grid-cols-12 gap-4" onSubmit={handleSearchSubmit}>
-            <div className="md:col-span-5 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Qual tipo de pintura você precisa?"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
-                value={searchDraft}
-                onChange={(e) => setSearchDraft(e.target.value)}
-              />
-            </div>
-            <div className="md:col-span-4 relative">
+            <div className="relative md:col-span-9">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Cidade ou região"
+                autoComplete="off"
                 className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
                 value={locationDraft}
-                onChange={(e) => setLocationDraft(e.target.value)}
+                onFocus={() => setIsLocationSuggestionsOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setIsLocationSuggestionsOpen(false), 120);
+                }}
+                onChange={(event) => {
+                  setLocationDraft(event.target.value);
+                  setIsLocationSuggestionsOpen(true);
+                }}
               />
+
+              {isLocationSuggestionsOpen && (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+                  {locationSuggestions.length > 0 ? (
+                    locationSuggestions.map((location) => (
+                      <button
+                        key={location}
+                        type="button"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          setLocationDraft(location);
+                          setIsLocationSuggestionsOpen(false);
+                        }}
+                      >
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="truncate">{location}</span>
+                      </button>
+                    ))
+                  ) : locationDraft.trim() ? (
+                    <div className="px-4 py-3 text-sm font-medium text-slate-400">
+                      Nenhuma cidade encontrada.
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
+
             <div className="md:col-span-3">
               <button
                 type="submit"
@@ -236,6 +297,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
               primaryActionLabel="Entrar em contato"
               showDirectoryButton={false}
               size="compact"
+              focusRequest={locationFocusRequest}
             />
           </div>
         </div>
@@ -275,7 +337,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                       <input
                         type="checkbox"
                         checked={onlyVerified}
-                        onChange={(e) => setOnlyVerified(e.target.checked)}
+                        onChange={(event) => setOnlyVerified(event.target.checked)}
                         className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Verificado</span>
@@ -284,7 +346,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                       <input
                         type="checkbox"
                         checked={onlyTopRated}
-                        onChange={(e) => setOnlyTopRated(e.target.checked)}
+                        onChange={(event) => setOnlyTopRated(event.target.checked)}
                         className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
@@ -299,7 +361,7 @@ export const FindPainter: React.FC<FindPainterProps> = ({ setPage }) => {
                       <input
                         type="checkbox"
                         checked={onlyOnline}
-                        onChange={(e) => setOnlyOnline(e.target.checked)}
+                        onChange={(event) => setOnlyOnline(event.target.checked)}
                         className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]"
                       />
                       <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Somente online</span>
