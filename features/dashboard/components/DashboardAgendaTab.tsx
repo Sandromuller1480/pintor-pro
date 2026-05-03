@@ -13,6 +13,7 @@ import {
   Trash2,
   XCircle
 } from 'lucide-react';
+import { DashboardConfirmationDialog } from './DashboardConfirmationDialog';
 import { FeedbackMessage, SavedVisitRequest, UpdateVisitRequestInput } from '../types';
 import {
   formatShortDate,
@@ -63,6 +64,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
   const [draft, setDraft] = useState<UpdateVisitRequestInput | null>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   const [savingVisitId, setSavingVisitId] = useState<string | null>(null);
+  const [visitPendingDeletion, setVisitPendingDeletion] = useState<SavedVisitRequest | null>(null);
 
   const sortedItems = useMemo(() => (
     [...items].sort((firstVisit, secondVisit) => {
@@ -183,20 +185,18 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
     }
   };
 
-  const handleDeleteVisit = async (visit: SavedVisitRequest) => {
-    const confirmed = window.confirm(
-      `Excluir o agendamento de ${visit.client_name}? Essa ação remove o registro do banco de dados e não pode ser desfeita.`
-    );
-
-    if (!confirmed) {
+  const handleDeleteVisit = async () => {
+    if (!visitPendingDeletion) {
       return;
     }
 
+    const visit = visitPendingDeletion;
     setSavingVisitId(visit.id);
     setFeedback(null);
 
     try {
       await onDeleteVisit(visit.id);
+      setVisitPendingDeletion(null);
 
       if (editingVisitId === visit.id) {
         closeEditPanel();
@@ -402,7 +402,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => void handleDeleteVisit(visit)}
+                      onClick={() => setVisitPendingDeletion(visit)}
                       disabled={isSaving}
                       className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -504,6 +504,15 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
           </div>
         </>
       )}
+
+      <DashboardConfirmationDialog
+        isOpen={visitPendingDeletion !== null}
+        title="TEM CERTEZA QUE DESEJA EXCLUIR ESSE AGENDAMENTO?"
+        confirmLabel="Deletar"
+        onCancel={() => setVisitPendingDeletion(null)}
+        onConfirm={() => void handleDeleteVisit()}
+        isLoading={visitPendingDeletion !== null && savingVisitId === visitPendingDeletion.id}
+      />
     </div>
   );
 };

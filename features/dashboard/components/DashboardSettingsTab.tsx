@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Trash2
 } from 'lucide-react';
+import { DashboardConfirmationDialog } from './DashboardConfirmationDialog';
 import {
   BRAZIL_TIMEZONE_OPTIONS,
   buildBusinessHoursSummary,
@@ -491,48 +492,14 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
         </aside>
       </div>
 
-      {isDeleteConfirmationOpen && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[32px] border border-red-200 bg-white p-8 shadow-[0_40px_120px_rgba(15,23,42,0.32)]">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-red-100 p-3 text-red-600">
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-red-500">Alerta de exclusão</p>
-                <h3 className="mt-2 text-2xl font-black text-[#000747]">Tem certeza que deseja excluir sua conta?</h3>
-                <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-                  Essa ação remove seu acesso, seu perfil público e os dados operacionais vinculados a este pintor.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setIsDeleteConfirmationOpen(false)}
-                disabled={isDeletingAccount}
-                className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDeleteConfirmation()}
-                disabled={isDeletingAccount}
-                className="inline-flex items-center justify-center rounded-2xl bg-red-600 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-red-200 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeletingAccount ? (
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                ) : (
-                  <Trash2 size={16} className="mr-2" />
-                )}
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DashboardConfirmationDialog
+        isOpen={isDeleteConfirmationOpen}
+        title="Tem certeza que deseja excluir sua conta?"
+        description="Essa ação remove seu acesso, seu perfil público e os dados operacionais vinculados a este pintor."
+        onCancel={() => setIsDeleteConfirmationOpen(false)}
+        onConfirm={() => void handleDeleteConfirmation()}
+        isLoading={isDeletingAccount}
+      />
     </div>
   );
 };
