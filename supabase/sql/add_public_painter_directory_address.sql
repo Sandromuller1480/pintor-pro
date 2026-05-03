@@ -3,6 +3,21 @@
 -- Execute este script no SQL Editor do Supabase.
 -- ============================================================
 
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS street TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS neighborhood TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS address_number TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+
 CREATE OR REPLACE VIEW public.painter_directory_public AS
 SELECT
   a.id,
@@ -63,7 +78,9 @@ SELECT
   a.facebook_url AS facebook_url,
   a.street,
   a.neighborhood,
-  a.address_number
+  a.address_number,
+  a.latitude AS lat,
+  a.longitude AS lng
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

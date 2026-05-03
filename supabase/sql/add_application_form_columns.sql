@@ -20,3 +20,9 @@ ADD COLUMN IF NOT EXISTS address_number TEXT;
 
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS uf TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;

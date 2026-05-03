@@ -5,6 +5,10 @@ import { EditProfileModal, type EditProfileFormData } from '../components/EditPr
 import { ObraModal, type SavedObra } from '../components/ObraModal';
 import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
 import { generateContractPdf } from '../lib/contractPdf';
+import {
+  buildBrazilianAddressGeocodingQuery,
+  geocodeBrazilianLocation
+} from '../lib/locationGeocoding';
 import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
 import {
@@ -1183,6 +1187,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       throw new Error('Não encontramos seu cadastro para salvar as alterações.');
     }
 
+    const normalizedFullName = formData.fullName.trim();
+    const normalizedStreet = formData.street.trim();
+    const normalizedNeighborhood = formData.neighborhood.trim();
+    const normalizedAddressNumber = formData.addressNumber.trim();
+    const normalizedCity = formData.city.trim();
+    const normalizedUf = formData.uf.trim().toUpperCase().slice(0, 2);
+    const normalizedWhatsapp = formData.whatsapp.trim();
+    const normalizedExperienceTime = formData.experienceTime.trim();
     const normalizedSpecialties = Array.from(
       new Set(
         formData.specialties
@@ -1190,18 +1202,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           .filter(Boolean)
       )
     );
+    const hasAddressChanged = (
+      normalizedStreet !== currentProfile.street.trim()
+      || normalizedNeighborhood !== currentProfile.neighborhood.trim()
+      || normalizedAddressNumber !== currentProfile.addressNumber.trim()
+      || normalizedCity !== currentProfile.city.trim()
+      || normalizedUf !== currentProfile.uf.trim().toUpperCase()
+    );
+    let coordinatesUpdate: { latitude: number | null; longitude: number | null } | null = null;
+
+    if (hasAddressChanged) {
+      const geocodingQuery = buildBrazilianAddressGeocodingQuery({
+        street: normalizedStreet,
+        addressNumber: normalizedAddressNumber,
+        neighborhood: normalizedNeighborhood,
+        city: normalizedCity,
+        uf: normalizedUf
+      });
+
+      try {
+        const coordinates = geocodingQuery
+          ? await geocodeBrazilianLocation(geocodingQuery)
+          : null;
+
+        coordinatesUpdate = {
+          latitude: coordinates?.lat ?? null,
+          longitude: coordinates?.lng ?? null
+        };
+      } catch (geocodingError) {
+        console.error('Erro ao geocodificar endereco do pintor:', geocodingError);
+        coordinatesUpdate = {
+          latitude: null,
+          longitude: null
+        };
+      }
+    }
 
     const { data, error } = await supabase
       .from('applications')
       .update({
-        full_name: formData.fullName.trim(),
-        street: formData.street.trim(),
-        neighborhood: formData.neighborhood.trim(),
-        address_number: formData.addressNumber.trim(),
-        city: formData.city.trim(),
-        uf: formData.uf.trim().toUpperCase().slice(0, 2),
-        whatsapp: formData.whatsapp.trim(),
-        experience_time: formData.experienceTime.trim(),
+        full_name: normalizedFullName,
+        street: normalizedStreet,
+        neighborhood: normalizedNeighborhood,
+        address_number: normalizedAddressNumber,
+        city: normalizedCity,
+        uf: normalizedUf,
+        whatsapp: normalizedWhatsapp,
+        experience_time: normalizedExperienceTime,
+        ...(coordinatesUpdate ?? {}),
         specialties: normalizedSpecialties
       })
       .eq('id', currentProfile.applicationId)

@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Minus, Navigation, Plus, Search, Star, X } from 'lucide-react';
+import {
+  buildBrazilianAddressGeocodingQuery,
+  geocodeBrazilianLocation,
+  isGeocodableLocation,
+  normalizeLocationKey
+} from '../lib/locationGeocoding';
 import { Painter } from '../types';
 
 type LatLng = {
@@ -47,7 +53,6 @@ const DEFAULT_CENTER: LatLng = {
   lat: -14.235,
   lng: -51.9253
 };
-const GEOCODE_CACHE_PREFIX = 'pintor-pro:geocode:';
 const DEFAULT_POPUP_WIDTH = 260;
 const HOME_POPUP_WIDTH = 214;
 
@@ -75,22 +80,6 @@ const HOME_MARKER_PALETTES = {
   }
 } as const;
 
-const normalizeLocationKey = (value: string) => (
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-);
-
-const isGeocodableLocation = (value: string) => {
-  const normalized = normalizeLocationKey(value);
-
-  return Boolean(normalized) && normalized !== 'localizacao nao informada';
-};
-
 const matchesLocationQuery = (source: string, normalizedQuery: string) => {
   if (!normalizedQuery) {
     return true;
@@ -108,16 +97,12 @@ const matchesLocationQuery = (source: string, normalizedQuery: string) => {
 };
 
 const buildPainterGeocodingQuery = (painter: Painter) => {
-  const streetLine = [painter.street?.trim(), painter.addressNumber?.trim()]
-    .filter(Boolean)
-    .join(', ');
-  const cityLine = painter.location === 'Localização não informada'
-    ? ''
-    : painter.location.trim();
-
-  return [streetLine, painter.neighborhood?.trim(), cityLine]
-    .filter((item): item is string => Boolean(item))
-    .join(', ');
+  return buildBrazilianAddressGeocodingQuery({
+    street: painter.street,
+    addressNumber: painter.addressNumber,
+    neighborhood: painter.neighborhood,
+    fallbackLocation: painter.location
+  });
 };
 
 const clampLat = (lat: number) => Math.max(-85.05112878, Math.min(85.05112878, lat));
@@ -194,87 +179,6 @@ const fitMarkersToView = (markers: PainterMarker[], width: number, height: numbe
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM
   };
-};
-
-const getCachedCoordinates = (location: string): LatLng | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    const cached = window.localStorage.getItem(`${GEOCODE_CACHE_PREFIX}${normalizeLocationKey(location)}`);
-
-    if (!cached) {
-      return null;
-    }
-
-    const parsed = JSON.parse(cached) as Partial<LatLng>;
-
-    if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
-      return {
-        lat: parsed.lat,
-        lng: parsed.lng
-      };
-    }
-  } catch (error) {
-    console.error('Erro ao ler cache de geolocalizacao:', error);
-  }
-
-  return null;
-};
-
-const cacheCoordinates = (location: string, coordinates: LatLng) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      `${GEOCODE_CACHE_PREFIX}${normalizeLocationKey(location)}`,
-      JSON.stringify(coordinates)
-    );
-  } catch (error) {
-    console.error('Erro ao salvar cache de geolocalizacao:', error);
-  }
-};
-
-const geocodeLocation = async (location: string): Promise<LatLng | null> => {
-  const cachedCoordinates = getCachedCoordinates(location);
-
-  if (cachedCoordinates) {
-    return cachedCoordinates;
-  }
-
-  const query = `${location}, Brasil`;
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(query)}`;
-  const response = await fetch(url, {
-    headers: {
-      'Accept-Language': 'pt-BR'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Falha ao geocodificar localizacao: ${response.status}`);
-  }
-
-  const results = await response.json() as Array<{ lat: string; lon: string }>;
-  const firstResult = results[0];
-
-  if (!firstResult) {
-    return null;
-  }
-
-  const coordinates = {
-    lat: Number(firstResult.lat),
-    lng: Number(firstResult.lon)
-  };
-
-  if (Number.isNaN(coordinates.lat) || Number.isNaN(coordinates.lng)) {
-    return null;
-  }
-
-  cacheCoordinates(location, coordinates);
-  return coordinates;
 };
 
 const formatLastActivityLabel = (value: string | undefined, isOnline?: boolean) => {
@@ -392,6 +296,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       ...seedCoordinates
     }));
 
+    // Compatibility fallback while older painter records are still being backfilled with persisted coordinates.
     const geocodingTargetsByPainterId = new Map<string, string>();
 
     painters.forEach((painter) => {
@@ -428,7 +333,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
         }
 
         try {
-          const coordinates = await geocodeLocation(location);
+          const coordinates = await geocodeBrazilianLocation(location);
 
           if (!coordinates || cancelled) {
             continue;
@@ -451,7 +356,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
           console.error(`Erro ao geocodificar ${location}:`, error);
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, 150));
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
       }
 
       if (!cancelled) {
@@ -685,7 +590,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
       }
 
       try {
-        const coordinates = await geocodeLocation(focusRequest.location);
+        const coordinates = await geocodeBrazilianLocation(focusRequest.location);
 
         if (!coordinates || cancelled) {
           return;

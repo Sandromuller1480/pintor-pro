@@ -66,7 +66,15 @@ SELECT
   COALESCE(a.working_days, ARRAY['1', '2', '3', '4', '5']::text[]) AS working_days,
   COALESCE(a.working_hours_start, '08:00'::text) AS working_hours_start,
   COALESCE(a.working_hours_end, '18:00'::text) AS working_hours_end,
-  COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone
+  COALESCE(a.service_timezone, 'America/Cuiaba'::text) AS service_timezone,
+  a.whatsapp AS whatsapp,
+  a.instagram_url AS instagram_url,
+  a.facebook_url AS facebook_url,
+  a.street,
+  a.neighborhood,
+  a.address_number,
+  a.latitude AS lat,
+  a.longitude AS lng
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 

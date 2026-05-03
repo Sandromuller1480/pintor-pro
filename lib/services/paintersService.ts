@@ -52,6 +52,10 @@ export type ApplicationFormSubmission = {
     password?: string,
     experienceTime: string,
     specialty: string[],
+    coordinates?: {
+        lat: number;
+        lng: number;
+    } | null,
     profilePhoto?: File,
     workPhotos: File[],
     certifications: File[]
@@ -133,6 +137,8 @@ function mapPainterRowToPainter(item: any): Painter {
     const normalizedGender = typeof item.gender === 'string'
         ? item.gender.trim().toLowerCase()
         : '';
+    const latitude = item.lat != null ? Number(item.lat) : Number.NaN;
+    const longitude = item.lng != null ? Number(item.lng) : Number.NaN;
 
     return {
         id: item.id,
@@ -198,8 +204,8 @@ function mapPainterRowToPainter(item: any): Painter {
             ? normalizeServiceTimezone(item.service_timezone)
             : DEFAULT_SERVICE_TIMEZONE,
         createdAt: item.created_at ?? undefined,
-        coordinates: item.lat != null && item.lng != null
-            ? { lat: item.lat, lng: item.lng }
+        coordinates: Number.isFinite(latitude) && Number.isFinite(longitude)
+            ? { lat: latitude, lng: longitude }
             : undefined
     };
 }
@@ -308,6 +314,8 @@ export const paintersService = {
         const normalizedUf = formData.uf.trim().toUpperCase();
         const normalizedWhatsapp = formData.whatsapp.trim();
         const normalizedExperienceTime = formData.experienceTime.trim();
+        const normalizedLatitude = formData.coordinates?.lat ?? null;
+        const normalizedLongitude = formData.coordinates?.lng ?? null;
         const normalizedSpecialties = formData.specialty
             .map((item) => item.trim())
             .filter(Boolean);
@@ -351,6 +359,8 @@ export const paintersService = {
                     city: normalizedCity,
                     uf: normalizedUf,
                     whatsapp: normalizedWhatsapp,
+                    latitude: normalizedLatitude,
+                    longitude: normalizedLongitude,
                     email: normalizedEmail,
                     experience_time: normalizedExperienceTime,
                     specialties: normalizedSpecialties,

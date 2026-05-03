@@ -27,10 +27,11 @@ Escolha um caminho:
   1. `supabase_schema.sql`
 
 - `Modular`
-  1. `painter_profile_views_schema.sql`
-  2. `create_public_painter_directory.sql`
-  3. `add_painter_presence_columns.sql`
-  4. `add_painter_settings_columns.sql`
+  1. `add_application_form_columns.sql`
+  2. `painter_profile_views_schema.sql`
+  3. `create_public_painter_directory.sql`
+  4. `add_painter_presence_columns.sql`
+  5. `add_painter_settings_columns.sql`
 
 Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao sem necessidade, porque eles cobrem a mesma area funcional.
 
@@ -49,6 +50,7 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 11. `add_public_painter_whatsapp.sql`
 12. `add_client_profile_engagement.sql`
 13. `add_painter_social_links.sql`
+14. `add_public_painter_directory_address.sql`
 
 ## Scripts legados ou situacionais
 
@@ -61,6 +63,16 @@ Nao aplique `supabase_schema.sql` e o bloco modular acima na mesma inicializacao
 ## Observacao
 
 Sempre revise o diff antes de aplicar em producao. Para a reta final da plataforma, use tambem o checklist em `docs/plataforma-go-live-checklist.md`.
+
+## Nota sobre a view publica de pintores
+
+Os scripts que recriam `public.painter_directory_public` foram alinhados para o mesmo formato final.
+Hoje a view publica expõe tambem `street`, `neighborhood`, `address_number`, `lat` e `lng`.
+
+Em bases existentes, reaplique pelo menos estes dois scripts apos atualizar o repositorio:
+
+1. `add_application_form_columns.sql`
+2. `add_public_painter_directory_address.sql`
 
 ## Nota sobre RLS no credenciamento do pintor
 

@@ -6,6 +6,10 @@ import {
   type ApplicationFormSubmission,
   type ApplicationSubmissionResult
 } from '../lib/services/paintersService';
+import {
+  buildBrazilianAddressGeocodingQuery,
+  geocodeBrazilianLocation
+} from '../lib/locationGeocoding';
 import { NavigateToPage, Page } from '../types';
 
 const GENDER_OPTIONS = [
@@ -143,6 +147,23 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     setSubmissionFeedback(null);
 
     try {
+      const geocodingQuery = buildBrazilianAddressGeocodingQuery({
+        street: formData.street,
+        addressNumber: formData.addressNumber,
+        neighborhood: formData.neighborhood,
+        city: formData.city,
+        uf: formData.uf
+      });
+      let coordinates: ApplicationFormSubmission['coordinates'] = null;
+
+      if (geocodingQuery) {
+        try {
+          coordinates = await geocodeBrazilianLocation(geocodingQuery);
+        } catch (geocodingError) {
+          console.error('Erro ao geocodificar endereco do cadastro:', geocodingError);
+        }
+      }
+
       const formPayload: ApplicationFormSubmission = {
         ...formData,
         profilePhoto: formData.profilePhoto as File,
@@ -151,7 +172,8 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         neighborhood: formData.neighborhood.trim(),
         addressNumber: formData.addressNumber.trim(),
         city: formData.city.trim(),
-        uf: formData.uf.trim().toUpperCase()
+        uf: formData.uf.trim().toUpperCase(),
+        coordinates
       };
       const submissionResult = await paintersService.submitApplication(formPayload);
 

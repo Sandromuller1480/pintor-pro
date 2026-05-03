@@ -81,6 +81,24 @@ ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS is_online BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS gender TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS cep TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS street TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS neighborhood TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS address_number TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS uf TEXT;
+
+ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS allow_chat BOOLEAN NOT NULL DEFAULT true;
 
 ALTER TABLE public.applications
@@ -109,6 +127,21 @@ ADD COLUMN IF NOT EXISTS working_hours_end TEXT NOT NULL DEFAULT '18:00';
 
 ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS service_timezone TEXT NOT NULL DEFAULT 'America/Cuiaba';
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS whatsapp TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS instagram_url TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS facebook_url TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 
 CREATE INDEX IF NOT EXISTS idx_applications_last_seen_at
   ON public.applications(last_seen_at DESC);
@@ -173,7 +206,9 @@ SELECT
   a.facebook_url AS facebook_url,
   a.street,
   a.neighborhood,
-  a.address_number
+  a.address_number,
+  a.latitude AS lat,
+  a.longitude AS lng
 FROM public.applications AS a
 WHERE a.status = 'accepted';
 
