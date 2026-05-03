@@ -42,6 +42,9 @@ export type ApplicationFormSubmission = {
     fullName: string,
     gender?: '' | 'feminino' | 'masculino',
     cep: string,
+    street: string,
+    neighborhood: string,
+    addressNumber: string,
     city: string,
     uf: string,
     whatsapp: string,
@@ -289,6 +292,9 @@ export const paintersService = {
         const normalizedFullName = formData.fullName.trim();
         const normalizedGender = formData.gender?.trim() || null;
         const normalizedCep = formData.cep.replace(/\D/g, '').slice(0, 8);
+        const normalizedStreet = formData.street.trim();
+        const normalizedNeighborhood = formData.neighborhood.trim();
+        const normalizedAddressNumber = formData.addressNumber.trim();
         const normalizedCity = formData.city.trim();
         const normalizedUf = formData.uf.trim().toUpperCase();
         const normalizedWhatsapp = formData.whatsapp.trim();
@@ -330,6 +336,9 @@ export const paintersService = {
                     full_name: normalizedFullName,
                     gender: normalizedGender,
                     cep: normalizedCep,
+                    street: normalizedStreet,
+                    neighborhood: normalizedNeighborhood,
+                    address_number: normalizedAddressNumber,
                     city: normalizedCity,
                     uf: normalizedUf,
                     whatsapp: normalizedWhatsapp,

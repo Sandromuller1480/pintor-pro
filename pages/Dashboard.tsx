@@ -1195,6 +1195,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       .from('applications')
       .update({
         full_name: formData.fullName.trim(),
+        street: formData.street.trim(),
+        neighborhood: formData.neighborhood.trim(),
+        address_number: formData.addressNumber.trim(),
         city: formData.city.trim(),
         uf: formData.uf.trim().toUpperCase().slice(0, 2),
         whatsapp: formData.whatsapp.trim(),
@@ -1202,7 +1205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         specialties: normalizedSpecialties
       })
       .eq('id', currentProfile.applicationId)
-      .select('full_name, city, uf, whatsapp, experience_time, specialties')
+      .select('full_name, street, neighborhood, address_number, city, uf, whatsapp, experience_time, specialties')
       .single();
 
     if (error) {
@@ -1218,6 +1221,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       return {
         ...profile,
         fullName: data.full_name || profile.fullName,
+        street: data.street || '',
+        neighborhood: data.neighborhood || '',
+        addressNumber: data.address_number || '',
         city: data.city || '',
         uf: data.uf || '',
         whatsapp: data.whatsapp || '',

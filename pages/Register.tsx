@@ -31,6 +31,9 @@ type ApplicationFormData = {
   fullName: string;
   gender: '' | 'feminino' | 'masculino';
   cep: string;
+  street: string;
+  neighborhood: string;
+  addressNumber: string;
   city: string;
   uf: string;
   whatsapp: string;
@@ -48,6 +51,9 @@ const INITIAL_FORM_DATA: ApplicationFormData = {
   fullName: '',
   gender: '',
   cep: '',
+  street: '',
+  neighborhood: '',
+  addressNumber: '',
   city: '',
   uf: '',
   whatsapp: '',
@@ -101,6 +107,9 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     if (
       !formData.fullName ||
       !formData.cep ||
+      !formData.street ||
+      !formData.neighborhood ||
+      !formData.addressNumber ||
       !formData.city ||
       !formData.uf ||
       !formData.whatsapp ||
@@ -138,6 +147,9 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         ...formData,
         profilePhoto: formData.profilePhoto as File,
         cep: formData.cep.replace(/\D/g, '').slice(0, 8),
+        street: formData.street.trim(),
+        neighborhood: formData.neighborhood.trim(),
+        addressNumber: formData.addressNumber.trim(),
         city: formData.city.trim(),
         uf: formData.uf.trim().toUpperCase()
       };
@@ -229,6 +241,8 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         if (!data.erro) {
           setFormData((currentData) => ({
             ...currentData,
+            street: data.logradouro || currentData.street,
+            neighborhood: data.bairro || currentData.neighborhood,
             city: data.localidade || '',
             uf: data.uf || ''
           }));
@@ -386,7 +400,45 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 required
               />
             </div>
-            <div className="col-span-1">
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Rua, Avenida ou Logradouro *
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Avenida Brasil"
+                className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                value={formData.street}
+                onChange={(event) => setFormData({ ...formData, street: event.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-5">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Bairro *</label>
+              <input
+                type="text"
+                placeholder="Ex: Centro"
+                className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                value={formData.neighborhood}
+                onChange={(event) => setFormData({ ...formData, neighborhood: event.target.value })}
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Numero *</label>
+              <input
+                type="text"
+                placeholder="123"
+                className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                value={formData.addressNumber}
+                onChange={(event) => setFormData({ ...formData, addressNumber: event.target.value })}
+                required
+              />
+            </div>
+            <div className="md:col-span-3">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cidade *</label>
               <input
                 type="text"
@@ -397,7 +449,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 required
               />
             </div>
-            <div className="col-span-1">
+            <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">UF *</label>
               <input
                 type="text"

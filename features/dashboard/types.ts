@@ -4,6 +4,9 @@ export type CurrentPainterProfile = {
   applicationId: string;
   fullName: string;
   email: string;
+  street: string;
+  neighborhood: string;
+  addressNumber: string;
   city: string;
   uf: string;
   whatsapp: string;

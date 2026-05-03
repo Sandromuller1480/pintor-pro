@@ -10,4 +10,13 @@ ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS cep TEXT;
 
 ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS street TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS neighborhood TEXT;
+
+ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS address_number TEXT;
+
+ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS uf TEXT;

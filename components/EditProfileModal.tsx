@@ -4,6 +4,9 @@ import { SPECIALTY_OPTIONS } from '../lib/painterProfileOptions';
 
 export type EditProfileFormData = {
   fullName: string;
+  street: string;
+  neighborhood: string;
+  addressNumber: string;
   city: string;
   uf: string;
   whatsapp: string;
@@ -24,6 +27,9 @@ interface EditProfileModalProps {
 
 const INITIAL_FORM_DATA: EditProfileFormData = {
   fullName: '',
+  street: '',
+  neighborhood: '',
+  addressNumber: '',
   city: '',
   uf: '',
   whatsapp: '',
@@ -48,6 +54,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     setFormData({
       fullName: profile.fullName || '',
+      street: profile.street || '',
+      neighborhood: profile.neighborhood || '',
+      addressNumber: profile.addressNumber || '',
       city: profile.city || '',
       uf: profile.uf || '',
       whatsapp: profile.whatsapp || '',
@@ -100,6 +109,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     event.preventDefault();
 
     const normalizedFullName = formData.fullName.trim();
+    const normalizedStreet = formData.street.trim();
+    const normalizedNeighborhood = formData.neighborhood.trim();
+    const normalizedAddressNumber = formData.addressNumber.trim();
     const normalizedCity = formData.city.trim();
     const normalizedWhatsapp = formData.whatsapp.trim();
 
@@ -110,6 +122,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     if (!normalizedCity) {
       setErrorMessage('Informe a cidade do perfil.');
+      return;
+    }
+
+    if (!normalizedStreet) {
+      setErrorMessage('Informe a rua, avenida ou logradouro.');
+      return;
+    }
+
+    if (!normalizedNeighborhood) {
+      setErrorMessage('Informe o bairro do perfil.');
+      return;
+    }
+
+    if (!normalizedAddressNumber) {
+      setErrorMessage('Informe o numero do endereco.');
       return;
     }
 
@@ -124,6 +151,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     try {
       await onSave({
         fullName: normalizedFullName,
+        street: normalizedStreet,
+        neighborhood: normalizedNeighborhood,
+        addressNumber: normalizedAddressNumber,
         city: normalizedCity,
         uf: formData.uf.trim().toUpperCase().slice(0, 2),
         whatsapp: normalizedWhatsapp,
@@ -184,6 +214,48 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 onChange={(event) => setFormData((current) => ({ ...current, fullName: event.target.value }))}
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                 placeholder="Ex: Roberto Silva Pinturas"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Rua, Avenida ou Logradouro
+              </label>
+              <input
+                type="text"
+                value={formData.street}
+                onChange={(event) => setFormData((current) => ({ ...current, street: event.target.value }))}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                placeholder="Ex: Avenida Brasil"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Bairro
+              </label>
+              <input
+                type="text"
+                value={formData.neighborhood}
+                onChange={(event) => setFormData((current) => ({ ...current, neighborhood: event.target.value }))}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                placeholder="Ex: Centro"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Numero
+              </label>
+              <input
+                type="text"
+                value={formData.addressNumber}
+                onChange={(event) => setFormData((current) => ({ ...current, addressNumber: event.target.value }))}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                placeholder="123"
                 required
               />
             </div>
