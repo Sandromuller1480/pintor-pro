@@ -28,8 +28,19 @@ const SUPPORTED_PROFILE_IMAGE_TYPES = new Set([
 
 const PROFILE_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.bmp,.webp,image/jpeg,image/jpg,image/png,image/bmp,image/x-ms-bmp,image/webp';
 const PROFILE_IMAGE_EXTENSION_PATTERN = /\.(jpg|jpeg|png|bmp|webp)$/i;
+const buildSelectedFileKey = (file: File) => `${file.name}::${file.size}::${file.lastModified}::${file.type}`;
+const mergeSelectedFiles = (currentFiles: File[], nextFiles: File[]) => {
+  const mergedFiles = new Map<string, File>(currentFiles.map((file) => [buildSelectedFileKey(file), file]));
+
+  nextFiles.forEach((file) => {
+    mergedFiles.set(buildSelectedFileKey(file), file);
+  });
+
+  return Array.from(mergedFiles.values());
+};
 
 type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' | 'processingWarning'>;
+type FileFieldKey = 'workPhotos' | 'certifications';
 
 type ApplicationFormData = {
   fullName: string;
@@ -84,6 +95,8 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
   const [pendingProfilePhotoFile, setPendingProfilePhotoFile] = useState<File | null>(null);
   const [isProfileCropModalOpen, setIsProfileCropModalOpen] = useState(false);
   const successTimeoutRef = useRef<number | null>(null);
+  const workPhotosInputRef = useRef<HTMLInputElement | null>(null);
+  const certificationsInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!formData.profilePhoto) {
@@ -203,8 +216,23 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
     }
   };
 
+  const updateSelectedFiles = (field: FileFieldKey, updater: (currentFiles: File[]) => File[]) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      workPhotos: field === 'workPhotos' ? updater(currentData.workPhotos) : currentData.workPhotos,
+      certifications: field === 'certifications' ? updater(currentData.certifications) : currentData.certifications
+    }));
+  };
+
   const handleWorkPhotosChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, workPhotos: Array.from(event.target.files ?? []) });
+    const selectedFiles: File[] = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    updateSelectedFiles('workPhotos', (currentFiles) => mergeSelectedFiles(currentFiles, selectedFiles));
   };
 
   const handleProfilePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,7 +304,65 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
   };
 
   const handleCertificationsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, certifications: Array.from(event.target.files ?? []) });
+    const selectedFiles: File[] = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    updateSelectedFiles('certifications', (currentFiles) => mergeSelectedFiles(currentFiles, selectedFiles));
+  };
+
+  const handleRemoveSelectedFile = (field: FileFieldKey, fileKey: string) => {
+    updateSelectedFiles(field, (currentFiles) => currentFiles.filter((file) => buildSelectedFileKey(file) !== fileKey));
+  };
+
+  const handleClearSelectedFiles = (field: FileFieldKey) => {
+    updateSelectedFiles(field, () => []);
+  };
+
+  const openFilePicker = (inputRef: React.RefObject<HTMLInputElement | null>) => {
+    inputRef.current?.click();
+  };
+
+  const renderSelectedFiles = (files: File[], field: FileFieldKey) => {
+    if (!files.length) {
+      return null;
+    }
+
+    return (
+      <div className="mt-3 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {files.map((file) => {
+            const fileKey = buildSelectedFileKey(file);
+
+            return (
+              <div
+                key={fileKey}
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#EFC6E3] bg-[#FDF3FA] px-3 py-2 text-[11px] font-semibold text-slate-700"
+              >
+                <span className="max-w-[180px] truncate sm:max-w-[220px]">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveSelectedFile(field, fileKey)}
+                  className="rounded-full border border-[#E7B8DA] bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-[#9A077B] transition hover:bg-[#F7E3F1]"
+                >
+                  Remover
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => handleClearSelectedFiles(field)}
+          className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-[#9A077B]"
+        >
+          Limpar selecao
+        </button>
+      </div>
+    );
   };
 
   const toggleSpecialty = (option: string) => {
@@ -323,7 +409,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 id="profile-photo-upload"
                 type="file"
                 accept={PROFILE_IMAGE_ACCEPT}
-                className="hidden"
+                className="sr-only"
                 onChange={handleProfilePhotoChange}
               />
               {formData.profilePhoto ? (
@@ -602,12 +688,34 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 Fotos de Trabalhos
               </label>
               <input
+                ref={workPhotosInputRef}
+                id="work-photos-upload"
                 type="file"
                 accept="image/*"
                 multiple
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition file:mr-3 file:rounded-lg file:border-0 file:bg-[#9A077B] file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                className="sr-only"
                 onChange={handleWorkPhotosChange}
               />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => openFilePicker(workPhotosInputRef)}
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-5 py-3 text-sm font-black text-white transition hover:bg-[#7F0665]"
+                  >
+                    Escolher fotos
+                  </button>
+                  <p className="text-xs text-slate-500">
+                    {formData.workPhotos.length
+                      ? `${formData.workPhotos.length} foto(s) selecionada(s)`
+                      : 'Nenhuma foto selecionada ainda.'}
+                  </p>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  No celular, voce pode escolher as fotos em etapas. As novas selecoes serao somadas.
+                </p>
+                {renderSelectedFiles(formData.workPhotos, 'workPhotos')}
+              </div>
               <p className="text-xs text-slate-500 mt-2">Minimo de 5 fotos. Selecionadas: {formData.workPhotos.length}</p>
             </div>
             <div>
@@ -615,12 +723,34 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 Certificados (Opcional para Bronze)
               </label>
               <input
+                ref={certificationsInputRef}
+                id="certifications-upload"
                 type="file"
                 accept=".pdf,.jpg,.jpeg"
                 multiple
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-2 file:text-white file:font-semibold file:text-xs"
+                className="sr-only"
                 onChange={handleCertificationsChange}
               />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => openFilePicker(certificationsInputRef)}
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-700 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                  >
+                    Escolher arquivos
+                  </button>
+                  <p className="text-xs text-slate-500">
+                    {formData.certifications.length
+                      ? `${formData.certifications.length} arquivo(s) selecionado(s)`
+                      : 'Nenhum arquivo selecionado ainda.'}
+                  </p>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Se precisar, selecione os certificados aos poucos que eles tambem serao somados.
+                </p>
+                {renderSelectedFiles(formData.certifications, 'certifications')}
+              </div>
               <p className="text-xs text-slate-500 mt-2">
                 PDF ou JPG. Opcional para Bronze e obrigatorio para Ouro/Prata. Selecionados: {formData.certifications.length}
               </p>
