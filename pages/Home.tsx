@@ -213,7 +213,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               </div>
             </div>
 
-            <div className="relative lg:mt-[72px]">
+            <div className="relative">
               {/* Frame Container - Reforçado para visibilidade */}
               <div className="relative z-10 w-full max-w-[620px] mx-auto bg-gradient-to-b from-slate-50 to-slate-200 rounded-[60px] overflow-hidden border-[12px] border-white shadow-[0_60px_100px_-20px_rgba(0,0,0,0.12)]">
                 {!imgError ? (
