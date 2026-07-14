@@ -150,7 +150,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         <div className="absolute bottom-[5%] left-[40%] w-[500px] h-[500px] bg-[#FDF3FA]/50 rounded-full blur-[120px] -z-10"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
 
             <div className="space-y-8 animate-in">
               <div className="inline-flex items-center bg-gradient-to-r from-[#C93EA6] to-[#9A077B] text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#EFC6E3]">
@@ -213,7 +213,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative lg:mt-[72px]">
               {/* Frame Container - Reforçado para visibilidade */}
               <div className="relative z-10 w-full max-w-[620px] mx-auto bg-gradient-to-b from-slate-50 to-slate-200 rounded-[60px] overflow-hidden border-[12px] border-white shadow-[0_60px_100px_-20px_rgba(0,0,0,0.12)]">
                 {!imgError ? (
