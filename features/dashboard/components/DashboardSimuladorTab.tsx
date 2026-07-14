@@ -12,7 +12,9 @@ import {
   Sparkles,
   Scissors,
   X,
-  Hammer
+  Hammer,
+  Plus,
+  Check
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
@@ -35,6 +37,15 @@ interface TextureOption {
 interface Point {
   x: number;
   y: number;
+}
+
+interface WallLayer {
+  id: string;
+  name: string;
+  color: string;
+  texture: string;
+  opacity: number;
+  maskCanvas: HTMLCanvasElement;
 }
 
 const PREMIUM_COLORS: ColorOption[] = [
@@ -73,13 +84,19 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Estados para multi-camadas (paredes individuais)
+  const [layers, setLayers] = useState<WallLayer[]>([]);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [isDraftDirty, setIsDraftDirty] = useState(false);
+
   // Estados para ferramenta de Linhas / Polígono
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
   const [tempMousePos, setTempMousePos] = useState<Point | null>(null);
   const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const draftMaskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Máscara temporária de desenho
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Referência secundária de uso geral
   const isDrawingRef = useRef<boolean>(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -91,12 +108,41 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [feedback]);
 
-  // Redesenha se mudar a ferramenta ou pontos
+  // Sincroniza a paleta/controles com a camada selecionada para edição
+  useEffect(() => {
+    if (editingLayerId) {
+      const layer = layers.find(l => l.id === editingLayerId);
+      if (layer) {
+        setSelectedColor(layer.color);
+        setSelectedTexture(layer.texture);
+        setOpacity(layer.opacity);
+      }
+    }
+  }, [editingLayerId]);
+
+  // Aplica as edições de cor, textura e opacidade da camada editada em tempo real
+  useEffect(() => {
+    if (editingLayerId) {
+      setLayers(prev => prev.map(layer => {
+        if (layer.id === editingLayerId) {
+          return {
+            ...layer,
+            color: selectedColor,
+            texture: selectedTexture,
+            opacity: opacity
+          };
+        }
+        return layer;
+      }));
+    }
+  }, [selectedColor, selectedTexture, opacity, editingLayerId]);
+
+  // Redesenha se mudar a ferramenta, pontos ou camadas
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [tool, polygonPoints, tempMousePos]);
+  }, [tool, polygonPoints, tempMousePos, layers, editingLayerId]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -174,13 +220,13 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     return pattern || colorHex;
   };
 
-  // Renderiza o Canvas juntando a Imagem Original e a Máscara Pintada
+  // Renderiza o Canvas juntando a Imagem Original, as Camadas Salvas e o Rascunho Atual
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
+    const draftCanvas = draftMaskCanvasRef.current;
     const img = imageRef.current;
 
-    if (!canvas || !maskCanvas || !img) return;
+    if (!canvas || !draftCanvas || !img) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -192,31 +238,49 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     ctx.clearRect(0, 0, width, height);
     ctx.drawImage(img, 0, 0, width, height);
 
-    // 2. Cria canvas temporário para aplicar a cor do pincel na máscara
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width;
-    tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
+    // 2. Loop para desenhar cada parede salva (camadas individuais)
+    layers.forEach(layer => {
+      const tempLayerCanvas = document.createElement('canvas');
+      tempLayerCanvas.width = width;
+      tempLayerCanvas.height = height;
+      const tempLayerCtx = tempLayerCanvas.getContext('2d');
+      if (!tempLayerCtx) return;
 
-    // Desenha a máscara desenhada no tempCanvas
-    tempCtx.drawImage(maskCanvas, 0, 0);
+      tempLayerCtx.drawImage(layer.maskCanvas, 0, 0);
+      tempLayerCtx.globalCompositeOperation = 'source-in';
+      const patternOrColor = createTexturePattern(tempLayerCtx, layer.texture, width, height, layer.color);
+      tempLayerCtx.fillStyle = patternOrColor;
+      tempLayerCtx.fillRect(0, 0, width, height);
 
-    // Aplica a cor / textura selecionada usando 'source-in' (recorta o desenho da máscara)
-    tempCtx.globalCompositeOperation = 'source-in';
-    
-    const patternOrColor = createTexturePattern(tempCtx, selectedTexture, width, height, selectedColor);
-    tempCtx.fillStyle = patternOrColor;
-    tempCtx.fillRect(0, 0, width, height);
+      ctx.save();
+      ctx.globalAlpha = layer.opacity / 100;
+      ctx.globalCompositeOperation = layer.texture !== 'lisa' ? 'overlay' : 'multiply';
+      ctx.drawImage(tempLayerCanvas, 0, 0);
+      ctx.restore();
+    });
 
-    // 3. Desenha a máscara colorizada de volta no canvas principal usando Blend Mode
-    ctx.save();
-    ctx.globalAlpha = opacity / 100;
-    ctx.globalCompositeOperation = selectedTexture !== 'lisa' ? 'overlay' : 'multiply';
-    ctx.drawImage(tempCanvas, 0, 0);
-    ctx.restore();
+    // 3. Desenha o rascunho de pintura ativo em progresso
+    if (!editingLayerId) {
+      const tempDraftCanvas = document.createElement('canvas');
+      tempDraftCanvas.width = width;
+      tempDraftCanvas.height = height;
+      const tempDraftCtx = tempDraftCanvas.getContext('2d');
+      if (tempDraftCtx) {
+        tempDraftCtx.drawImage(draftCanvas, 0, 0);
+        tempDraftCtx.globalCompositeOperation = 'source-in';
+        const patternOrColor = createTexturePattern(tempDraftCtx, selectedTexture, width, height, selectedColor);
+        tempDraftCtx.fillStyle = patternOrColor;
+        tempDraftCtx.fillRect(0, 0, width, height);
 
-    // 4. Desenha as linhas do polígono em progresso (caso a ferramenta ativa seja 'polygon')
+        ctx.save();
+        ctx.globalAlpha = opacity / 100;
+        ctx.globalCompositeOperation = selectedTexture !== 'lisa' ? 'overlay' : 'multiply';
+        ctx.drawImage(tempDraftCanvas, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // 4. Desenha as linhas do polígono em progresso
     if (tool === 'polygon' && polygonPoints.length > 0) {
       ctx.save();
       ctx.strokeStyle = '#9A077B';
@@ -230,7 +294,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
       }
 
-      // Desenha linha até a posição do mouse em tempo real
       if (tempMousePos) {
         ctx.lineTo(tempMousePos.x, tempMousePos.y);
       }
@@ -238,13 +301,11 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       ctx.stroke();
       ctx.fill();
 
-      // Desenha os nós como círculos sólidos
       ctx.setLineDash([]);
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 1.5;
 
       for (let i = 0; i < polygonPoints.length; i++) {
-        // O primeiro ponto brilha em verde caso já possa fechar o polígono (>= 3 pontos)
         ctx.fillStyle = i === 0 && polygonPoints.length >= 3 ? '#10B981' : '#000747';
         ctx.beginPath();
         ctx.arc(polygonPoints[i].x, polygonPoints[i].y, i === 0 && polygonPoints.length >= 3 ? 7 : 5, 0, Math.PI * 2);
@@ -256,65 +317,34 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   };
 
-  // Atualiza as dimensões do Canvas e carrega a imagem
-  const handleImageLoad = (src: string) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = src;
-    img.onload = () => {
-      imageRef.current = img;
-      
-      const canvas = canvasRef.current;
-      const maskCanvas = maskCanvasRef.current;
-      if (!canvas || !maskCanvas) return;
+  // Cria uma nova camada de parede independente
+  const createNewWallLayer = (maskSrcCanvas: HTMLCanvasElement, defaultName?: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      const maxDim = 800;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      maskCanvas.width = width;
-      maskCanvas.height = height;
-
-      const maskCtx = maskCanvas.getContext('2d');
-      if (maskCtx) {
-        maskCtx.clearRect(0, 0, width, height);
-      }
-
-      redrawCanvas();
-    };
-  };
-
-  // Observa mudanças nas configurações para redesenhar
-  useEffect(() => {
-    if (imageSrc) {
-      redrawCanvas();
+    const newMaskCanvas = document.createElement('canvas');
+    newMaskCanvas.width = canvas.width;
+    newMaskCanvas.height = canvas.height;
+    const newMaskCtx = newMaskCanvas.getContext('2d');
+    if (newMaskCtx) {
+      newMaskCtx.drawImage(maskSrcCanvas, 0, 0);
     }
-  }, [selectedColor, selectedTexture, opacity]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const layerId = `layer-${Date.now()}`;
+    const layerName = defaultName || `Parede ${layers.length + 1}`;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (typeof event.target?.result === 'string') {
-        setImageSrc(event.target.result);
-        handleImageLoad(event.target.result);
-      }
+    const newLayer: WallLayer = {
+      id: layerId,
+      name: layerName,
+      color: selectedColor,
+      texture: selectedTexture,
+      opacity: opacity,
+      maskCanvas: newMaskCanvas
     };
-    reader.readAsDataURL(file);
+
+    setLayers(prev => [...prev, newLayer]);
+    setEditingLayerId(layerId);
+    setIsDraftDirty(false);
   };
 
   // Coordenadas relativas do toque/mouse
@@ -344,10 +374,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   // Algoritmo Flood Fill para Varredura Mágica
   const executeFloodFill = (startX: number, startY: number) => {
     const canvas = canvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
+    const targetMaskCanvas = maskCanvasRef.current;
     const img = imageRef.current;
 
-    if (!canvas || !maskCanvas || !img) return;
+    if (!canvas || !targetMaskCanvas || !img) return;
 
     const width = canvas.width;
     const height = canvas.height;
@@ -428,7 +458,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       }
     }
 
-    const maskCtx = maskCanvas.getContext('2d');
+    const maskCtx = targetMaskCanvas.getContext('2d');
     if (!maskCtx) return;
 
     const maskImgData = maskCtx.getImageData(0, 0, width, height);
@@ -445,34 +475,91 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
 
     maskCtx.putImageData(maskImgData, 0, 0);
-    redrawCanvas();
   };
 
-  // Fecha o Polígono e grava na Máscara do Canvas
+  // Fecha o Polígono e grava como parede individual
   const handleClosePolygon = () => {
     if (polygonPoints.length < 3) return;
 
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return;
-
-    const maskCtx = maskCanvas.getContext('2d');
-    if (!maskCtx) return;
-
-    maskCtx.save();
-    maskCtx.globalCompositeOperation = 'source-over';
-    maskCtx.fillStyle = 'rgba(0, 0, 0, 1)';
-    maskCtx.beginPath();
-    maskCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
-    for (let i = 1; i < polygonPoints.length; i++) {
-      maskCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+    const tempMaskCanvas = document.createElement('canvas');
+    const canvas = canvasRef.current;
+    if (canvas) {
+      tempMaskCanvas.width = canvas.width;
+      tempMaskCanvas.height = canvas.height;
     }
-    maskCtx.closePath();
-    maskCtx.fill();
-    maskCtx.restore();
+    
+    const tempMaskCtx = tempMaskCanvas.getContext('2d');
+    if (!tempMaskCtx) return;
+
+    tempMaskCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+    tempMaskCtx.beginPath();
+    tempMaskCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+    for (let i = 1; i < polygonPoints.length; i++) {
+      tempMaskCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+    }
+    tempMaskCtx.closePath();
+    tempMaskCtx.fill();
+
+    createNewWallLayer(tempMaskCanvas, `Parede Linha ${layers.length + 1}`);
 
     setPolygonPoints([]);
     setTempMousePos(null);
-    redrawCanvas();
+  };
+
+  // Atualiza as dimensões do Canvas e carrega a imagem
+  const handleImageLoad = (src: string) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+    img.onload = () => {
+      imageRef.current = img;
+      
+      const canvas = canvasRef.current;
+      const draftCanvas = draftMaskCanvasRef.current;
+      if (!canvas || !draftCanvas) return;
+
+      const maxDim = 800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      draftCanvas.width = width;
+      draftCanvas.height = height;
+
+      const draftCtx = draftCanvas.getContext('2d');
+      if (draftCtx) {
+        draftCtx.clearRect(0, 0, width, height);
+      }
+
+      setLayers([]);
+      setEditingLayerId(null);
+      redrawCanvas();
+    };
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === 'string') {
+        setImageSrc(event.target.result);
+        handleImageLoad(event.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleStartDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -481,16 +568,29 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
     const { x, y } = getCanvasCoords(e);
 
-    // 1. Se estiver usando Varredura Mágica
+    if (editingLayerId) {
+      setEditingLayerId(null);
+    }
+
     if (tool === 'magic') {
+      const tempMaskCanvas = document.createElement('canvas');
+      const canvas = canvasRef.current;
+      if (canvas) {
+        tempMaskCanvas.width = canvas.width;
+        tempMaskCanvas.height = canvas.height;
+      }
+      
+      const originalMaskCanvas = maskCanvasRef.current;
+      maskCanvasRef.current = tempMaskCanvas;
       executeFloodFill(x, y);
+      maskCanvasRef.current = originalMaskCanvas;
+
+      createNewWallLayer(tempMaskCanvas, `Parede Varredura ${layers.length + 1}`);
       return;
     }
 
-    // 2. Se estiver usando Demarcação por Linhas (Polígono)
     if (tool === 'polygon') {
       if (polygonPoints.length >= 3) {
-        // Se clicar bem perto do ponto inicial, fecha o polígono automaticamente
         const dist = Math.sqrt((x - polygonPoints[0].x) ** 2 + (y - polygonPoints[0].y) ** 2);
         if (dist < 15) {
           handleClosePolygon();
@@ -501,37 +601,36 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       return;
     }
 
-    // 3. Se estiver usando Pincel ou Borracha normais
     isDrawingRef.current = true;
 
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return;
+    const draftCanvas = draftMaskCanvasRef.current;
+    if (!draftCanvas) return;
 
-    const maskCtx = maskCanvas.getContext('2d');
-    if (!maskCtx) return;
+    const draftCtx = draftCanvas.getContext('2d');
+    if (!draftCtx) return;
 
-    maskCtx.beginPath();
-    maskCtx.moveTo(x, y);
-    maskCtx.lineWidth = brushSize;
-    maskCtx.lineCap = 'round';
-    maskCtx.lineJoin = 'round';
+    draftCtx.beginPath();
+    draftCtx.moveTo(x, y);
+    draftCtx.lineWidth = brushSize;
+    draftCtx.lineCap = 'round';
+    draftCtx.lineJoin = 'round';
 
     if (tool === 'brush') {
-      maskCtx.globalCompositeOperation = 'source-over';
-      maskCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
+      draftCtx.globalCompositeOperation = 'source-over';
+      draftCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
     } else {
-      maskCtx.globalCompositeOperation = 'destination-out';
+      draftCtx.globalCompositeOperation = 'destination-out';
     }
 
-    maskCtx.lineTo(x, y);
-    maskCtx.stroke();
+    draftCtx.lineTo(x, y);
+    draftCtx.stroke();
+    setIsDraftDirty(true);
     redrawCanvas();
   };
 
   const handleDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
     
-    // Rastreia posição do mouse para desenhar a linha elástica da ferramenta de polígono
     if (tool === 'polygon' && polygonPoints.length > 0) {
       const { x, y } = getCanvasCoords(e);
       setTempMousePos({ x, y });
@@ -542,15 +641,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!isDrawingRef.current || tool === 'magic') return;
     e.preventDefault();
 
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return;
+    const draftCanvas = draftMaskCanvasRef.current;
+    if (!draftCanvas) return;
 
-    const maskCtx = maskCanvas.getContext('2d');
-    if (!maskCtx) return;
+    const draftCtx = draftCanvas.getContext('2d');
+    if (!draftCtx) return;
 
     const { x, y } = getCanvasCoords(e);
-    maskCtx.lineTo(x, y);
-    maskCtx.stroke();
+    draftCtx.lineTo(x, y);
+    draftCtx.stroke();
     redrawCanvas();
   };
 
@@ -567,16 +666,36 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   };
 
   const handleClear = () => {
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return;
-
-    const maskCtx = maskCanvas.getContext('2d');
-    if (!maskCtx) return;
-
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    const draftCanvas = draftMaskCanvasRef.current;
+    if (draftCanvas) {
+      const draftCtx = draftCanvas.getContext('2d');
+      if (draftCtx) draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
+    }
+    
     setPolygonPoints([]);
     setTempMousePos(null);
+    setIsDraftDirty(false);
+    setEditingLayerId(null);
     redrawCanvas();
+  };
+
+  const handleDeleteLayer = (id: string) => {
+    setLayers(prev => prev.filter(l => l.id !== id));
+    if (editingLayerId === id) {
+      setEditingLayerId(null);
+    }
+  };
+
+  const handleSaveDraftAsLayer = () => {
+    const draftCanvas = draftMaskCanvasRef.current;
+    if (!draftCanvas || !isDraftDirty) return;
+
+    createNewWallLayer(draftCanvas, `Parede Pincel ${layers.length + 1}`);
+
+    const draftCtx = draftCanvas.getContext('2d');
+    if (draftCtx) {
+      draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
+    }
   };
 
   // Exportar PDF
@@ -597,6 +716,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       doc.setFillColor(0, 7, 71);
       doc.rect(0, 0, 210, 35, 'F');
+
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
@@ -648,19 +768,30 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       }
 
       doc.setFont('helvetica', 'bold');
-      doc.text('ESPECIFICAÇÕES DA PINTURA SIMULADA', 15, currentY + 3);
+      doc.text('ESPECIFICAÇÕES DAS PAREDES SIMULADAS', 15, currentY + 3);
       doc.line(15, currentY + 5, 195, currentY + 5);
 
       doc.setFont('helvetica', 'normal');
-      const colorName = PREMIUM_COLORS.find(c => c.hex.toLowerCase() === selectedColor.toLowerCase())?.name || 'Cor Personalizada';
-      const textureName = TEXTURE_OPTIONS.find(t => t.id === selectedTexture)?.name || 'Pintura Lisa';
+      doc.setFontSize(9);
+      let textOffset = 11;
+      
+      if (layers.length > 0) {
+        layers.forEach((layer) => {
+          const colorName = PREMIUM_COLORS.find(c => c.hex.toLowerCase() === layer.color.toLowerCase())?.name || 'Cor Personalizada';
+          const textureName = TEXTURE_OPTIONS.find(t => t.id === layer.texture)?.name || 'Pintura Lisa';
+          doc.text(`${layer.name}: Cor ${colorName} (${layer.color}) | Efeito: ${textureName} | Opacidade: ${layer.opacity}%`, 15, currentY + textOffset);
+          textOffset += 5.5;
+        });
+      } else {
+        doc.text('Nenhuma parede salva individualmente. Pintura geral simulada.', 15, currentY + textOffset);
+        textOffset += 5.5;
+      }
 
-      doc.text(`Cor Selecionada: ${colorName} (${selectedColor})`, 15, currentY + 11);
-      doc.text(`Acabamento/Efeito: ${textureName}`, 110, currentY + 11);
+      currentY = currentY + textOffset;
 
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const maxImgW = 180;
-      const maxImgH = 100;
+      const maxImgH = 90;
       let imgW = canvas.width;
       let imgH = canvas.height;
 
@@ -669,17 +800,19 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       imgH = imgH * scale;
 
       const imgX = 15 + (maxImgW - imgW) / 2;
-      const imgY = currentY + 18;
+      const imgY = currentY + 2;
 
       doc.rect(15, imgY - 2, 180, imgH + 4, 'S');
       doc.addImage(imgData, 'JPEG', imgX, imgY, imgW, imgH);
 
-      const descY = imgY + imgH + 10;
+      const descY = imgY + imgH + 8;
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
       doc.text('DESCRIÇÃO E INSTRUÇÕES TÉCNICAS', 15, descY + 3);
       doc.line(15, descY + 5, 195, descY + 5);
 
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
       const textToPrint = description.trim() || 'Sem observações técnicas adicionais. Simulação apenas para fins de visualização estética das cores aplicadas.';
       const splitText = doc.splitTextToSize(textToPrint, 180);
       doc.text(splitText, 15, descY + 11);
@@ -717,7 +850,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <h2 className="text-3xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
-          <p className="text-slate-500 font-medium">Tire fotos do ambiente, pinte e exporte um relatório em PDF realista para enviar ao seu cliente.</p>
+          <p className="text-slate-500 font-medium">Crie simulações de paredes individuais de cores e texturas variadas no mesmo ambiente.</p>
         </div>
         
         {imageSrc && (
@@ -777,8 +910,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
             <div className="w-full flex flex-col items-center gap-4">
               {/* Barra de Ações Rápidas do Canvas */}
               <div className="w-full flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-100 pb-4 gap-4">
-                <div className="flex items-center gap-2">
-                  {/* Botão de abrir modal de ferramentas */}
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setIsToolsModalOpen(true)}
                     className="p-3 bg-[#000747] hover:bg-[#9A077B] text-white rounded-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider transition shadow-md"
@@ -810,6 +942,17 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                       </button>
                     </div>
                   )}
+
+                  {/* Botão de Confirmação de Pintura Livre */}
+                  {tool === 'brush' && isDraftDirty && (
+                    <button
+                      onClick={handleSaveDraftAsLayer}
+                      className="px-4 py-2.5 bg-[#9A077B] text-white text-xs font-black uppercase rounded-xl flex items-center gap-1.5 transition animate-pulse shadow-md"
+                    >
+                      <Check size={16} />
+                      <span>Salvar Parede Pintada</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 justify-end">
@@ -834,11 +977,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 </div>
               </div>
 
-              {/* Dica para Ferramenta de Polígono */}
+              {/* Dicas contextuais */}
               {tool === 'polygon' && (
                 <div className="w-full bg-indigo-50 border border-indigo-100 p-3 rounded-xl text-indigo-900 text-xs font-semibold flex items-center gap-2">
                   <Sparkles size={14} className="animate-pulse" />
-                  <span>Dica: Vá dando cliques na parede para desenhar as linhas. Dê o último clique sobre o círculo verde inicial (ou clique em "Fechar Área") para preencher a cor.</span>
+                  <span>Dica: Vá dando cliques na parede para desenhar as retas. Dê o último clique sobre o círculo verde inicial (ou clique em "Fechar Área") para isolar e pintar esta parede.</span>
+                </div>
+              )}
+
+              {tool === 'brush' && isDraftDirty && (
+                <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
+                  <AlertCircle size={14} />
+                  <span>Você pintou no rascunho. Clique no botão de piscar <strong>"Salvar Parede Pintada"</strong> para aplicar a cor nesta parede de forma independente.</span>
                 </div>
               )}
 
@@ -856,11 +1006,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   className="block max-w-full cursor-crosshair relative z-10"
                 />
                 
-                {/* Canvas oculto exclusivo para armazenar o desenho puro da máscara */}
+                {/* Canvas ocultos exclusivos para armazenar o desenho puro da máscara e rascunho */}
                 <canvas ref={maskCanvasRef} className="hidden" />
+                <canvas ref={draftMaskCanvasRef} className="hidden" />
               </div>
 
-              {/* Controles deslizantes (Sliders) integrados */}
+              {/* Controles deslizantes (Sliders) */}
               <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                 <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
@@ -913,8 +1064,79 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
           )}
         </div>
 
-        {/* Lado Direito: Paleta de Cores, Texturas e Detalhes do Relatório */}
+        {/* Lado Direito: Paredes Salvas, Paleta de Cores, Texturas e PDF */}
         <div className="lg:col-span-4 space-y-6">
+          {/* Seção 0: Paredes Individuais (Camadas) */}
+          {imageSrc && (
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center justify-between">
+                <span>Paredes Simuladas</span>
+                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{layers.length} salvas</span>
+              </h3>
+
+              {editingLayerId ? (
+                <div className="bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
+                  <div>
+                    <span className="text-[10px] font-black text-[#9A077B] uppercase tracking-widest leading-none block mb-1">Editando no momento</span>
+                    <span className="text-xs font-bold text-slate-800">{layers.find(l => l.id === editingLayerId)?.name}</span>
+                  </div>
+                  <button
+                    onClick={() => setEditingLayerId(null)}
+                    className="px-3 py-1.5 bg-[#9A077B] text-white text-[10px] font-black uppercase rounded-lg hover:bg-[#000747] transition"
+                  >
+                    Pronto
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 font-medium">Selecione uma parede da lista para alterar sua cor ou opacidade individualmente.</p>
+              )}
+
+              {layers.length > 0 ? (
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {layers.map((layer) => {
+                    const isEditing = editingLayerId === layer.id;
+                    const textureLabel = TEXTURE_OPTIONS.find(t => t.id === layer.texture)?.name || 'Lisa';
+                    return (
+                      <div
+                        key={layer.id}
+                        className={`flex items-center justify-between p-3 rounded-2xl border transition duration-200 ${
+                          isEditing ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50'
+                        }`}
+                      >
+                        <button
+                          onClick={() => setEditingLayerId(layer.id)}
+                          className="flex items-center gap-2.5 text-left focus:outline-none flex-1"
+                        >
+                          <div
+                            style={{ backgroundColor: layer.color }}
+                            className="w-5 h-5 rounded-full border border-slate-300 shrink-0 shadow-inner"
+                          />
+                          <div className="truncate">
+                            <span className="text-xs font-black text-slate-700 block truncate uppercase tracking-wide">{layer.name}</span>
+                            <span className="text-[10px] text-slate-400 block truncate">{textureLabel} | {layer.opacity}% Opaco</span>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleDeleteLayer(layer.id)}
+                            className="p-1.5 text-red-400 hover:text-red-600 transition"
+                            title="Remover esta parede"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="border border-dashed border-slate-200 p-6 rounded-2xl text-center">
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma parede cadastrada. Pinte uma área ou use a Varredura Mágica / Linhas para criar a primeira parede independente.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Seção 1: Paleta de Cores */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center gap-2">
