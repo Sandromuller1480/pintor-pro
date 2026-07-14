@@ -10,10 +10,8 @@ import {
   FileText,
   Sliders,
   Sparkles,
-  Scissors,
   X,
   Hammer,
-  Plus,
   Check
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -32,11 +30,6 @@ interface TextureOption {
   id: string;
   name: string;
   description: string;
-}
-
-interface Point {
-  x: number;
-  y: number;
 }
 
 interface WallLayer {
@@ -77,7 +70,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [brushSize, setBrushSize] = useState<number>(30);
   const [opacity, setOpacity] = useState<number>(85); // em %
   const [tolerance, setTolerance] = useState<number>(25); // Sensibilidade da varredura
-  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic' | 'polygon'>('brush');
+  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic'>('brush');
   const [description, setDescription] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
   const [clientAddress, setClientAddress] = useState<string>('');
@@ -88,15 +81,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [layers, setLayers] = useState<WallLayer[]>([]);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [isDraftDirty, setIsDraftDirty] = useState(false);
-
-  // Estados para ferramenta de Linhas / Polígono
-  const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
-  const [tempMousePos, setTempMousePos] = useState<Point | null>(null);
   const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
-
-  // Estados para arrastar pontos na demarcação por linhas
-  const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(null);
-  const [dragStartPos, setDragStartPos] = useState<Point | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draftMaskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Máscara temporária de desenho
@@ -141,12 +126,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [selectedColor, selectedTexture, opacity, editingLayerId]);
 
-  // Redesenha se mudar a ferramenta, pontos ou camadas
+  // Redesenha se mudar a ferramenta ou camadas
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [tool, polygonPoints, tempMousePos, layers, editingLayerId, draggedPointIndex]);
+  }, [tool, layers, editingLayerId]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -282,53 +267,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         ctx.drawImage(tempDraftCanvas, 0, 0);
         ctx.restore();
       }
-    }
-
-    // 4. Desenha as linhas do polígono em progresso
-    if (tool === 'polygon' && polygonPoints.length > 0) {
-      ctx.save();
-      ctx.strokeStyle = '#9A077B';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([5, 5]);
-      ctx.fillStyle = 'rgba(154, 7, 123, 0.18)';
-
-      ctx.beginPath();
-      ctx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
-      for (let i = 1; i < polygonPoints.length; i++) {
-        ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
-      }
-
-      // Desenha a linha elástica apenas se não estiver arrastando algum ponto
-      if (tempMousePos && draggedPointIndex === null) {
-        ctx.lineTo(tempMousePos.x, tempMousePos.y);
-      }
-
-      ctx.stroke();
-      ctx.fill();
-
-      ctx.setLineDash([]);
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.5;
-
-      for (let i = 0; i < polygonPoints.length; i++) {
-        const isFirst = i === 0 && polygonPoints.length >= 3;
-        const isDragged = draggedPointIndex === i;
-
-        if (isDragged) {
-          ctx.fillStyle = '#F59E0B'; // Amarelo ouro para arrasto ativo
-        } else if (isFirst) {
-          ctx.fillStyle = '#10B981'; // Verde para fechar área
-        } else {
-          ctx.fillStyle = '#000747'; // Azul padrão do tema
-        }
-
-        ctx.beginPath();
-        ctx.arc(polygonPoints[i].x, polygonPoints[i].y, isDragged ? 8 : (isFirst ? 7 : 5), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      }
-
-      ctx.restore();
     }
   };
 
@@ -500,35 +438,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     maskCtx.putImageData(maskImgData, 0, 0);
   };
 
-  // Fecha o Polígono e grava como parede individual
-  const handleClosePolygon = () => {
-    if (polygonPoints.length < 3) return;
-
-    const tempMaskCanvas = document.createElement('canvas');
-    const canvas = canvasRef.current;
-    if (canvas) {
-      tempMaskCanvas.width = canvas.width;
-      tempMaskCanvas.height = canvas.height;
-    }
-    
-    const tempMaskCtx = tempMaskCanvas.getContext('2d');
-    if (!tempMaskCtx) return;
-
-    tempMaskCtx.fillStyle = 'rgba(0, 0, 0, 1)';
-    tempMaskCtx.beginPath();
-    tempMaskCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
-    for (let i = 1; i < polygonPoints.length; i++) {
-      tempMaskCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
-    }
-    tempMaskCtx.closePath();
-    tempMaskCtx.fill();
-
-    createNewWallLayer(tempMaskCanvas, `Parede Linha ${layers.length + 1}`);
-
-    setPolygonPoints([]);
-    setTempMousePos(null);
-  };
-
   // Atualiza as dimensões do Canvas e carrega a imagem
   const handleImageLoad = (src: string) => {
     const img = new Image();
@@ -567,8 +476,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       setLayers([]);
       setEditingLayerId(null);
-      setPolygonPoints([]);
-      setTempMousePos(null);
       redrawCanvas();
     };
   };
@@ -614,27 +521,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       return;
     }
 
-    if (tool === 'polygon') {
-      // Verifica se clicou próximo de algum ponto existente para arrastar
-      const clickThreshold = 15;
-      let foundIndex = -1;
-      for (let i = 0; i < polygonPoints.length; i++) {
-        const dist = Math.sqrt((x - polygonPoints[i].x) ** 2 + (y - polygonPoints[i].y) ** 2);
-        if (dist < clickThreshold) {
-          foundIndex = i;
-          break;
-        }
-      }
-
-      if (foundIndex !== -1) {
-        setDraggedPointIndex(foundIndex);
-        setDragStartPos({ x, y });
-      } else {
-        setPolygonPoints((prev) => [...prev, { x, y }]);
-      }
-      return;
-    }
-
     isDrawingRef.current = true;
 
     const draftCanvas = draftMaskCanvasRef.current;
@@ -666,18 +552,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!imageSrc) return;
     const { x, y } = getCanvasCoords(e);
     
-    if (tool === 'polygon') {
-      if (draggedPointIndex !== null) {
-        // Atualiza a posição do ponto arrastado em tempo real
-        setPolygonPoints(prev => prev.map((pt, idx) => idx === draggedPointIndex ? { x, y } : pt));
-      } else {
-        // Atualiza a linha elástica temporária do ponteiro
-        setTempMousePos({ x, y });
-      }
-      redrawCanvas();
-      return;
-    }
-
     if (!isDrawingRef.current || tool === 'magic') return;
     e.preventDefault();
 
@@ -692,38 +566,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     redrawCanvas();
   };
 
-  const handleStopDrawing = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const handleStopDrawing = () => {
     isDrawingRef.current = false;
-
-    if (tool === 'polygon' && draggedPointIndex !== null) {
-      if (dragStartPos && e) {
-        const { x, y } = getCanvasCoords(e);
-        const distMoved = Math.sqrt((x - dragStartPos.x) ** 2 + (y - dragStartPos.y) ** 2);
-        
-        // Se moveu quase nada (apenas um clique/toque rápido), verifica se clicou no primeiro ponto para fechar
-        if (distMoved < 5) {
-          if (draggedPointIndex === 0 && polygonPoints.length >= 3) {
-            handleClosePolygon();
-            setDraggedPointIndex(null);
-            setDragStartPos(null);
-            return;
-          }
-        }
-      }
-
-      setDraggedPointIndex(null);
-      setDragStartPos(null);
-    }
   };
 
   const handleMouseLeave = () => {
     isDrawingRef.current = false;
-    setTempMousePos(null);
-    setDraggedPointIndex(null);
-    setDragStartPos(null);
-    if (tool === 'polygon') {
-      redrawCanvas();
-    }
   };
 
   const handleClear = () => {
@@ -733,12 +581,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       if (draftCtx) draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
     }
     
-    setPolygonPoints([]);
-    setTempMousePos(null);
     setIsDraftDirty(false);
     setEditingLayerId(null);
-    setDraggedPointIndex(null);
-    setDragStartPos(null);
     redrawCanvas();
   };
 
@@ -902,7 +746,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       case 'brush': return 'Pincel';
       case 'eraser': return 'Borracha';
       case 'magic': return 'Varredura Mágica';
-      case 'polygon': return 'Linhas / Polígono';
       default: return 'Pincel';
     }
   };
@@ -982,32 +825,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     <span>Ferramentas ({getToolLabel(tool)})</span>
                   </button>
 
-                  {/* Ações específicas da ferramenta de Polígono */}
-                  {tool === 'polygon' && (
-                    <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
-                      <button
-                        onClick={handleClosePolygon}
-                        disabled={polygonPoints.length < 3}
-                        className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-black uppercase rounded-lg transition"
-                      >
-                        Fechar Área
-                      </button>
-                      <button
-                        onClick={() => {
-                          setPolygonPoints([]);
-                          setTempMousePos(null);
-                          setDraggedPointIndex(null);
-                          setDragStartPos(null);
-                          redrawCanvas();
-                        }}
-                        disabled={polygonPoints.length === 0}
-                        className="px-3.5 py-2.5 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 text-xs font-black uppercase rounded-lg transition"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-
                   {/* Botão de Confirmação de Pintura Livre */}
                   {tool === 'brush' && isDraftDirty && (
                     <button
@@ -1043,13 +860,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               </div>
 
               {/* Dicas contextuais */}
-              {tool === 'polygon' && (
-                <div className="w-full bg-indigo-50 border border-indigo-100 p-3 rounded-xl text-indigo-900 text-xs font-semibold flex items-center gap-2">
-                  <Sparkles size={14} className="animate-pulse" />
-                  <span>Dica: Clique para adicionar pontos. Para ajustar a área, clique e arraste qualquer nó (círculos azuis). O nó ativado ficará <span className="text-[#F59E0B] font-bold">amarelo</span>.</span>
-                </div>
-              )}
-
               {tool === 'brush' && isDraftDirty && (
                 <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
                   <AlertCircle size={14} />
@@ -1063,11 +873,11 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   ref={canvasRef}
                   onMouseDown={handleStartDrawing}
                   onMouseMove={handleDrawing}
-                  onMouseUp={(e) => handleStopDrawing(e)}
+                  onMouseUp={handleStopDrawing}
                   onMouseLeave={handleMouseLeave}
                   onTouchStart={handleStartDrawing}
                   onTouchMove={handleDrawing}
-                  onTouchEnd={(e) => handleStopDrawing(e)}
+                  onTouchEnd={handleStopDrawing}
                   className="block max-w-full cursor-crosshair relative z-10"
                 />
                 
@@ -1087,7 +897,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     type="range"
                     min="5"
                     max="100"
-                    disabled={tool === 'magic' || tool === 'polygon'}
+                    disabled={tool === 'magic'}
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
@@ -1196,7 +1006,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 </div>
               ) : (
                 <div className="border border-dashed border-slate-200 p-6 rounded-2xl text-center">
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma parede cadastrada. Pinte uma área ou use a Varredura Mágica / Linhas para criar a primeira parede independente.</p>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma parede cadastrada. Pinte uma área ou use a Varredura Mágica para criar a primeira parede independente.</p>
                 </div>
               )}
             </div>
@@ -1310,7 +1120,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       {/* Modal / Diálogo das Ferramentas */}
       {isToolsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl p-6 border border-slate-200 space-y-6 mx-4 relative">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 border border-slate-200 space-y-6 mx-4 relative">
             <button
               onClick={() => setIsToolsModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition"
@@ -1323,7 +1133,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               <p className="text-slate-500 text-sm font-medium">Selecione uma ferramenta abaixo para aplicar cor e texturas na parede.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {/* Opção 1: Pincel */}
               <button
                 onClick={() => {
@@ -1372,23 +1182,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 <div>
                   <h4 className="font-bold text-slate-800">Varredura Mágica</h4>
                   <p className="text-slate-400 text-xs mt-0.5 leading-normal">Toque na parede e o sistema preenche de forma inteligente detectando cantos.</p>
-                </div>
-              </button>
-
-              {/* Opção 4: Linha / Polígono */}
-              <button
-                onClick={() => {
-                  setTool('polygon');
-                  setIsToolsModalOpen(false);
-                }}
-                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
-                  tool === 'polygon' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-3 bg-indigo-600 text-white rounded-xl"><Scissors size={18} /></div>
-                <div>
-                  <h4 className="font-bold text-slate-800">Demarcação por Linhas</h4>
-                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Clique ponto a ponto para fechar uma área reta precisa e preencher a cor.</p>
                 </div>
               </button>
             </div>
