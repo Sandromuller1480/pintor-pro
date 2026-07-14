@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   FileText,
   Sliders,
-  Sparkles
+  Sparkles,
+  Scissors,
+  X,
+  Hammer
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
@@ -27,6 +30,11 @@ interface TextureOption {
   id: string;
   name: string;
   description: string;
+}
+
+interface Point {
+  x: number;
+  y: number;
 }
 
 const PREMIUM_COLORS: ColorOption[] = [
@@ -57,13 +65,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [selectedTexture, setSelectedTexture] = useState<string>('lisa');
   const [brushSize, setBrushSize] = useState<number>(30);
   const [opacity, setOpacity] = useState<number>(85); // em %
-  const [tolerance, setTolerance] = useState<number>(25); // Sensibilidade do balde/varredura
-  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic'>('brush');
+  const [tolerance, setTolerance] = useState<number>(25); // Sensibilidade da varredura
+  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic' | 'polygon'>('brush');
   const [description, setDescription] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
   const [clientAddress, setClientAddress] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Estados para ferramenta de Linhas / Polígono
+  const [polygonPoints, setPolygonPoints] = useState<Point[]>([]);
+  const [tempMousePos, setTempMousePos] = useState<Point | null>(null);
+  const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -77,6 +90,13 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       return () => clearTimeout(timer);
     }
   }, [feedback]);
+
+  // Redesenha se mudar a ferramenta ou pontos
+  useEffect(() => {
+    if (imageSrc) {
+      redrawCanvas();
+    }
+  }, [tool, polygonPoints, tempMousePos]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -98,27 +118,21 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     tempCtx.fillRect(0, 0, 120, 120);
 
     if (type === 'cimento') {
-      // Efeito manchado do cimento queimado (nuvens com gradiente/ruído)
       for (let i = 0; i < 6; i++) {
         const x = Math.random() * 120;
         const y = Math.random() * 120;
         const r = 20 + Math.random() * 30;
         const grad = tempCtx.createRadialGradient(x, y, 0, x, y, r);
-        
-        // Variações sutis de tom (mais claro e mais escuro)
         const alpha = 0.08 + Math.random() * 0.12;
         const shade = Math.random() > 0.5 ? '255, 255, 255' : '0, 0, 0';
-        
         grad.addColorStop(0, `rgba(${shade}, ${alpha})`);
         grad.addColorStop(1, 'rgba(0,0,0,0)');
-        
         tempCtx.fillStyle = grad;
         tempCtx.beginPath();
         tempCtx.arc(x, y, r, 0, Math.PI * 2);
         tempCtx.fill();
       }
     } else if (type === 'grafiato') {
-      // Ranhuras verticais
       tempCtx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
       tempCtx.lineWidth = 1.5;
       for (let i = 0; i < 40; i++) {
@@ -130,8 +144,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         tempCtx.lineTo(x, yStart + yLength);
         tempCtx.stroke();
       }
-      
-      // Detalhes em branco para profundidade
       tempCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       tempCtx.lineWidth = 1;
       for (let i = 0; i < 20; i++) {
@@ -144,7 +156,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         tempCtx.stroke();
       }
     } else if (type === 'areia') {
-      // Pontinhos finos
       tempCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
       for (let i = 0; i < 180; i++) {
         const x = Math.random() * 120;
@@ -201,13 +212,48 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     // 3. Desenha a máscara colorizada de volta no canvas principal usando Blend Mode
     ctx.save();
     ctx.globalAlpha = opacity / 100;
-    
-    // Blend mode multiply preserva sombras e ranhuras.
-    // Para texturas claras, 'overlay' pode dar mais relevo, mas 'multiply' garante realismo de sombras.
     ctx.globalCompositeOperation = selectedTexture !== 'lisa' ? 'overlay' : 'multiply';
-    
     ctx.drawImage(tempCanvas, 0, 0);
     ctx.restore();
+
+    // 4. Desenha as linhas do polígono em progresso (caso a ferramenta ativa seja 'polygon')
+    if (tool === 'polygon' && polygonPoints.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#9A077B';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.fillStyle = 'rgba(154, 7, 123, 0.18)';
+
+      ctx.beginPath();
+      ctx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+      for (let i = 1; i < polygonPoints.length; i++) {
+        ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+      }
+
+      // Desenha linha até a posição do mouse em tempo real
+      if (tempMousePos) {
+        ctx.lineTo(tempMousePos.x, tempMousePos.y);
+      }
+
+      ctx.stroke();
+      ctx.fill();
+
+      // Desenha os nós como círculos sólidos
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.5;
+
+      for (let i = 0; i < polygonPoints.length; i++) {
+        // O primeiro ponto brilha em verde caso já possa fechar o polígono (>= 3 pontos)
+        ctx.fillStyle = i === 0 && polygonPoints.length >= 3 ? '#10B981' : '#000747';
+        ctx.beginPath();
+        ctx.arc(polygonPoints[i].x, polygonPoints[i].y, i === 0 && polygonPoints.length >= 3 ? 7 : 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
   };
 
   // Atualiza as dimensões do Canvas e carrega a imagem
@@ -222,7 +268,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       const maskCanvas = maskCanvasRef.current;
       if (!canvas || !maskCanvas) return;
 
-      // Mantém proporções da imagem dentro de uma área útil máxima (ex: 800px)
       const maxDim = 800;
       let width = img.width;
       let height = img.height;
@@ -239,11 +284,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       canvas.width = width;
       canvas.height = height;
-
       maskCanvas.width = width;
       maskCanvas.height = height;
 
-      // Garante que o canvas da máscara esteja limpo inicialmente
       const maskCtx = maskCanvas.getContext('2d');
       if (maskCtx) {
         maskCtx.clearRect(0, 0, width, height);
@@ -292,7 +335,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       clientY = e.clientY;
     }
 
-    // Calcula coordenadas baseado na proporção do desenho real x tamanho exibido em tela
     const x = ((clientX - rect.left) / rect.width) * canvas.width;
     const y = ((clientY - rect.top) / rect.height) * canvas.height;
 
@@ -310,7 +352,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const width = canvas.width;
     const height = canvas.height;
 
-    // Desenha imagem limpa no temp canvas para pegar as cores reais originais
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
@@ -321,7 +362,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const imgData = tempCtx.getImageData(0, 0, width, height);
     const pixels = imgData.data;
 
-    // Pega cor inicial clicada
     const px = Math.floor(startX);
     const py = Math.floor(startY);
     if (px < 0 || px >= width || py < 0 || py >= height) return;
@@ -334,7 +374,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const visited = new Uint8Array(width * height);
     const mask = new Uint8Array(width * height);
 
-    // Estrutura de fila rápida usando ponteiro (head++)
     const queueX = new Int32Array(width * height);
     const queueY = new Int32Array(width * height);
     let head = 0;
@@ -353,7 +392,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       const currentIdx = cy * width + cx;
       mask[currentIdx] = 255;
 
-      // 4 Direções
       const neighbors = [
         { x: cx + 1, y: cy },
         { x: cx - 1, y: cy },
@@ -374,7 +412,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            // Diferença de cor euclidiana
             const diff = Math.sqrt(
               (r - startR) ** 2 +
               (g - startG) ** 2 +
@@ -391,7 +428,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       }
     }
 
-    // Desenha o resultado na máscara atual do canvas
     const maskCtx = maskCanvas.getContext('2d');
     if (!maskCtx) return;
 
@@ -401,14 +437,41 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     for (let i = 0; i < mask.length; i++) {
       if (mask[i] === 255) {
         const idx = i * 4;
-        maskData[idx] = 0;       // R
-        maskData[idx + 1] = 0;   // G
-        maskData[idx + 2] = 0;   // B
-        maskData[idx + 3] = 255; // Alpha sólido
+        maskData[idx] = 0;
+        maskData[idx + 1] = 0;
+        maskData[idx + 2] = 0;
+        maskData[idx + 3] = 255;
       }
     }
 
     maskCtx.putImageData(maskImgData, 0, 0);
+    redrawCanvas();
+  };
+
+  // Fecha o Polígono e grava na Máscara do Canvas
+  const handleClosePolygon = () => {
+    if (polygonPoints.length < 3) return;
+
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+
+    const maskCtx = maskCanvas.getContext('2d');
+    if (!maskCtx) return;
+
+    maskCtx.save();
+    maskCtx.globalCompositeOperation = 'source-over';
+    maskCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+    maskCtx.beginPath();
+    maskCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+    for (let i = 1; i < polygonPoints.length; i++) {
+      maskCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+    }
+    maskCtx.closePath();
+    maskCtx.fill();
+    maskCtx.restore();
+
+    setPolygonPoints([]);
+    setTempMousePos(null);
     redrawCanvas();
   };
 
@@ -418,12 +481,27 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
     const { x, y } = getCanvasCoords(e);
 
-    // Se estiver usando varredura mágica, executa flood fill direto e encerra
+    // 1. Se estiver usando Varredura Mágica
     if (tool === 'magic') {
       executeFloodFill(x, y);
       return;
     }
 
+    // 2. Se estiver usando Demarcação por Linhas (Polígono)
+    if (tool === 'polygon') {
+      if (polygonPoints.length >= 3) {
+        // Se clicar bem perto do ponto inicial, fecha o polígono automaticamente
+        const dist = Math.sqrt((x - polygonPoints[0].x) ** 2 + (y - polygonPoints[0].y) ** 2);
+        if (dist < 15) {
+          handleClosePolygon();
+          return;
+        }
+      }
+      setPolygonPoints((prev) => [...prev, { x, y }]);
+      return;
+    }
+
+    // 3. Se estiver usando Pincel ou Borracha normais
     isDrawingRef.current = true;
 
     const maskCanvas = maskCanvasRef.current;
@@ -434,18 +512,14 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
     maskCtx.beginPath();
     maskCtx.moveTo(x, y);
-
-    // Configura o traço da máscara
     maskCtx.lineWidth = brushSize;
     maskCtx.lineCap = 'round';
     maskCtx.lineJoin = 'round';
 
     if (tool === 'brush') {
-      // Desenha com cor preta sólida na máscara
       maskCtx.globalCompositeOperation = 'source-over';
       maskCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
     } else {
-      // Apaga desenhando transparente
       maskCtx.globalCompositeOperation = 'destination-out';
     }
 
@@ -455,7 +529,17 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   };
 
   const handleDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current || !imageSrc || tool === 'magic') return;
+    if (!imageSrc) return;
+    
+    // Rastreia posição do mouse para desenhar a linha elástica da ferramenta de polígono
+    if (tool === 'polygon' && polygonPoints.length > 0) {
+      const { x, y } = getCanvasCoords(e);
+      setTempMousePos({ x, y });
+      redrawCanvas();
+      return;
+    }
+
+    if (!isDrawingRef.current || tool === 'magic') return;
     e.preventDefault();
 
     const maskCanvas = maskCanvasRef.current;
@@ -474,6 +558,14 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     isDrawingRef.current = false;
   };
 
+  const handleMouseLeave = () => {
+    isDrawingRef.current = false;
+    setTempMousePos(null);
+    if (tool === 'polygon') {
+      redrawCanvas();
+    }
+  };
+
   const handleClear = () => {
     const maskCanvas = maskCanvasRef.current;
     if (!maskCanvas) return;
@@ -482,6 +574,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!maskCtx) return;
 
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    setPolygonPoints([]);
+    setTempMousePos(null);
     redrawCanvas();
   };
 
@@ -501,10 +595,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         format: 'a4'
       });
 
-      // 1. Cabeçalho Corporativo
-      doc.setFillColor(0, 7, 71); // #000747
+      doc.setFillColor(0, 7, 71);
       doc.rect(0, 0, 210, 35, 'F');
-
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
@@ -514,14 +606,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       doc.setFontSize(10);
       doc.text('RELATÓRIO DE SIMULAÇÃO DE CORES & TEXTURAS', 15, 26);
 
-      // Data de Emissão
       const now = new Date();
       const formattedDate = now.toLocaleDateString('pt-BR');
       doc.setFontSize(9);
       doc.text(`Data: ${formattedDate}`, 170, 20);
 
-      // 2. Informações do Pintor
-      doc.setTextColor(30, 41, 59); // #1e293b
+      doc.setTextColor(30, 41, 59);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text('PROFISSIONAL RESPONSÁVEL', 15, 48);
@@ -539,7 +629,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       doc.text(`E-mail: ${email}`, 110, 56);
       doc.text(`Região: ${cityUf}`, 110, 62);
 
-      // 3. Informações do Cliente (se fornecidas)
       let currentY = 70;
       if (clientName || clientAddress) {
         doc.setFont('helvetica', 'bold');
@@ -558,7 +647,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         currentY = 72;
       }
 
-      // 4. Detalhes da Simulação
       doc.setFont('helvetica', 'bold');
       doc.text('ESPECIFICAÇÕES DA PINTURA SIMULADA', 15, currentY + 3);
       doc.line(15, currentY + 5, 195, currentY + 5);
@@ -570,10 +658,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       doc.text(`Cor Selecionada: ${colorName} (${selectedColor})`, 15, currentY + 11);
       doc.text(`Acabamento/Efeito: ${textureName}`, 110, currentY + 11);
 
-      // 5. Imagem da Simulação
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      
-      // Proporções para encaixar no PDF mantendo o aspect ratio
       const maxImgW = 180;
       const maxImgH = 100;
       let imgW = canvas.width;
@@ -583,14 +668,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       imgW = imgW * scale;
       imgH = imgH * scale;
 
-      // Centraliza a imagem horizontalmente
       const imgX = 15 + (maxImgW - imgW) / 2;
       const imgY = currentY + 18;
 
-      doc.rect(15, imgY - 2, 180, imgH + 4, 'S'); // Borda de proteção
+      doc.rect(15, imgY - 2, 180, imgH + 4, 'S');
       doc.addImage(imgData, 'JPEG', imgX, imgY, imgW, imgH);
 
-      // 6. Descrição e Observações do Pintor
       const descY = imgY + imgH + 10;
       doc.setFont('helvetica', 'bold');
       doc.text('DESCRIÇÃO E INSTRUÇÕES TÉCNICAS', 15, descY + 3);
@@ -598,18 +681,14 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       doc.setFont('helvetica', 'normal');
       const textToPrint = description.trim() || 'Sem observações técnicas adicionais. Simulação apenas para fins de visualização estética das cores aplicadas.';
-      
-      // Divide o texto para que caiba na largura da página
       const splitText = doc.splitTextToSize(textToPrint, 180);
       doc.text(splitText, 15, descY + 11);
 
-      // 7. Rodapé de Termos
       doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
       doc.text('* Nota: Esta é uma simulação meramente ilustrativa. Variações na tela do celular/monitor, iluminação real do ambiente e fabricante da tinta podem influenciar no resultado final.', 15, 280);
       doc.text('Documento gerado através do Pintor Pro - Todos os direitos reservados.', 15, 284);
 
-      // Salva o arquivo PDF
       const pdfFileName = `simulacao-obra-${clientName.trim().replace(/\s+/g, '-') || 'cliente'}-${formattedDate.replace(/\//g, '-')}.pdf`;
       doc.save(pdfFileName);
 
@@ -622,8 +701,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   };
 
+  const getToolLabel = (toolName: string) => {
+    switch (toolName) {
+      case 'brush': return 'Pincel';
+      case 'eraser': return 'Borracha';
+      case 'magic': return 'Varredura Mágica';
+      case 'polygon': return 'Linhas / Polígono';
+      default: return 'Pincel';
+    }
+  };
+
   return (
-    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl">
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
@@ -687,39 +776,43 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
           ) : (
             <div className="w-full flex flex-col items-center gap-4">
               {/* Barra de Ações Rápidas do Canvas */}
-              <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="w-full flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-100 pb-4 gap-4">
                 <div className="flex items-center gap-2">
+                  {/* Botão de abrir modal de ferramentas */}
                   <button
-                    onClick={() => setTool('brush')}
-                    className={`p-3 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition ${
-                      tool === 'brush' ? 'bg-[#9A077B] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    onClick={() => setIsToolsModalOpen(true)}
+                    className="p-3 bg-[#000747] hover:bg-[#9A077B] text-white rounded-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider transition shadow-md"
                   >
-                    <Paintbrush size={16} />
-                    <span>Pincel</span>
+                    <Hammer size={16} />
+                    <span>Ferramentas ({getToolLabel(tool)})</span>
                   </button>
-                  <button
-                    onClick={() => setTool('eraser')}
-                    className={`p-3 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition ${
-                      tool === 'eraser' ? 'bg-[#9A077B] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Eraser size={16} />
-                    <span>Borracha</span>
-                  </button>
-                  <button
-                    onClick={() => setTool('magic')}
-                    className={`p-3 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition ${
-                      tool === 'magic' ? 'bg-[#9A077B] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                    title="Preenchimento automático por detecção de cores"
-                  >
-                    <Sparkles size={16} />
-                    <span>Varredura Mágica</span>
-                  </button>
+
+                  {/* Ações específicas da ferramenta de Polígono */}
+                  {tool === 'polygon' && (
+                    <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                      <button
+                        onClick={handleClosePolygon}
+                        disabled={polygonPoints.length < 3}
+                        className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-black uppercase rounded-lg transition"
+                      >
+                        Fechar Área
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPolygonPoints([]);
+                          setTempMousePos(null);
+                          redrawCanvas();
+                        }}
+                        disabled={polygonPoints.length === 0}
+                        className="px-3.5 py-2.5 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 text-xs font-black uppercase rounded-lg transition"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={handleClear}
                     className="p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition"
@@ -741,6 +834,14 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 </div>
               </div>
 
+              {/* Dica para Ferramenta de Polígono */}
+              {tool === 'polygon' && (
+                <div className="w-full bg-indigo-50 border border-indigo-100 p-3 rounded-xl text-indigo-900 text-xs font-semibold flex items-center gap-2">
+                  <Sparkles size={14} className="animate-pulse" />
+                  <span>Dica: Vá dando cliques na parede para desenhar as linhas. Dê o último clique sobre o círculo verde inicial (ou clique em "Fechar Área") para preencher a cor.</span>
+                </div>
+              )}
+
               {/* Área do Canvas de Trabalho */}
               <div className="relative border-4 border-slate-200 rounded-2xl overflow-hidden shadow-inner max-w-full bg-slate-800">
                 <canvas
@@ -748,7 +849,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   onMouseDown={handleStartDrawing}
                   onMouseMove={handleDrawing}
                   onMouseUp={handleStopDrawing}
-                  onMouseLeave={handleStopDrawing}
+                  onMouseLeave={handleMouseLeave}
                   onTouchStart={handleStartDrawing}
                   onTouchMove={handleDrawing}
                   onTouchEnd={handleStopDrawing}
@@ -770,7 +871,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     type="range"
                     min="5"
                     max="100"
-                    disabled={tool === 'magic'}
+                    disabled={tool === 'magic' || tool === 'polygon'}
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
@@ -918,6 +1019,95 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
           </div>
         </div>
       </div>
+
+      {/* Modal / Diálogo das Ferramentas */}
+      {isToolsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl p-6 border border-slate-200 space-y-6 mx-4 relative">
+            <button
+              onClick={() => setIsToolsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition"
+            >
+              <X size={24} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-black text-[#000747] uppercase tracking-wide">Ferramentas de Edição</h3>
+              <p className="text-slate-500 text-sm font-medium">Selecione uma ferramenta abaixo para aplicar cor e texturas na parede.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Opção 1: Pincel */}
+              <button
+                onClick={() => {
+                  setTool('brush');
+                  setIsToolsModalOpen(false);
+                }}
+                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
+                  tool === 'brush' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-3 bg-[#9A077B] text-white rounded-xl"><Paintbrush size={18} /></div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Pincel Manual</h4>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Desenhe livremente sobre as áreas do ambiente com a ponta dos dedos ou mouse.</p>
+                </div>
+              </button>
+
+              {/* Opção 2: Borracha */}
+              <button
+                onClick={() => {
+                  setTool('eraser');
+                  setIsToolsModalOpen(false);
+                }}
+                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
+                  tool === 'eraser' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-3 bg-slate-800 text-white rounded-xl"><Eraser size={18} /></div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Borracha</h4>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Apague manualmente imperfeições ou partes da máscara que vazaram.</p>
+                </div>
+              </button>
+
+              {/* Opção 3: Varredura Mágica */}
+              <button
+                onClick={() => {
+                  setTool('magic');
+                  setIsToolsModalOpen(false);
+                }}
+                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
+                  tool === 'magic' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-3 bg-amber-500 text-white rounded-xl"><Sparkles size={18} /></div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Varredura Mágica</h4>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Toque na parede e o sistema preenche de forma inteligente detectando cantos.</p>
+                </div>
+              </button>
+
+              {/* Opção 4: Linha / Polígono */}
+              <button
+                onClick={() => {
+                  setTool('polygon');
+                  setIsToolsModalOpen(false);
+                }}
+                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
+                  tool === 'polygon' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-3 bg-indigo-600 text-white rounded-xl"><Scissors size={18} /></div>
+                <div>
+                  <h4 className="font-bold text-slate-800">Demarcação por Linhas</h4>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Clique ponto a ponto para fechar uma área reta precisa e preencher a cor.</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
