@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, MessageSquare } from 'lucide-react';
 import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
@@ -46,6 +46,7 @@ import { DashboardSettingsTab } from '../features/dashboard/components/Dashboard
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
 import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
 import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
+import { DashboardSimuladorTab } from '../features/dashboard/components/DashboardSimuladorTab';
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
@@ -1675,6 +1676,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           isDeletingAccount={isDeletingAccount}
           onSave={(settings) => void handleSettingsSave(settings)}
           onDeleteAccount={() => void handleDeleteAccount()}
+        />
+      );
+      break;
+    case 'simulador':
+      content = (
+        <DashboardSimuladorTab
+          currentProfile={currentProfile}
         />
       );
       break;

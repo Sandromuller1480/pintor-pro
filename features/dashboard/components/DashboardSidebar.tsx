@@ -10,7 +10,8 @@ import {
   Star,
   Users,
   WalletCards,
-  X
+  X,
+  Paintbrush
 } from 'lucide-react';
 import { Logo } from '../../../components/Logo';
 import { CurrentPainterProfile, DashboardTab } from '../types';
@@ -39,6 +40,7 @@ const NAV_ITEMS: Array<{
   { id: 'financeiro', label: 'Controle Financeiro', icon: WalletCards },
   { id: 'equipe', label: 'Gest\u00e3o de Equipe', icon: Users },
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+  { id: 'simulador', label: 'Simulador de Cores', icon: Paintbrush },
   { id: 'config', label: 'Configura\u00e7\u00f5es', icon: Settings }
 ];
 
