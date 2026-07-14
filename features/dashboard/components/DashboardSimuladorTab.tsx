@@ -7,9 +7,9 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle2,
-  Type,
   FileText,
-  Sliders
+  Sliders,
+  Sparkles
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
@@ -57,7 +57,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [selectedTexture, setSelectedTexture] = useState<string>('lisa');
   const [brushSize, setBrushSize] = useState<number>(30);
   const [opacity, setOpacity] = useState<number>(85); // em %
-  const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
+  const [tolerance, setTolerance] = useState<number>(25); // Sensibilidade do balde/varredura
+  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic'>('brush');
   const [description, setDescription] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
   const [clientAddress, setClientAddress] = useState<string>('');
@@ -298,9 +299,131 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     return { x, y };
   };
 
+  // Algoritmo Flood Fill para Varredura Mágica
+  const executeFloodFill = (startX: number, startY: number) => {
+    const canvas = canvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
+    const img = imageRef.current;
+
+    if (!canvas || !maskCanvas || !img) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Desenha imagem limpa no temp canvas para pegar as cores reais originais
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+
+    tempCtx.drawImage(img, 0, 0, width, height);
+    const imgData = tempCtx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
+
+    // Pega cor inicial clicada
+    const px = Math.floor(startX);
+    const py = Math.floor(startY);
+    if (px < 0 || px >= width || py < 0 || py >= height) return;
+
+    const startIdx = (py * width + px) * 4;
+    const startR = pixels[startIdx];
+    const startG = pixels[startIdx + 1];
+    const startB = pixels[startIdx + 2];
+
+    const visited = new Uint8Array(width * height);
+    const mask = new Uint8Array(width * height);
+
+    // Estrutura de fila rápida usando ponteiro (head++)
+    const queueX = new Int32Array(width * height);
+    const queueY = new Int32Array(width * height);
+    let head = 0;
+    let tail = 0;
+
+    queueX[tail] = px;
+    queueY[tail] = py;
+    visited[py * width + px] = 1;
+    tail++;
+
+    while (head < tail) {
+      const cx = queueX[head];
+      const cy = queueY[head];
+      head++;
+
+      const currentIdx = cy * width + cx;
+      mask[currentIdx] = 255;
+
+      // 4 Direções
+      const neighbors = [
+        { x: cx + 1, y: cy },
+        { x: cx - 1, y: cy },
+        { x: cx, y: cy + 1 },
+        { x: cx, y: cy - 1 }
+      ];
+
+      for (let i = 0; i < 4; i++) {
+        const nx = neighbors[i].x;
+        const ny = neighbors[i].y;
+
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+          const nIdx = ny * width + nx;
+          if (visited[nIdx] === 0) {
+            visited[nIdx] = 1;
+            const pIdx = nIdx * 4;
+            const r = pixels[pIdx];
+            const g = pixels[pIdx + 1];
+            const b = pixels[pIdx + 2];
+
+            // Diferença de cor euclidiana
+            const diff = Math.sqrt(
+              (r - startR) ** 2 +
+              (g - startG) ** 2 +
+              (b - startB) ** 2
+            );
+
+            if (diff <= tolerance) {
+              queueX[tail] = nx;
+              queueY[tail] = ny;
+              tail++;
+            }
+          }
+        }
+      }
+    }
+
+    // Desenha o resultado na máscara atual do canvas
+    const maskCtx = maskCanvas.getContext('2d');
+    if (!maskCtx) return;
+
+    const maskImgData = maskCtx.getImageData(0, 0, width, height);
+    const maskData = maskImgData.data;
+
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === 255) {
+        const idx = i * 4;
+        maskData[idx] = 0;       // R
+        maskData[idx + 1] = 0;   // G
+        maskData[idx + 2] = 0;   // B
+        maskData[idx + 3] = 255; // Alpha sólido
+      }
+    }
+
+    maskCtx.putImageData(maskImgData, 0, 0);
+    redrawCanvas();
+  };
+
   const handleStartDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
     e.preventDefault();
+
+    const { x, y } = getCanvasCoords(e);
+
+    // Se estiver usando varredura mágica, executa flood fill direto e encerra
+    if (tool === 'magic') {
+      executeFloodFill(x, y);
+      return;
+    }
+
     isDrawingRef.current = true;
 
     const maskCanvas = maskCanvasRef.current;
@@ -309,7 +432,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const maskCtx = maskCanvas.getContext('2d');
     if (!maskCtx) return;
 
-    const { x, y } = getCanvasCoords(e);
     maskCtx.beginPath();
     maskCtx.moveTo(x, y);
 
@@ -333,7 +455,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   };
 
   const handleDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current || !imageSrc) return;
+    if (!isDrawingRef.current || !imageSrc || tool === 'magic') return;
     e.preventDefault();
 
     const maskCanvas = maskCanvasRef.current;
@@ -585,6 +707,16 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     <Eraser size={16} />
                     <span>Borracha</span>
                   </button>
+                  <button
+                    onClick={() => setTool('magic')}
+                    className={`p-3 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition ${
+                      tool === 'magic' ? 'bg-[#9A077B] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Preenchimento automático por detecção de cores"
+                  >
+                    <Sparkles size={16} />
+                    <span>Varredura Mágica</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -628,7 +760,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               </div>
 
               {/* Controles deslizantes (Sliders) integrados */}
-              <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                 <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
                     <span>Tamanho do Pincel</span>
@@ -638,9 +770,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     type="range"
                     min="5"
                     max="100"
+                    disabled={tool === 'magic'}
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
                   />
                 </div>
 
@@ -656,6 +789,22 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                     value={opacity}
                     onChange={(e) => setOpacity(Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                  />
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
+                    <span>Sensibilidade Mágica</span>
+                    <span className="text-slate-800">{tolerance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="80"
+                    disabled={tool !== 'magic'}
+                    value={tolerance}
+                    onChange={(e) => setTolerance(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
                   />
                 </div>
               </div>
