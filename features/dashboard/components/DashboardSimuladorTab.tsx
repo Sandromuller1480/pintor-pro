@@ -85,7 +85,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draftMaskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Máscara temporária de desenho
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Referência secundária de uso geral
   const isDrawingRef = useRef<boolean>(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -333,12 +332,11 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   };
 
   // Algoritmo Flood Fill para Varredura Mágica
-  const executeFloodFill = (startX: number, startY: number) => {
+  const executeFloodFillOnCanvas = (startX: number, startY: number, targetCanvas: HTMLCanvasElement) => {
     const canvas = canvasRef.current;
-    const targetMaskCanvas = maskCanvasRef.current;
     const img = imageRef.current;
 
-    if (!canvas || !targetMaskCanvas || !img) return;
+    if (!canvas || !img) return;
 
     const width = canvas.width;
     const height = canvas.height;
@@ -419,9 +417,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       }
     }
 
-    const maskCtx = targetMaskCanvas.getContext('2d');
+    const maskCtx = targetCanvas.getContext('2d');
     if (!maskCtx) return;
 
+    // Puxa a máscara existente para poder somar/acumular o novo clique inteligente
     const maskImgData = maskCtx.getImageData(0, 0, width, height);
     const maskData = maskImgData.data;
 
@@ -499,52 +498,56 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     e.preventDefault();
 
     const { x, y } = getCanvasCoords(e);
+    const activeLayer = layers.find(l => l.id === editingLayerId);
 
-    if (editingLayerId) {
-      setEditingLayerId(null);
-    }
-
+    // 1. Se estiver usando Varredura Mágica
     if (tool === 'magic') {
-      const tempMaskCanvas = document.createElement('canvas');
-      const canvas = canvasRef.current;
-      if (canvas) {
-        tempMaskCanvas.width = canvas.width;
-        tempMaskCanvas.height = canvas.height;
+      if (activeLayer) {
+        // Altera diretamente a máscara da parede em edição de forma cumulativa
+        executeFloodFillOnCanvas(x, y, activeLayer.maskCanvas);
+        redrawCanvas();
+      } else {
+        // Cria nova camada a partir do zero
+        const tempMaskCanvas = document.createElement('canvas');
+        const canvas = canvasRef.current;
+        if (canvas) {
+          tempMaskCanvas.width = canvas.width;
+          tempMaskCanvas.height = canvas.height;
+        }
+        executeFloodFillOnCanvas(x, y, tempMaskCanvas);
+        createNewWallLayer(tempMaskCanvas, `Parede Varredura ${layers.length + 1}`);
       }
-      
-      const originalMaskCanvas = maskCanvasRef.current;
-      maskCanvasRef.current = tempMaskCanvas;
-      executeFloodFill(x, y);
-      maskCanvasRef.current = originalMaskCanvas;
-
-      createNewWallLayer(tempMaskCanvas, `Parede Varredura ${layers.length + 1}`);
       return;
     }
 
+    // 2. Se estiver usando Pincel ou Borracha normais
     isDrawingRef.current = true;
 
-    const draftCanvas = draftMaskCanvasRef.current;
-    if (!draftCanvas) return;
+    // Se estiver editando, pinta no canvas da própria camada. Caso contrário, no rascunho
+    const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
+    if (!targetCanvas) return;
 
-    const draftCtx = draftCanvas.getContext('2d');
-    if (!draftCtx) return;
+    const targetCtx = targetCanvas.getContext('2d');
+    if (!targetCtx) return;
 
-    draftCtx.beginPath();
-    draftCtx.moveTo(x, y);
-    draftCtx.lineWidth = brushSize;
-    draftCtx.lineCap = 'round';
-    draftCtx.lineJoin = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(x, y);
+    targetCtx.lineWidth = brushSize;
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
 
     if (tool === 'brush') {
-      draftCtx.globalCompositeOperation = 'source-over';
-      draftCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
+      targetCtx.globalCompositeOperation = 'source-over';
+      targetCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
     } else {
-      draftCtx.globalCompositeOperation = 'destination-out';
+      targetCtx.globalCompositeOperation = 'destination-out';
     }
 
-    draftCtx.lineTo(x, y);
-    draftCtx.stroke();
-    setIsDraftDirty(true);
+    targetCtx.lineTo(x, y);
+    targetCtx.stroke();
+    if (!activeLayer) {
+      setIsDraftDirty(true);
+    }
     redrawCanvas();
   };
 
@@ -555,14 +558,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!isDrawingRef.current || tool === 'magic') return;
     e.preventDefault();
 
-    const draftCanvas = draftMaskCanvasRef.current;
-    if (!draftCanvas) return;
+    const activeLayer = layers.find(l => l.id === editingLayerId);
+    const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
+    if (!targetCanvas) return;
 
-    const draftCtx = draftCanvas.getContext('2d');
-    if (!draftCtx) return;
+    const targetCtx = targetCanvas.getContext('2d');
+    if (!targetCtx) return;
 
-    draftCtx.lineTo(x, y);
-    draftCtx.stroke();
+    targetCtx.lineTo(x, y);
+    targetCtx.stroke();
     redrawCanvas();
   };
 
@@ -826,7 +830,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   </button>
 
                   {/* Botão de Confirmação de Pintura Livre */}
-                  {tool === 'brush' && isDraftDirty && (
+                  {tool === 'brush' && isDraftDirty && !editingLayerId && (
                     <button
                       onClick={handleSaveDraftAsLayer}
                       className="px-4 py-2.5 bg-[#9A077B] text-white text-xs font-black uppercase rounded-xl flex items-center gap-1.5 transition animate-pulse shadow-md"
@@ -860,7 +864,14 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               </div>
 
               {/* Dicas contextuais */}
-              {tool === 'brush' && isDraftDirty && (
+              {editingLayerId && (
+                <div className="w-full bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-xl text-[#9A077B] text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
+                  <Sparkles size={14} className="animate-pulse shrink-0" />
+                  <span>Você está editando a parede <strong>"{layers.find(l => l.id === editingLayerId)?.name}"</strong>. Use as ferramentas (Pincel, Borracha ou Varredura) diretamente sobre a imagem para ajustar o contorno dela.</span>
+                </div>
+              )}
+
+              {tool === 'brush' && isDraftDirty && !editingLayerId && (
                 <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
                   <AlertCircle size={14} />
                   <span>Você pintou no rascunho. Clique no botão de piscar <strong>"Salvar Parede Pintada"</strong> para salvar e aplicar a cor nesta parede de forma independente.</span>
@@ -881,8 +892,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   className="block max-w-full cursor-crosshair relative z-10"
                 />
                 
-                {/* Canvas ocultos exclusivos para armazenar o desenho puro da máscara e rascunho */}
-                <canvas ref={maskCanvasRef} className="hidden" />
+                {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
                 <canvas ref={draftMaskCanvasRef} className="hidden" />
               </div>
 
@@ -957,7 +967,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   </div>
                   <button
                     onClick={() => setEditingLayerId(null)}
-                    className="px-3 py-1.5 bg-[#9A077B] text-white text-[10px] font-black uppercase rounded-lg hover:bg-[#000747] transition"
+                    className="px-3 py-1.5 bg-[#9A077B] text-white text-[10px] font-black uppercase rounded-lg hover:bg-[#000747] transition animate-pulse"
                   >
                     Pronto
                   </button>
