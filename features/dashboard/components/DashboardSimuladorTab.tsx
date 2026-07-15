@@ -35,6 +35,11 @@ interface TextureOption {
   description: string;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface WallLayer {
   id: string;
   name: string;
@@ -73,29 +78,45 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [brushSize, setBrushSize] = useState<number>(30);
   const [opacity, setOpacity] = useState<number>(85); // em %
   const [tolerance, setTolerance] = useState<number>(25); // Sensibilidade da varredura
-  const [tool, setTool] = useState<'brush' | 'eraser' | 'magic'>('brush');
+  const [activeTool, setActiveTool] = useState<'brush' | 'eraser' | 'magic' | null>(null);
   const [description, setDescription] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
   const [clientAddress, setClientAddress] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Estados de Zoom & Pan (Mover foto livremente)
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [panX, setPanX] = useState<number>(0);
+  const [panY, setPanY] = useState<number>(0);
+
   // Estados para multi-camadas (paredes individuais)
   const [layers, setLayers] = useState<WallLayer[]>([]);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [isDraftDirty, setIsDraftDirty] = useState(false);
 
-  // Estado para controlar qual modal de grupo está aberto ('edition' | 'colors' | 'textures' | 'layers' | null)
+  // Modais centralizados
   const [activeGroupModal, setActiveGroupModal] = useState<'edition' | 'colors' | 'textures' | 'layers' | null>(null);
-  // Estado do modal de opções de salvar
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [showPdfForm, setShowPdfForm] = useState(false);
 
+  // Posição do Card Flutuante de ferramenta ativa
+  const [toolCardPos, setToolCardPos] = useState<Point>({ x: 20, y: 20 });
+  const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const dragStartCardRef = useRef<Point>({ x: 0, y: 0 });
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draftMaskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Máscara temporária de desenho
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Referência secundária de uso geral
   const isDrawingRef = useRef<boolean>(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
+
+  // Refs de zoom/pan touch/mouse
+  const isPanningRef = useRef<boolean>(false);
+  const startPanXRef = useRef<number>(0);
+  const startPanYRef = useRef<number>(0);
+  const isZoomingRef = useRef<boolean>(false);
+  const initialTouchDistanceRef = useRef<number>(0);
+  const initialZoomRef = useRef<number>(1.0);
 
   // Limpa feedback após 4 segundos
   useEffect(() => {
@@ -134,12 +155,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [selectedColor, selectedTexture, opacity, editingLayerId]);
 
-  // Redesenha se mudar a ferramenta ou camadas
+  // Redesenha se mudar a ferramenta, zoom, pan ou camadas
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [tool, layers, editingLayerId]);
+  }, [activeTool, layers, editingLayerId, zoom, panX, panY]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -217,7 +238,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     return pattern || colorHex;
   };
 
-  // Renderiza o Canvas juntando a Imagem Original, as Camadas Salvas e o Rascunho Atual
+  // Renderiza o Canvas aplicando transformações de zoom e pan
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
     const draftCanvas = draftMaskCanvasRef.current;
@@ -231,23 +252,30 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const width = canvas.width;
     const height = canvas.height;
 
-    // 1. Limpa e desenha a foto de fundo original
+    // 1. Limpa tela geral
     ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
 
-    // 2. Loop para desenhar cada parede salva (camadas individuais)
+    // 2. Aplica matriz de transformação de zoom/pan para toda a renderização
+    ctx.save();
+    ctx.translate(panX, panY);
+    ctx.scale(zoom, zoom);
+
+    // Desenha foto original
+    ctx.drawImage(img, 0, 0);
+
+    // 3. Renderiza cada parede salva
     layers.forEach(layer => {
       const tempLayerCanvas = document.createElement('canvas');
-      tempLayerCanvas.width = width;
-      tempLayerCanvas.height = height;
+      tempLayerCanvas.width = img.width;
+      tempLayerCanvas.height = img.height;
       const tempLayerCtx = tempLayerCanvas.getContext('2d');
       if (!tempLayerCtx) return;
 
       tempLayerCtx.drawImage(layer.maskCanvas, 0, 0);
       tempLayerCtx.globalCompositeOperation = 'source-in';
-      const patternOrColor = createTexturePattern(tempLayerCtx, layer.texture, width, height, layer.color);
+      const patternOrColor = createTexturePattern(tempLayerCtx, layer.texture, img.width, img.height, layer.color);
       tempLayerCtx.fillStyle = patternOrColor;
-      tempLayerCtx.fillRect(0, 0, width, height);
+      tempLayerCtx.fillRect(0, 0, img.width, img.height);
 
       ctx.save();
       ctx.globalAlpha = layer.opacity / 100;
@@ -256,18 +284,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       ctx.restore();
     });
 
-    // 3. Desenha o rascunho de pintura ativo em progresso
+    // 4. Desenha o rascunho de pintura ativo
     if (!editingLayerId) {
       const tempDraftCanvas = document.createElement('canvas');
-      tempDraftCanvas.width = width;
-      tempDraftCanvas.height = height;
+      tempDraftCanvas.width = img.width;
+      tempDraftCanvas.height = img.height;
       const tempDraftCtx = tempDraftCanvas.getContext('2d');
       if (tempDraftCtx) {
         tempDraftCtx.drawImage(draftCanvas, 0, 0);
         tempDraftCtx.globalCompositeOperation = 'source-in';
-        const patternOrColor = createTexturePattern(tempDraftCtx, selectedTexture, width, height, selectedColor);
+        const patternOrColor = createTexturePattern(tempDraftCtx, selectedTexture, img.width, img.height, selectedColor);
         tempDraftCtx.fillStyle = patternOrColor;
-        tempDraftCtx.fillRect(0, 0, width, height);
+        tempDraftCtx.fillRect(0, 0, img.width, img.height);
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
@@ -276,16 +304,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         ctx.restore();
       }
     }
+
+    ctx.restore();
   };
 
   // Cria uma nova camada de parede independente
   const createNewWallLayer = (maskSrcCanvas: HTMLCanvasElement, defaultName?: string) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !imageRef.current) return;
 
     const newMaskCanvas = document.createElement('canvas');
-    newMaskCanvas.width = canvas.width;
-    newMaskCanvas.height = canvas.height;
+    newMaskCanvas.width = imageRef.current.width;
+    newMaskCanvas.height = imageRef.current.height;
     const newMaskCtx = newMaskCanvas.getContext('2d');
     if (newMaskCtx) {
       newMaskCtx.drawImage(maskSrcCanvas, 0, 0);
@@ -308,47 +338,21 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     setIsDraftDirty(false);
   };
 
-  // Coordenadas relativas do toque/mouse
-  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    let clientX = 0;
-    let clientY = 0;
-
-    if ('touches' in e) {
-      if (e.touches.length === 0) {
-        if ('changedTouches' in e && e.changedTouches.length > 0) {
-          clientX = e.changedTouches[0].clientX;
-          clientY = e.changedTouches[0].clientY;
-        } else {
-          return { x: 0, y: 0 };
-        }
-      } else {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      }
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    const x = ((clientX - rect.left) / rect.width) * canvas.width;
-    const y = ((clientY - rect.top) / rect.height) * canvas.height;
-
-    return { x, y };
+  // Calcula a distância entre toques
+  const getDistanceBetweenTouches = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) return 0;
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    return Math.sqrt((t1.clientX - t2.clientX) ** 2 + (t1.clientY - t2.clientY) ** 2);
   };
 
   // Algoritmo Flood Fill para Varredura Mágica
   const executeFloodFillOnCanvas = (startX: number, startY: number, targetCanvas: HTMLCanvasElement) => {
-    const canvas = canvasRef.current;
     const img = imageRef.current;
+    if (!img) return;
 
-    if (!canvas || !img) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = img.width;
+    const height = img.height;
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
@@ -445,6 +449,38 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     maskCtx.putImageData(maskImgData, 0, 0);
   };
 
+  // Coordenadas relativas do toque/mouse
+  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    let clientX = 0;
+    let clientY = 0;
+
+    if ('touches' in e) {
+      if (e.touches.length === 0) {
+        if ('changedTouches' in e && e.changedTouches.length > 0) {
+          clientX = e.changedTouches[0].clientX;
+          clientY = e.changedTouches[0].clientY;
+        } else {
+          return { x: 0, y: 0 };
+        }
+      } else {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const x = ((clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * canvas.height;
+
+    return { x, y };
+  };
+
   // Carrega e desenha a imagem
   const handleImageLoad = (src: string) => {
     const img = new Image();
@@ -457,32 +493,23 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       const draftCanvas = draftMaskCanvasRef.current;
       if (!canvas || !draftCanvas) return;
 
-      const maxDim = 800;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      draftCanvas.width = width;
-      draftCanvas.height = height;
+      // Habilita tamanho de canvas correspondente às proporções exatas da foto enviada
+      canvas.width = img.width;
+      canvas.height = img.height;
+      draftCanvas.width = img.width;
+      draftCanvas.height = img.height;
 
       const draftCtx = draftCanvas.getContext('2d');
       if (draftCtx) {
-        draftCtx.clearRect(0, 0, width, height);
+        draftCtx.clearRect(0, 0, img.width, img.height);
       }
 
       setLayers([]);
       setEditingLayerId(null);
+      setActiveTool(null);
+      setZoom(1.0);
+      setPanX(0);
+      setPanY(0);
       redrawCanvas();
     };
   };
@@ -501,32 +528,55 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     reader.readAsDataURL(file);
   };
 
+  // Trata início de Toque / Mouse Down (Pintar ou Pano)
   const handleStartDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
     e.preventDefault();
 
-    const { x, y } = getCanvasCoords(e);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    // Se NÃO tem ferramenta selecionada: ativa pan/zoom (Mover Foto)
+    if (activeTool === null) {
+      if ('touches' in e && e.touches.length === 2) {
+        isZoomingRef.current = true;
+        initialTouchDistanceRef.current = getDistanceBetweenTouches(e);
+        initialZoomRef.current = zoom;
+      } else {
+        isPanningRef.current = true;
+        startPanXRef.current = clientX - panX;
+        startPanYRef.current = clientY - panY;
+      }
+      return;
+    }
+
+    // Se TEM ferramenta selecionada: Pintar no Canvas
+    const canvasCoords = getCanvasCoords(e);
+    
+    // Mapeia coordenadas clicadas da tela de volta para pixels originais da imagem (inverte transform)
+    const imageX = (canvasCoords.x - panX) / zoom;
+    const imageY = (canvasCoords.y - panY) / zoom;
+
     const activeLayer = layers.find(l => l.id === editingLayerId);
 
     // 1. Varredura Mágica
-    if (tool === 'magic') {
+    if (activeTool === 'magic') {
       if (activeLayer) {
-        executeFloodFillOnCanvas(x, y, activeLayer.maskCanvas);
+        executeFloodFillOnCanvas(imageX, imageY, activeLayer.maskCanvas);
         redrawCanvas();
       } else {
         const tempMaskCanvas = document.createElement('canvas');
-        const canvas = canvasRef.current;
-        if (canvas) {
-          tempMaskCanvas.width = canvas.width;
-          tempMaskCanvas.height = canvas.height;
+        if (imageRef.current) {
+          tempMaskCanvas.width = imageRef.current.width;
+          tempMaskCanvas.height = imageRef.current.height;
         }
-        executeFloodFillOnCanvas(x, y, tempMaskCanvas);
+        executeFloodFillOnCanvas(imageX, imageY, tempMaskCanvas);
         createNewWallLayer(tempMaskCanvas, `Parede Varredura ${layers.length + 1}`);
       }
       return;
     }
 
-    // 2. Pincel ou Borracha
+    // 2. Pincel / Borracha
     isDrawingRef.current = true;
 
     const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
@@ -536,19 +586,21 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!targetCtx) return;
 
     targetCtx.beginPath();
-    targetCtx.moveTo(x, y);
-    targetCtx.lineWidth = brushSize;
+    targetCtx.moveTo(imageX, imageY);
+    
+    // Ajusta o tamanho do traço do pincel de acordo com o nível do zoom atual para manter proporção estética
+    targetCtx.lineWidth = brushSize / zoom;
     targetCtx.lineCap = 'round';
     targetCtx.lineJoin = 'round';
 
-    if (tool === 'brush') {
+    if (activeTool === 'brush') {
       targetCtx.globalCompositeOperation = 'source-over';
       targetCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
     } else {
       targetCtx.globalCompositeOperation = 'destination-out';
     }
 
-    targetCtx.lineTo(x, y);
+    targetCtx.lineTo(imageX, imageY);
     targetCtx.stroke();
     if (!activeLayer) {
       setIsDraftDirty(true);
@@ -556,12 +608,33 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     redrawCanvas();
   };
 
+  // Trata Movimento (Pintar ou Pano)
   const handleDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
-    const { x, y } = getCanvasCoords(e);
-    
-    if (!isDrawingRef.current || tool === 'magic') return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    if (activeTool === null) {
+      if ('touches' in e && e.touches.length === 2 && isZoomingRef.current) {
+        const dist = getDistanceBetweenTouches(e);
+        const newZoom = initialZoomRef.current * (dist / initialTouchDistanceRef.current);
+        setZoom(Math.max(0.5, Math.min(newZoom, 5.0)));
+        redrawCanvas();
+      } else if (isPanningRef.current) {
+        setPanX(clientX - startPanXRef.current);
+        setPanY(clientY - startPanYRef.current);
+        redrawCanvas();
+      }
+      return;
+    }
+
+    if (!isDrawingRef.current || activeTool === 'magic') return;
     e.preventDefault();
+
+    const canvasCoords = getCanvasCoords(e);
+    const imageX = (canvasCoords.x - panX) / zoom;
+    const imageY = (canvasCoords.y - panY) / zoom;
 
     const activeLayer = layers.find(l => l.id === editingLayerId);
     const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
@@ -570,29 +643,51 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const targetCtx = targetCanvas.getContext('2d');
     if (!targetCtx) return;
 
-    targetCtx.lineTo(x, y);
+    targetCtx.lineTo(imageX, imageY);
     targetCtx.stroke();
     redrawCanvas();
   };
 
+  // Trata Mouse Up / Fim de Toque
   const handleStopDrawing = () => {
     isDrawingRef.current = false;
+    isPanningRef.current = false;
+    isZoomingRef.current = false;
   };
 
   const handleMouseLeave = () => {
     isDrawingRef.current = false;
+    isPanningRef.current = false;
+    isZoomingRef.current = false;
+  };
+
+  // Zoom no scroll do mouse
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    if (activeTool !== null || !imageSrc) return;
+    e.preventDefault();
+    const zoomFactor = 1.1;
+    let newZoom = zoom;
+    if (e.deltaY < 0) {
+      newZoom = zoom * zoomFactor;
+    } else {
+      newZoom = zoom / zoomFactor;
+    }
+    setZoom(Math.max(0.5, Math.min(newZoom, 5.0)));
   };
 
   const handleClear = () => {
     const draftCanvas = draftMaskCanvasRef.current;
-    if (draftCanvas) {
+    if (draftCanvas && imageRef.current) {
       const draftCtx = draftCanvas.getContext('2d');
-      if (draftCtx) draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
+      if (draftCtx) draftCtx.clearRect(0, 0, imageRef.current.width, imageRef.current.height);
     }
     
     setIsDraftDirty(false);
     setEditingLayerId(null);
     setLayers([]);
+    setZoom(1.0);
+    setPanX(0);
+    setPanY(0);
     redrawCanvas();
   };
 
@@ -610,9 +705,32 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     createNewWallLayer(draftCanvas, `Parede Pincel ${layers.length + 1}`);
 
     const draftCtx = draftCanvas.getContext('2d');
-    if (draftCtx) {
-      draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
+    if (draftCtx && imageRef.current) {
+      draftCtx.clearRect(0, 0, imageRef.current.width, imageRef.current.height);
     }
+  };
+
+  // Arrastar o Card Flutuante de ferramenta ativa
+  const handleCardPointerDown = (e: React.PointerEvent) => {
+    setIsDraggingCard(true);
+    dragStartCardRef.current = {
+      x: e.clientX - toolCardPos.x,
+      y: e.clientY - toolCardPos.y
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleCardPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingCard) return;
+    setToolCardPos({
+      x: e.clientX - dragStartCardRef.current.x,
+      y: e.clientY - dragStartCardRef.current.y
+    });
+  };
+
+  const handleCardPointerUp = (e: React.PointerEvent) => {
+    setIsDraggingCard(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   // Baixar JPG da simulação
@@ -776,19 +894,26 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   };
 
+  const getToolLabel = (toolName: string | null) => {
+    switch (toolName) {
+      case 'brush': return 'Pincel Ativo';
+      case 'eraser': return 'Borracha Ativa';
+      case 'magic': return 'Varredura Mágica';
+      default: return 'Nenhuma';
+    }
+  };
+
   return (
-    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative flex flex-col items-center">
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative flex flex-col items-center select-none">
       {/* Cabeçalho */}
       <div className="w-full max-w-2xl border-b border-slate-200 pb-4">
         <h2 className="text-2xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
-        <p className="text-slate-500 text-xs font-semibold mt-1">Simulação interativa com camadas para múltiplas paredes de forma independente.</p>
+        <p className="text-slate-500 text-xs font-semibold mt-1">Navegação livre: Dê zoom e arraste a foto quando a ferramenta de edição estiver fechada.</p>
       </div>
 
       {/* Feedbacks de Alerta */}
       {feedback && (
-        <div className={`w-full max-w-2xl p-4 rounded-2xl flex items-start gap-3 shadow-sm border ${
-          feedback.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
+        <div className="w-full max-w-2xl p-4 rounded-2xl flex items-start gap-3 shadow-sm border bg-emerald-50 border-emerald-200 text-emerald-800 animate-in fade-in duration-150">
           {feedback.type === 'success' ? <CheckCircle2 className="shrink-0" /> : <AlertCircle className="shrink-0" />}
           <span className="font-bold text-xs">{feedback.message}</span>
         </div>
@@ -801,7 +926,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
             <Upload size={36} />
           </div>
           <h3 className="text-xl font-black text-slate-800 uppercase tracking-wide mb-2">Selecione uma foto da Obra</h3>
-          <p className="text-slate-400 font-medium text-xs mb-6 max-w-sm">Tire uma foto na hora com o seu celular ou selecione uma imagem da sua galeria de fotos.</p>
+          <p className="text-slate-400 font-medium text-xs mb-6 max-w-sm">Tire uma foto (horizontal ou vertical) na hora ou selecione da sua galeria.</p>
           
           <label className="cursor-pointer bg-[#000747] text-white px-8 py-4.5 rounded-2xl font-black uppercase text-xs tracking-wider hover:bg-[#9A077B] transition duration-300 shadow-md inline-block">
             <span>Escolher ou Tirar Foto</span>
@@ -816,25 +941,22 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       ) : (
         <div className="w-full max-w-2xl flex flex-col items-center gap-4">
           
-          {/* Banner de Edição Ativa */}
-          {editingLayerId && (
-            <div className="w-full bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-2xl text-[#9A077B] text-[11px] font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300">
-              <Sparkles size={14} className="animate-pulse shrink-0" />
-              <span>Você está editando a parede <strong>"{layers.find(l => l.id === editingLayerId)?.name}"</strong>. Pinte/apague na foto para ajustar.</span>
-            </div>
-          )}
-
-          {tool === 'brush' && isDraftDirty && !editingLayerId && (
-            <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-2xl text-amber-900 text-[11px] font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300">
-              <AlertCircle size={14} />
-              <span>Você pintou no rascunho. Clique no botão piscante <strong>"Salvar Parede Pintada"</strong> no topo para criá-la.</span>
-            </div>
-          )}
+          {/* Banner de Status Zoom/Pano vs Pintura */}
+          <div className={`w-full p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300 ${
+            activeTool === null ? 'bg-indigo-50 border border-indigo-100 text-indigo-900' : 'bg-[#9A077B]/5 border border-[#9A077B]/20 text-[#9A077B]'
+          }`}>
+            <Sparkles size={14} className="animate-pulse shrink-0" />
+            <span>
+              {activeTool === null 
+                ? "Modo Navegação: Arraste com o mouse/dedo ou use a roda do mouse para ampliar detalhes da foto."
+                : `Modo Pintura Ativo: Toque e arraste sobre a foto para usar o ${getToolLabel(activeTool)}. Zoom/Pan estão bloqueados.`}
+            </span>
+          </div>
 
           {/* Container Principal da Foto (Fixa com barra de ferramentas flutuante) */}
-          <div className="relative flex flex-col items-center w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 animate-in zoom-in-95 duration-200">
+          <div className="relative flex flex-col items-center w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 animate-in zoom-in-95 duration-200 h-[480px]">
             {/* O Canvas da Foto */}
-            <div className="relative overflow-hidden w-full flex items-center justify-center bg-slate-900 min-h-[380px] max-h-[500px]">
+            <div className="relative overflow-hidden w-full flex-1 flex items-center justify-center bg-slate-900">
               <canvas
                 ref={canvasRef}
                 onMouseDown={handleStartDrawing}
@@ -844,15 +966,85 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 onTouchStart={handleStartDrawing}
                 onTouchMove={handleDrawing}
                 onTouchEnd={handleStopDrawing}
-                className="block max-w-full cursor-crosshair relative z-10"
+                onWheel={handleWheel}
+                className="block cursor-grab active:cursor-grabbing max-h-full max-w-full"
               />
               
               {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
               <canvas ref={draftMaskCanvasRef} className="hidden" />
+
+              {/* CARD FLUTUANTE DA FERRAMENTA ATIVA (Arrastável) */}
+              {activeTool !== null && (
+                <div
+                  style={{ top: `${toolCardPos.y}px`, left: `${toolCardPos.x}px` }}
+                  className="absolute z-30 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-2xl flex flex-col gap-2.5 min-w-[190px] cursor-move select-none animate-in fade-in duration-200"
+                  onPointerDown={handleCardPointerDown}
+                  onPointerMove={handleCardPointerMove}
+                  onPointerUp={handleCardPointerUp}
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 pointer-events-none">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="p-1.5 bg-[#9A077B] text-white rounded-lg">
+                        {activeTool === 'brush' && <Paintbrush size={13} />}
+                        {activeTool === 'eraser' && <Eraser size={13} />}
+                        {activeTool === 'magic' && <Sparkles size={13} />}
+                      </div>
+                      <span className="text-[9px] font-black uppercase text-slate-800 tracking-wider">
+                        {getToolLabel(activeTool)}
+                      </span>
+                    </div>
+                    {/* Botão de Fechar no card (Re-habilita zoom/pan) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTool(null);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer p-0.5"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  
+                  {/* Slider integrado no Card Flutuante */}
+                  <div className="pointer-events-auto">
+                    {activeTool === 'magic' ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                          <span>Sensibilidade</span>
+                          <span>{tolerance}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="80"
+                          value={tolerance}
+                          onChange={(e) => setTolerance(Number(e.target.value))}
+                          className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                          <span>Tamanho</span>
+                          <span>{brushSize}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="100"
+                          value={brushSize}
+                          onChange={(e) => setBrushSize(Number(e.target.value))}
+                          className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Rodapé da Foto com Ícones representantes dos Grupos */}
-            <div className="w-full bg-slate-900 border-t border-slate-800/80 px-4 py-3 flex items-center justify-around z-20 backdrop-blur-md bg-slate-900/90">
+            {/* Rodapé da Foto com Ícones */}
+            <div className="w-full bg-slate-900 border-t border-slate-800/80 px-4 py-3 flex items-center justify-around z-20 backdrop-blur-md bg-slate-900/90 shrink-0">
               {/* Grupo 1: Ajustes/Ferramentas */}
               <button
                 onClick={() => setActiveGroupModal('edition')}
@@ -916,7 +1108,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               <span>Limpar Tudo</span>
             </button>
             
-            {tool === 'brush' && isDraftDirty && !editingLayerId && (
+            {activeTool === 'brush' && isDraftDirty && !editingLayerId && (
               <button
                 onClick={handleSaveDraftAsLayer}
                 className="px-5 py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-wider transition flex items-center gap-1.5 shadow-md shadow-amber-500/10 animate-bounce"
@@ -940,10 +1132,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         </div>
       )}
 
-      {/* MODAL DE GRUPO: AJUSTES / FERRAMENTAS */}
+      {/* MODAL CENTRAL: AJUSTES / SELEÇÃO DE FERRAMENTA */}
       {activeGroupModal === 'edition' && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 space-y-5 mx-4 relative animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
                 <Hammer size={16} className="text-[#9A077B]" />
@@ -957,27 +1149,36 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
             {/* Seleção de Ferramenta */}
             <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => setTool('brush')}
+                onClick={() => {
+                  setActiveTool('brush');
+                  setActiveGroupModal(null);
+                }}
                 className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
-                  tool === 'brush' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                  activeTool === 'brush' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
                 }`}
               >
                 <Paintbrush size={18} />
                 <span className="text-[10px] font-black uppercase tracking-wider">Pincel</span>
               </button>
               <button
-                onClick={() => setTool('eraser')}
+                onClick={() => {
+                  setActiveTool('eraser');
+                  setActiveGroupModal(null);
+                }}
                 className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
-                  tool === 'eraser' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                  activeTool === 'eraser' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
                 }`}
               >
                 <Eraser size={18} />
                 <span className="text-[10px] font-black uppercase tracking-wider">Borracha</span>
               </button>
               <button
-                onClick={() => setTool('magic')}
+                onClick={() => {
+                  setActiveTool('magic');
+                  setActiveGroupModal(null);
+                }}
                 className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
-                  tool === 'magic' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                  activeTool === 'magic' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
                 }`}
               >
                 <Sparkles size={18} />
@@ -985,24 +1186,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               </button>
             </div>
 
-            {/* Controles deslizantes de acordo com a ferramenta */}
+            {/* Controles deslizantes de opacidade e visualizações */}
             <div className="space-y-4 pt-2">
-              <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  <span>Tamanho do Pincel</span>
-                  <span className="text-slate-800">{brushSize}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="100"
-                  disabled={tool === 'magic'}
-                  value={brushSize}
-                  onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
-                />
-              </div>
-
               <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
                   <span>Opacidade / Realismo</span>
@@ -1017,31 +1202,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                   className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
                 />
               </div>
-
-              <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  <span>Sensibilidade Mágica</span>
-                  <span className="text-slate-800">{tolerance}</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="80"
-                  disabled={tool !== 'magic'}
-                  value={tolerance}
-                  onChange={(e) => setTolerance(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
-                />
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL DE GRUPO: PALETA DE CORES */}
+      {/* MODAL CENTRAL: PALETA DE CORES */}
       {activeGroupModal === 'colors' && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 space-y-4 mx-4 relative animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
                 <Palette size={16} className="text-[#9A077B]" />
@@ -1070,7 +1239,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                       }`}
                     >
                       {isSelected && (
-                        <div className="w-2 h-2 bg-[#9A077B] rounded-full"></div>
+                        <div className="w-2.5 h-2.5 bg-[#9A077B] rounded-full"></div>
                       )}
                     </div>
                     <span className="text-[9px] font-bold text-slate-500 text-center truncate w-full">{color.name}</span>
@@ -1082,10 +1251,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         </div>
       )}
 
-      {/* MODAL DE GRUPO: TEXTURAS E EFEITOS */}
+      {/* MODAL CENTRAL: TEXTURAS E EFEITOS */}
       {activeGroupModal === 'textures' && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 space-y-4 mx-4 relative animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
                 <Sliders size={16} className="text-[#9A077B]" />
@@ -1119,10 +1288,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         </div>
       )}
 
-      {/* MODAL DE GRUPO: LISTA DE PAREDES */}
+      {/* MODAL CENTRAL: LISTA DE PAREDES */}
       {activeGroupModal === 'layers' && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 space-y-4 mx-4 relative animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
                 <Layers size={16} className="text-[#9A077B]" />
