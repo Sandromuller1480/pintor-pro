@@ -908,16 +908,20 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   };
 
   return (
-    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative flex flex-col items-center select-none">
-      {/* Cabeçalho */}
-      <div className="w-full max-w-2xl border-b border-slate-200 pb-4">
-        <h2 className="text-2xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
-        <p className="text-slate-500 text-xs font-semibold mt-1">Navegação livre: Dê zoom e arraste a foto quando a ferramenta de edição estiver fechada.</p>
-      </div>
+    <div className={`w-full max-w-2xl bg-slate-50 rounded-3xl relative flex flex-col items-center select-none overflow-hidden justify-center ${
+      imageSrc ? 'h-[calc(100vh-180px)] lg:h-[calc(100vh-100px)] p-2 gap-2' : 'space-y-8 p-6 min-h-screen'
+    }`}>
+      {/* Cabeçalho - Exibido apenas se a foto não estiver carregada */}
+      {!imageSrc && (
+        <div className="w-full max-w-2xl border-b border-slate-200 pb-4">
+          <h2 className="text-2xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
+          <p className="text-slate-500 text-xs font-semibold mt-1">Navegação livre: Dê zoom e arraste a foto quando a ferramenta de edição estiver fechada.</p>
+        </div>
+      )}
 
       {/* Feedbacks de Alerta */}
       {feedback && (
-        <div className="w-full max-w-2xl p-4 rounded-2xl flex items-start gap-3 shadow-sm border bg-emerald-50 border-emerald-200 text-emerald-800 animate-in fade-in duration-150">
+        <div className="w-full max-w-2xl p-4 rounded-2xl flex items-start gap-3 shadow-sm border bg-emerald-50 border-emerald-200 text-emerald-800 animate-in fade-in duration-150 shrink-0">
           {feedback.type === 'success' ? <CheckCircle2 className="shrink-0" /> : <AlertCircle className="shrink-0" />}
           <span className="font-bold text-xs">{feedback.message}</span>
         </div>
@@ -943,22 +947,10 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
           </label>
         </div>
       ) : (
-        <div className="w-full max-w-2xl flex flex-col items-center gap-4">
+        <div className="w-full flex-1 flex flex-col items-center gap-2 overflow-hidden">
           
-          {/* Banner de Status Zoom/Pano vs Pintura */}
-          <div className={`w-full p-3 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300 ${
-            activeTool === null ? 'bg-indigo-50 border border-indigo-100 text-indigo-900' : 'bg-[#9A077B]/5 border border-[#9A077B]/20 text-[#9A077B]'
-          }`}>
-            <Sparkles size={14} className="animate-pulse shrink-0" />
-            <span>
-              {activeTool === null 
-                ? "Modo Navegação: Arraste com o mouse/dedo ou use a roda do mouse para ampliar detalhes da foto."
-                : `Modo Pintura Ativo: Toque e arraste sobre a foto para usar o ${getToolLabel(activeTool)}. Zoom/Pan estão bloqueados.`}
-            </span>
-          </div>
-
           {/* Container Principal da Foto (Fixa com barra de ferramentas flutuante) */}
-          <div className="relative flex flex-col items-center w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 animate-in zoom-in-95 duration-200 h-[480px]">
+          <div className="relative flex flex-col items-center w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 animate-in zoom-in-95 duration-200 flex-1 min-h-[300px]">
             {/* O Canvas da Foto */}
             <div className="relative overflow-hidden w-full flex-1 flex items-center justify-center bg-slate-900">
               <canvas
@@ -1122,7 +1114,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
           </div>
 
           {/* Botões Fora / Abaixo da Foto */}
-          <div className="flex items-center gap-4 w-full justify-center mt-3">
+          <div className="flex items-center gap-4 w-full justify-center py-2 shrink-0">
             <button
               onClick={handleClear}
               className="px-5 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-wider transition flex items-center gap-1.5"
