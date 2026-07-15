@@ -125,6 +125,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const panYRef = useRef<number>(0);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const patternCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
+  const patternCacheRef = useRef<Map<string, CanvasPattern | string>>(new Map());
 
   // Limpa feedback após 4 segundos
   useEffect(() => {
@@ -477,7 +479,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRectRef.current || canvas.getBoundingClientRect();
     let clientX = 0;
     let clientY = 0;
 
@@ -558,6 +560,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const handleStartDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
     e.preventDefault();
+
+    // Cacheia o bounding rect no início do gesto para evitar layout thrashing (getBoundingClientRect) no touchmove
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvasRectRef.current = canvas.getBoundingClientRect();
+    }
 
     const canvasCoords = getCanvasCoords(e);
 
@@ -676,6 +684,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     isDrawingRef.current = false;
     isPanningRef.current = false;
     isZoomingRef.current = false;
+    canvasRectRef.current = null; // Libera cache de rect no final do gesto
 
     // Sincroniza os estados com as referências uma única vez ao terminar o gesto (evitando re-renders pesados durante o arrasto)
     setZoom(zoomRef.current);
@@ -687,6 +696,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     isDrawingRef.current = false;
     isPanningRef.current = false;
     isZoomingRef.current = false;
+    canvasRectRef.current = null; // Libera cache de rect
 
     setZoom(zoomRef.current);
     setPanX(panXRef.current);
