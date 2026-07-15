@@ -15,7 +15,9 @@ import {
   Check,
   Palette,
   Layers,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
@@ -103,6 +105,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   // Posição do Card Flutuante de ferramenta ativa
   const [toolCardPos, setToolCardPos] = useState<Point>({ x: 20, y: 20 });
   const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const [isSliderExpanded, setIsSliderExpanded] = useState<boolean>(false);
   const dragStartCardRef = useRef<Point>({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -712,6 +715,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
   // Arrastar o Card Flutuante de ferramenta ativa
   const handleCardPointerDown = (e: React.PointerEvent) => {
+    if (isSliderExpanded) return;
     setIsDraggingCard(true);
     dragStartCardRef.current = {
       x: e.clientX - toolCardPos.x,
@@ -973,16 +977,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
               {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
               <canvas ref={draftMaskCanvasRef} className="hidden" />
 
-              {/* CARD FLUTUANTE DA FERRAMENTA ATIVA (Arrastável) */}
+              {/* CARD FLUTUANTE DA FERRAMENTA ATIVA (Arrastável quando recolhido) */}
               {activeTool !== null && (
                 <div
                   style={{ top: `${toolCardPos.y}px`, left: `${toolCardPos.x}px` }}
-                  className="absolute z-30 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-2xl flex flex-col gap-2.5 min-w-[190px] cursor-move select-none animate-in fade-in duration-200"
+                  className={`absolute z-30 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-2xl flex flex-col gap-2 min-w-[200px] select-none animate-in fade-in duration-200 ${
+                    isSliderExpanded ? 'cursor-default' : 'cursor-move'
+                  }`}
                   onPointerDown={handleCardPointerDown}
                   onPointerMove={handleCardPointerMove}
                   onPointerUp={handleCardPointerUp}
                 >
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 pointer-events-none">
+                  <div className="flex items-center justify-between pointer-events-none gap-2">
                     <div className="flex items-center gap-1.5 shrink-0">
                       <div className="p-1.5 bg-[#9A077B] text-white rounded-lg">
                         {activeTool === 'brush' && <Paintbrush size={13} />}
@@ -990,55 +996,72 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                         {activeTool === 'magic' && <Sparkles size={13} />}
                       </div>
                       <span className="text-[9px] font-black uppercase text-slate-800 tracking-wider">
-                        {getToolLabel(activeTool)}
+                        {activeTool === 'magic' ? 'Varredura' : activeTool === 'brush' ? 'Pincel' : 'Borracha'}
                       </span>
                     </div>
-                    {/* Botão de Fechar no card (Re-habilita zoom/pan) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTool(null);
-                      }}
-                      className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer p-0.5"
-                    >
-                      <X size={15} />
-                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Botão de expandir/recolher */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsSliderExpanded(!isSliderExpanded);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer p-1 rounded hover:bg-slate-100 transition"
+                        title={isSliderExpanded ? "Recolher opções" : "Expandir opções"}
+                      >
+                        {isSliderExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                      </button>
+
+                      {/* Botão de Fechar no card (Re-habilita zoom/pan) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTool(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer p-1 rounded hover:bg-slate-100 transition"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
                   </div>
                   
-                  {/* Slider integrado no Card Flutuante */}
-                  <div className="pointer-events-auto">
-                    {activeTool === 'magic' ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
-                          <span>Sensibilidade</span>
-                          <span>{tolerance}</span>
+                  {/* Slider integrado no Card Flutuante (Somente exibido se expandido) */}
+                  {isSliderExpanded && (
+                    <div className="pointer-events-auto border-t border-slate-100 pt-2.5 animate-in slide-in-from-top-2 duration-150">
+                      {activeTool === 'magic' ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                            <span>Sensibilidade</span>
+                            <span className="text-[#9A077B]">{tolerance}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="80"
+                            value={tolerance}
+                            onChange={(e) => setTolerance(Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                          />
                         </div>
-                        <input
-                          type="range"
-                          min="5"
-                          max="80"
-                          value={tolerance}
-                          onChange={(e) => setTolerance(Number(e.target.value))}
-                          className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
-                          <span>Tamanho</span>
-                          <span>{brushSize}px</span>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                            <span>Tamanho</span>
+                            <span className="text-[#9A077B]">{brushSize}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="100"
+                            value={brushSize}
+                            onChange={(e) => setBrushSize(Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                          />
                         </div>
-                        <input
-                          type="range"
-                          min="5"
-                          max="100"
-                          value={brushSize}
-                          onChange={(e) => setBrushSize(Number(e.target.value))}
-                          className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
-                        />
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
