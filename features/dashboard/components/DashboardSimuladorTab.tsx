@@ -120,6 +120,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const isZoomingRef = useRef<boolean>(false);
   const initialTouchDistanceRef = useRef<number>(0);
   const initialZoomRef = useRef<number>(1.0);
+  const zoomRef = useRef<number>(1.0);
+  const panXRef = useRef<number>(0);
+  const panYRef = useRef<number>(0);
 
   // Limpa feedback após 4 segundos
   useEffect(() => {
@@ -255,13 +258,17 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const width = canvas.width;
     const height = canvas.height;
 
+    const z = zoomRef.current;
+    const px = panXRef.current;
+    const py = panYRef.current;
+
     // 1. Limpa tela geral
     ctx.clearRect(0, 0, width, height);
 
     // 2. Aplica matriz de transformação de zoom/pan para toda a renderização
     ctx.save();
-    ctx.translate(panX, panY);
-    ctx.scale(zoom, zoom);
+    ctx.translate(px, py);
+    ctx.scale(z, z);
 
     // Desenha foto original
     ctx.drawImage(img, 0, 0);
@@ -513,6 +520,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       setZoom(1.0);
       setPanX(0);
       setPanY(0);
+      zoomRef.current = 1.0;
+      panXRef.current = 0;
+      panYRef.current = 0;
       redrawCanvas();
     };
   };
@@ -536,29 +546,26 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (!imageSrc) return;
     e.preventDefault();
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const canvasCoords = getCanvasCoords(e);
 
     // Se NÃO tem ferramenta selecionada: ativa pan/zoom (Mover Foto)
     if (activeTool === null) {
       if ('touches' in e && e.touches.length === 2) {
         isZoomingRef.current = true;
         initialTouchDistanceRef.current = getDistanceBetweenTouches(e);
-        initialZoomRef.current = zoom;
+        initialZoomRef.current = zoomRef.current;
       } else {
         isPanningRef.current = true;
-        startPanXRef.current = clientX - panX;
-        startPanYRef.current = clientY - panY;
+        startPanXRef.current = canvasCoords.x - panXRef.current;
+        startPanYRef.current = canvasCoords.y - panYRef.current;
       }
       return;
     }
 
     // Se TEM ferramenta selecionada: Pintar no Canvas
-    const canvasCoords = getCanvasCoords(e);
-    
     // Mapeia coordenadas clicadas da tela de volta para pixels originais da imagem (inverte transform)
-    const imageX = (canvasCoords.x - panX) / zoom;
-    const imageY = (canvasCoords.y - panY) / zoom;
+    const imageX = (canvasCoords.x - panXRef.current) / zoomRef.current;
+    const imageY = (canvasCoords.y - panYRef.current) / zoomRef.current;
 
     const activeLayer = layers.find(l => l.id === editingLayerId);
 
@@ -592,7 +599,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     targetCtx.moveTo(imageX, imageY);
     
     // Ajusta o tamanho do traço do pincel de acordo com o nível do zoom atual para manter proporção estética
-    targetCtx.lineWidth = brushSize / zoom;
+    targetCtx.lineWidth = brushSize / zoomRef.current;
     targetCtx.lineCap = 'round';
     targetCtx.lineJoin = 'round';
 
@@ -614,30 +621,33 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   // Trata Movimento (Pintar ou Pano)
   const handleDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!imageSrc) return;
+    e.preventDefault();
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const canvasCoords = getCanvasCoords(e);
 
     if (activeTool === null) {
       if ('touches' in e && e.touches.length === 2 && isZoomingRef.current) {
         const dist = getDistanceBetweenTouches(e);
-        const newZoom = initialZoomRef.current * (dist / initialTouchDistanceRef.current);
-        setZoom(Math.max(0.5, Math.min(newZoom, 5.0)));
+        const newZoom = Math.max(0.5, Math.min(initialZoomRef.current * (dist / initialTouchDistanceRef.current), 5.0));
+        zoomRef.current = newZoom;
+        setZoom(newZoom);
         redrawCanvas();
       } else if (isPanningRef.current) {
-        setPanX(clientX - startPanXRef.current);
-        setPanY(clientY - startPanYRef.current);
+        const newPanX = canvasCoords.x - startPanXRef.current;
+        const newPanY = canvasCoords.y - startPanYRef.current;
+        panXRef.current = newPanX;
+        panYRef.current = newPanY;
+        setPanX(newPanX);
+        setPanY(newPanY);
         redrawCanvas();
       }
       return;
     }
 
     if (!isDrawingRef.current || activeTool === 'magic') return;
-    e.preventDefault();
 
-    const canvasCoords = getCanvasCoords(e);
-    const imageX = (canvasCoords.x - panX) / zoom;
-    const imageY = (canvasCoords.y - panY) / zoom;
+    const imageX = (canvasCoords.x - panXRef.current) / zoomRef.current;
+    const imageY = (canvasCoords.y - panYRef.current) / zoomRef.current;
 
     const activeLayer = layers.find(l => l.id === editingLayerId);
     const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
@@ -669,13 +679,16 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (activeTool !== null || !imageSrc) return;
     e.preventDefault();
     const zoomFactor = 1.1;
-    let newZoom = zoom;
+    let newZoom = zoomRef.current;
     if (e.deltaY < 0) {
-      newZoom = zoom * zoomFactor;
+      newZoom = zoomRef.current * zoomFactor;
     } else {
-      newZoom = zoom / zoomFactor;
+      newZoom = zoomRef.current / zoomFactor;
     }
-    setZoom(Math.max(0.5, Math.min(newZoom, 5.0)));
+    const finalZoom = Math.max(0.5, Math.min(newZoom, 5.0));
+    zoomRef.current = finalZoom;
+    setZoom(finalZoom);
+    redrawCanvas();
   };
 
   const handleClear = () => {
@@ -691,6 +704,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     setZoom(1.0);
     setPanX(0);
     setPanY(0);
+    zoomRef.current = 1.0;
+    panXRef.current = 0;
+    panYRef.current = 0;
     redrawCanvas();
   };
 
@@ -957,6 +973,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 onTouchEnd={handleStopDrawing}
                 onWheel={handleWheel}
                 className="block cursor-grab active:cursor-grabbing max-h-full max-w-full"
+                style={{ touchAction: 'none' }}
               />
               
               {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
