@@ -630,15 +630,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         const dist = getDistanceBetweenTouches(e);
         const newZoom = Math.max(0.5, Math.min(initialZoomRef.current * (dist / initialTouchDistanceRef.current), 5.0));
         zoomRef.current = newZoom;
-        setZoom(newZoom);
         redrawCanvas();
       } else if (isPanningRef.current) {
         const newPanX = canvasCoords.x - startPanXRef.current;
         const newPanY = canvasCoords.y - startPanYRef.current;
         panXRef.current = newPanX;
         panYRef.current = newPanY;
-        setPanX(newPanX);
-        setPanY(newPanY);
         redrawCanvas();
       }
       return;
@@ -666,12 +663,21 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     isDrawingRef.current = false;
     isPanningRef.current = false;
     isZoomingRef.current = false;
+
+    // Sincroniza os estados com as referências uma única vez ao terminar o gesto (evitando re-renders pesados durante o arrasto)
+    setZoom(zoomRef.current);
+    setPanX(panXRef.current);
+    setPanY(panYRef.current);
   };
 
   const handleMouseLeave = () => {
     isDrawingRef.current = false;
     isPanningRef.current = false;
     isZoomingRef.current = false;
+
+    setZoom(zoomRef.current);
+    setPanX(panXRef.current);
+    setPanY(panYRef.current);
   };
 
   // Zoom no scroll do mouse
