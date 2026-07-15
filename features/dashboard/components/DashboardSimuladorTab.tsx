@@ -909,15 +909,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
   return (
     <div className={`w-full max-w-2xl bg-slate-50 rounded-3xl relative flex flex-col items-center select-none overflow-hidden justify-center ${
-      imageSrc ? 'h-[calc(100vh-180px)] lg:h-[calc(100vh-100px)] p-2 gap-2' : 'space-y-8 p-6 min-h-screen'
+      imageSrc ? 'h-[520px] md:h-[620px] p-2 gap-2' : 'space-y-6 p-6'
     }`}>
-      {/* Cabeçalho - Exibido apenas se a foto não estiver carregada */}
-      {!imageSrc && (
-        <div className="w-full max-w-2xl border-b border-slate-200 pb-4">
-          <h2 className="text-2xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
-          <p className="text-slate-500 text-xs font-semibold mt-1">Navegação livre: Dê zoom e arraste a foto quando a ferramenta de edição estiver fechada.</p>
-        </div>
-      )}
 
       {/* Feedbacks de Alerta */}
       {feedback && (
