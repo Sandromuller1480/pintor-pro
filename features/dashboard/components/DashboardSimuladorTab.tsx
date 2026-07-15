@@ -123,6 +123,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const zoomRef = useRef<number>(1.0);
   const panXRef = useRef<number>(0);
   const panYRef = useRef<number>(0);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const patternCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Limpa feedback após 4 segundos
   useEffect(() => {
@@ -176,12 +178,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     height: number,
     colorHex: string
   ): CanvasPattern | string => {
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return colorHex;
-
+    let tempCanvas = patternCanvasRef.current;
+    if (!tempCanvas) {
+      tempCanvas = document.createElement('canvas');
+      patternCanvasRef.current = tempCanvas;
+    }
     tempCanvas.width = 120;
     tempCanvas.height = 120;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return colorHex;
 
     // Fundo da cor base
     tempCtx.fillStyle = colorHex;
@@ -273,44 +278,52 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     // Desenha foto original
     ctx.drawImage(img, 0, 0);
 
-    // 3. Renderiza cada parede salva
-    layers.forEach(layer => {
-      const tempLayerCanvas = document.createElement('canvas');
-      tempLayerCanvas.width = img.width;
-      tempLayerCanvas.height = img.height;
-      const tempLayerCtx = tempLayerCanvas.getContext('2d');
-      if (!tempLayerCtx) return;
+    // Cria/Reusa offscreen canvas persistente para desenhar as texturas
+    let offscreen = offscreenCanvasRef.current;
+    if (!offscreen) {
+      offscreen = document.createElement('canvas');
+      offscreenCanvasRef.current = offscreen;
+    }
+    if (offscreen.width !== img.width || offscreen.height !== img.height) {
+      offscreen.width = img.width;
+      offscreen.height = img.height;
+    }
+    const offCtx = offscreen.getContext('2d');
 
-      tempLayerCtx.drawImage(layer.maskCanvas, 0, 0);
-      tempLayerCtx.globalCompositeOperation = 'source-in';
-      const patternOrColor = createTexturePattern(tempLayerCtx, layer.texture, img.width, img.height, layer.color);
-      tempLayerCtx.fillStyle = patternOrColor;
-      tempLayerCtx.fillRect(0, 0, img.width, img.height);
+    if (offCtx) {
+      // 3. Renderiza cada parede salva
+      layers.forEach(layer => {
+        offCtx.clearRect(0, 0, img.width, img.height);
+        offCtx.globalCompositeOperation = 'source-over';
+        offCtx.drawImage(layer.maskCanvas, 0, 0);
+        
+        offCtx.globalCompositeOperation = 'source-in';
+        const patternOrColor = createTexturePattern(offCtx, layer.texture, img.width, img.height, layer.color);
+        offCtx.fillStyle = patternOrColor;
+        offCtx.fillRect(0, 0, img.width, img.height);
 
-      ctx.save();
-      ctx.globalAlpha = layer.opacity / 100;
-      ctx.globalCompositeOperation = layer.texture !== 'lisa' ? 'overlay' : 'multiply';
-      ctx.drawImage(tempLayerCanvas, 0, 0);
-      ctx.restore();
-    });
+        ctx.save();
+        ctx.globalAlpha = layer.opacity / 100;
+        ctx.globalCompositeOperation = layer.texture !== 'lisa' ? 'overlay' : 'multiply';
+        ctx.drawImage(offscreen, 0, 0);
+        ctx.restore();
+      });
 
-    // 4. Desenha o rascunho de pintura ativo
-    if (!editingLayerId) {
-      const tempDraftCanvas = document.createElement('canvas');
-      tempDraftCanvas.width = img.width;
-      tempDraftCanvas.height = img.height;
-      const tempDraftCtx = tempDraftCanvas.getContext('2d');
-      if (tempDraftCtx) {
-        tempDraftCtx.drawImage(draftCanvas, 0, 0);
-        tempDraftCtx.globalCompositeOperation = 'source-in';
-        const patternOrColor = createTexturePattern(tempDraftCtx, selectedTexture, img.width, img.height, selectedColor);
-        tempDraftCtx.fillStyle = patternOrColor;
-        tempDraftCtx.fillRect(0, 0, img.width, img.height);
+      // 4. Desenha o rascunho de pintura ativo
+      if (!editingLayerId) {
+        offCtx.clearRect(0, 0, img.width, img.height);
+        offCtx.globalCompositeOperation = 'source-over';
+        offCtx.drawImage(draftCanvas, 0, 0);
+        
+        offCtx.globalCompositeOperation = 'source-in';
+        const patternOrColor = createTexturePattern(offCtx, selectedTexture, img.width, img.height, selectedColor);
+        offCtx.fillStyle = patternOrColor;
+        offCtx.fillRect(0, 0, img.width, img.height);
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
         ctx.globalCompositeOperation = selectedTexture !== 'lisa' ? 'overlay' : 'multiply';
-        ctx.drawImage(tempDraftCanvas, 0, 0);
+        ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       }
     }
