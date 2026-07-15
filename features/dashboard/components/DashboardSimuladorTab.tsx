@@ -12,7 +12,10 @@ import {
   Sparkles,
   X,
   Hammer,
-  Check
+  Check,
+  Palette,
+  Layers,
+  Image as ImageIcon
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
@@ -81,10 +84,16 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [layers, setLayers] = useState<WallLayer[]>([]);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [isDraftDirty, setIsDraftDirty] = useState(false);
-  const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
+
+  // Estado para controlar qual modal de grupo está aberto ('edition' | 'colors' | 'textures' | 'layers' | null)
+  const [activeGroupModal, setActiveGroupModal] = useState<'edition' | 'colors' | 'textures' | 'layers' | null>(null);
+  // Estado do modal de opções de salvar
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [showPdfForm, setShowPdfForm] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draftMaskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Máscara temporária de desenho
+  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null); // Referência secundária de uso geral
   const isDrawingRef = useRef<boolean>(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -420,7 +429,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const maskCtx = targetCanvas.getContext('2d');
     if (!maskCtx) return;
 
-    // Puxa a máscara existente para poder somar/acumular o novo clique inteligente
     const maskImgData = maskCtx.getImageData(0, 0, width, height);
     const maskData = maskImgData.data;
 
@@ -437,7 +445,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     maskCtx.putImageData(maskImgData, 0, 0);
   };
 
-  // Atualiza as dimensões do Canvas e carrega a imagem
+  // Carrega e desenha a imagem
   const handleImageLoad = (src: string) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -500,14 +508,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const { x, y } = getCanvasCoords(e);
     const activeLayer = layers.find(l => l.id === editingLayerId);
 
-    // 1. Se estiver usando Varredura Mágica
+    // 1. Varredura Mágica
     if (tool === 'magic') {
       if (activeLayer) {
-        // Altera diretamente a máscara da parede em edição de forma cumulativa
         executeFloodFillOnCanvas(x, y, activeLayer.maskCanvas);
         redrawCanvas();
       } else {
-        // Cria nova camada a partir do zero
         const tempMaskCanvas = document.createElement('canvas');
         const canvas = canvasRef.current;
         if (canvas) {
@@ -520,10 +526,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       return;
     }
 
-    // 2. Se estiver usando Pincel ou Borracha normais
+    // 2. Pincel ou Borracha
     isDrawingRef.current = true;
 
-    // Se estiver editando, pinta no canvas da própria camada. Caso contrário, no rascunho
     const targetCanvas = activeLayer ? activeLayer.maskCanvas : draftMaskCanvasRef.current;
     if (!targetCanvas) return;
 
@@ -587,6 +592,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     
     setIsDraftDirty(false);
     setEditingLayerId(null);
+    setLayers([]);
     redrawCanvas();
   };
 
@@ -609,7 +615,30 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   };
 
-  // Exportar PDF
+  // Baixar JPG da simulação
+  const handleExportJPG = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imageSrc) {
+      setFeedback({ type: 'error', message: 'Carregue e pinte uma imagem antes de baixar o JPG.' });
+      return;
+    }
+
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.download = `simulacao-obra-${clientName.trim().replace(/\s+/g, '-') || 'cliente'}-${Date.now()}.jpg`;
+      link.href = dataUrl;
+      link.click();
+      
+      setFeedback({ type: 'success', message: 'Imagem JPG baixada com sucesso!' });
+      setIsSaveModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      setFeedback({ type: 'error', message: 'Ocorreu um erro ao gerar o JPG.' });
+    }
+  };
+
+  // Exportar PDF do relatório
   const handleExportPDF = async () => {
     const canvas = canvasRef.current;
     if (!canvas || !imageSrc) {
@@ -737,6 +766,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       doc.save(pdfFileName);
 
       setFeedback({ type: 'success', message: 'PDF gerado e baixado com sucesso!' });
+      setIsSaveModalOpen(false);
+      setShowPdfForm(false);
     } catch (err) {
       console.error(err);
       setFeedback({ type: 'error', message: 'Ocorreu um erro ao renderizar o PDF.' });
@@ -745,456 +776,539 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   };
 
-  const getToolLabel = (toolName: string) => {
-    switch (toolName) {
-      case 'brush': return 'Pincel';
-      case 'eraser': return 'Borracha';
-      case 'magic': return 'Varredura Mágica';
-      default: return 'Pincel';
-    }
-  };
-
   return (
-    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative">
+    <div className="space-y-8 p-6 bg-slate-50 min-h-screen rounded-3xl relative flex flex-col items-center">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
-        <div>
-          <h2 className="text-3xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
-          <p className="text-slate-500 font-medium">Crie simulações de paredes individuais de cores e texturas variadas no mesmo ambiente.</p>
-        </div>
-        
-        {imageSrc && (
-          <button
-            onClick={handleExportPDF}
-            disabled={isGeneratingPdf}
-            className="bg-[#000747] hover:bg-[#9A077B] text-white px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition duration-300 shadow-lg shadow-[#000747]/10 disabled:opacity-75 disabled:cursor-not-allowed"
-          >
-            {isGeneratingPdf ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                Gerando Relatório...
-              </span>
-            ) : (
-              <>
-                <Download size={20} />
-                <span>Salvar & Exportar PDF</span>
-              </>
-            )}
-          </button>
-        )}
+      <div className="w-full max-w-2xl border-b border-slate-200 pb-4">
+        <h2 className="text-2xl font-black text-[#000747] uppercase tracking-wide">Simulador de Cores</h2>
+        <p className="text-slate-500 text-xs font-semibold mt-1">Simulação interativa com camadas para múltiplas paredes de forma independente.</p>
       </div>
 
       {/* Feedbacks de Alerta */}
       {feedback && (
-        <div className={`p-4 rounded-2xl flex items-start gap-3 shadow-sm border ${
+        <div className={`w-full max-w-2xl p-4 rounded-2xl flex items-start gap-3 shadow-sm border ${
           feedback.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           {feedback.type === 'success' ? <CheckCircle2 className="shrink-0" /> : <AlertCircle className="shrink-0" />}
-          <span className="font-bold text-sm">{feedback.message}</span>
+          <span className="font-bold text-xs">{feedback.message}</span>
         </div>
       )}
 
-      {/* Grid Principal do Simulador */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Lado Esquerdo: Área do Canvas */}
-        <div className="lg:col-span-8 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-h-[480px] relative overflow-hidden">
-          {!imageSrc ? (
-            <div className="text-center py-20 px-6 max-w-md w-full">
-              <div className="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-slate-200">
-                <Upload size={36} />
-              </div>
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-wide mb-2">Selecione uma foto da Obra</h3>
-              <p className="text-slate-400 font-medium text-sm mb-6">Tire uma foto na hora com o seu celular ou selecione uma imagem da sua galeria de fotos.</p>
-              
-              <label className="cursor-pointer bg-[#000747] text-white px-8 py-5 rounded-2xl font-black uppercase text-sm tracking-wider hover:bg-[#9A077B] transition duration-300 shadow-md inline-block">
-                <span>Escolher ou Tirar Foto</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
+      {/* Lado Esquerdo: Área do Canvas (Foto Fixa na Tela) */}
+      {!imageSrc ? (
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-h-[400px] w-full max-w-2xl text-center">
+          <div className="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-slate-200">
+            <Upload size={36} />
+          </div>
+          <h3 className="text-xl font-black text-slate-800 uppercase tracking-wide mb-2">Selecione uma foto da Obra</h3>
+          <p className="text-slate-400 font-medium text-xs mb-6 max-w-sm">Tire uma foto na hora com o seu celular ou selecione uma imagem da sua galeria de fotos.</p>
+          
+          <label className="cursor-pointer bg-[#000747] text-white px-8 py-4.5 rounded-2xl font-black uppercase text-xs tracking-wider hover:bg-[#9A077B] transition duration-300 shadow-md inline-block">
+            <span>Escolher ou Tirar Foto</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </label>
+        </div>
+      ) : (
+        <div className="w-full max-w-2xl flex flex-col items-center gap-4">
+          
+          {/* Banner de Edição Ativa */}
+          {editingLayerId && (
+            <div className="w-full bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-2xl text-[#9A077B] text-[11px] font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300">
+              <Sparkles size={14} className="animate-pulse shrink-0" />
+              <span>Você está editando a parede <strong>"{layers.find(l => l.id === editingLayerId)?.name}"</strong>. Pinte/apague na foto para ajustar.</span>
             </div>
-          ) : (
-            <div className="w-full flex flex-col items-center gap-4">
-              {/* Barra de Ações Rápidas do Canvas */}
-              <div className="w-full flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-100 pb-4 gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => setIsToolsModalOpen(true)}
-                    className="p-3 bg-[#000747] hover:bg-[#9A077B] text-white rounded-xl flex items-center gap-2 text-xs font-black uppercase tracking-wider transition shadow-md"
-                  >
-                    <Hammer size={16} />
-                    <span>Ferramentas ({getToolLabel(tool)})</span>
-                  </button>
+          )}
 
-                  {/* Botão de Confirmação de Pintura Livre */}
-                  {tool === 'brush' && isDraftDirty && !editingLayerId && (
-                    <button
-                      onClick={handleSaveDraftAsLayer}
-                      className="px-4 py-2.5 bg-[#9A077B] text-white text-xs font-black uppercase rounded-xl flex items-center gap-1.5 transition animate-pulse shadow-md"
-                    >
-                      <Check size={16} />
-                      <span>Salvar Parede Pintada</span>
-                    </button>
+          {tool === 'brush' && isDraftDirty && !editingLayerId && (
+            <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-2xl text-amber-900 text-[11px] font-bold flex items-center gap-2 animate-in slide-in-from-top duration-300">
+              <AlertCircle size={14} />
+              <span>Você pintou no rascunho. Clique no botão piscante <strong>"Salvar Parede Pintada"</strong> no topo para criá-la.</span>
+            </div>
+          )}
+
+          {/* Container Principal da Foto (Fixa com barra de ferramentas flutuante) */}
+          <div className="relative flex flex-col items-center w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 animate-in zoom-in-95 duration-200">
+            {/* O Canvas da Foto */}
+            <div className="relative overflow-hidden w-full flex items-center justify-center bg-slate-900 min-h-[380px] max-h-[500px]">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={handleStartDrawing}
+                onMouseMove={handleDrawing}
+                onMouseUp={handleStopDrawing}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={handleStartDrawing}
+                onTouchMove={handleDrawing}
+                onTouchEnd={handleStopDrawing}
+                className="block max-w-full cursor-crosshair relative z-10"
+              />
+              
+              {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
+              <canvas ref={draftMaskCanvasRef} className="hidden" />
+            </div>
+
+            {/* Rodapé da Foto com Ícones representantes dos Grupos */}
+            <div className="w-full bg-slate-900 border-t border-slate-800/80 px-4 py-3 flex items-center justify-around z-20 backdrop-blur-md bg-slate-900/90">
+              {/* Grupo 1: Ajustes/Ferramentas */}
+              <button
+                onClick={() => setActiveGroupModal('edition')}
+                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+                  activeGroupModal === 'edition' ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Paintbrush size={20} />
+                <span className="text-[9px] font-black uppercase tracking-wider">Ajustes</span>
+              </button>
+
+              {/* Grupo 2: Cores */}
+              <button
+                onClick={() => setActiveGroupModal('colors')}
+                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+                  activeGroupModal === 'colors' ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Palette size={20} />
+                <span className="text-[9px] font-black uppercase tracking-wider">Cores</span>
+              </button>
+
+              {/* Grupo 3: Texturas */}
+              <button
+                onClick={() => setActiveGroupModal('textures')}
+                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+                  activeGroupModal === 'textures' ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sliders size={20} />
+                <span className="text-[9px] font-black uppercase tracking-wider">Texturas</span>
+              </button>
+
+              {/* Grupo 4: Paredes (Lista de Camadas) */}
+              <button
+                onClick={() => setActiveGroupModal('layers')}
+                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition relative ${
+                  activeGroupModal === 'layers' ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="relative">
+                  <Layers size={20} />
+                  {layers.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-[#9A077B] text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {layers.length}
+                    </span>
                   )}
                 </div>
-
-                <div className="flex items-center gap-2 justify-end">
-                  <button
-                    onClick={handleClear}
-                    className="p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition"
-                    title="Limpar toda a pintura"
-                  >
-                    <Trash2 size={16} />
-                    <span>Limpar Tela</span>
-                  </button>
-                  <label className="cursor-pointer p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition">
-                    <Upload size={16} />
-                    <span>Trocar Foto</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Dicas contextuais */}
-              {editingLayerId && (
-                <div className="w-full bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-xl text-[#9A077B] text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
-                  <Sparkles size={14} className="animate-pulse shrink-0" />
-                  <span>Você está editando a parede <strong>"{layers.find(l => l.id === editingLayerId)?.name}"</strong>. Use as ferramentas (Pincel, Borracha ou Varredura) diretamente sobre a imagem para ajustar o contorno dela.</span>
-                </div>
-              )}
-
-              {tool === 'brush' && isDraftDirty && !editingLayerId && (
-                <div className="w-full bg-amber-50 border border-amber-100 p-3 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2 animate-in slide-in-from-top duration-300">
-                  <AlertCircle size={14} />
-                  <span>Você pintou no rascunho. Clique no botão de piscar <strong>"Salvar Parede Pintada"</strong> para salvar e aplicar a cor nesta parede de forma independente.</span>
-                </div>
-              )}
-
-              {/* Área do Canvas de Trabalho */}
-              <div className="relative border-4 border-slate-200 rounded-2xl overflow-hidden shadow-inner max-w-full bg-slate-800">
-                <canvas
-                  ref={canvasRef}
-                  onMouseDown={handleStartDrawing}
-                  onMouseMove={handleDrawing}
-                  onMouseUp={handleStopDrawing}
-                  onMouseLeave={handleMouseLeave}
-                  onTouchStart={handleStartDrawing}
-                  onTouchMove={handleDrawing}
-                  onTouchEnd={handleStopDrawing}
-                  className="block max-w-full cursor-crosshair relative z-10"
-                />
-                
-                {/* Canvas oculto exclusivo para armazenar o desenho puro do rascunho */}
-                <canvas ref={draftMaskCanvasRef} className="hidden" />
-              </div>
-
-              {/* Controles deslizantes (Sliders) */}
-              <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
-                    <span>Tamanho do Pincel</span>
-                    <span className="text-slate-800">{brushSize}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="100"
-                    disabled={tool === 'magic'}
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
-                  />
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
-                    <span>Opacidade / Realismo</span>
-                    <span className="text-slate-800">{opacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    value={opacity}
-                    onChange={(e) => setOpacity(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
-                  />
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-xs font-black text-slate-500 uppercase tracking-widest">
-                    <span>Sensibilidade Mágica</span>
-                    <span className="text-slate-800">{tolerance}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="80"
-                    disabled={tool !== 'magic'}
-                    value={tolerance}
-                    onChange={(e) => setTolerance(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
-                  />
-                </div>
-              </div>
+                <span className="text-[9px] font-black uppercase tracking-wider">Paredes</span>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Lado Direito: Paredes Salvas, Paleta de Cores, Texturas e PDF */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Seção 0: Paredes Individuais (Camadas) */}
-          {imageSrc && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center justify-between">
-                <span>Paredes Simuladas</span>
-                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{layers.length} salvas</span>
-              </h3>
-
-              {editingLayerId ? (
-                <div className="bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-2xl flex items-center justify-between animate-in slide-in-from-top duration-200">
-                  <div>
-                    <span className="text-[10px] font-black text-[#9A077B] uppercase tracking-widest leading-none block mb-1">Editando no momento</span>
-                    <span className="text-xs font-bold text-slate-800">{layers.find(l => l.id === editingLayerId)?.name}</span>
-                  </div>
-                  <button
-                    onClick={() => setEditingLayerId(null)}
-                    className="px-3 py-1.5 bg-[#9A077B] text-white text-[10px] font-black uppercase rounded-lg hover:bg-[#000747] transition animate-pulse"
-                  >
-                    Pronto
-                  </button>
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-400 font-medium">Selecione uma parede da lista para alterar sua cor ou opacidade individualmente.</p>
-              )}
-
-              {layers.length > 0 ? (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {layers.map((layer) => {
-                    const isEditing = editingLayerId === layer.id;
-                    const textureLabel = TEXTURE_OPTIONS.find(t => t.id === layer.texture)?.name || 'Lisa';
-                    return (
-                      <div
-                        key={layer.id}
-                        className={`flex items-center justify-between p-3 rounded-2xl border transition duration-200 ${
-                          isEditing ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50'
-                        }`}
-                      >
-                        <button
-                          onClick={() => setEditingLayerId(layer.id)}
-                          className="flex items-center gap-2.5 text-left focus:outline-none flex-1"
-                        >
-                          <div
-                            style={{ backgroundColor: layer.color }}
-                            className="w-5 h-5 rounded-full border border-slate-300 shrink-0 shadow-inner"
-                          />
-                          <div className="truncate">
-                            <span className="text-xs font-black text-slate-700 block truncate uppercase tracking-wide">{layer.name}</span>
-                            <span className="text-[10px] text-slate-400 block truncate">{textureLabel} | {layer.opacity}% Opaco</span>
-                          </div>
-                        </button>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={() => handleDeleteLayer(layer.id)}
-                            className="p-1.5 text-red-400 hover:text-red-600 transition"
-                            title="Remover esta parede"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="border border-dashed border-slate-200 p-6 rounded-2xl text-center">
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma parede cadastrada. Pinte uma área ou use a Varredura Mágica para criar a primeira parede independente.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Seção 1: Paleta de Cores */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center gap-2">
-              <Paintbrush size={16} className="text-[#9A077B]" />
-              <span>Paleta de Cores Premium</span>
-            </h3>
-            <p className="text-xs text-slate-400 font-medium">Toque em uma cor para pintar.</p>
+          {/* Botões Fora / Abaixo da Foto */}
+          <div className="flex items-center gap-4 w-full justify-center mt-3">
+            <button
+              onClick={handleClear}
+              className="px-5 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-wider transition flex items-center gap-1.5"
+            >
+              <Trash2 size={15} />
+              <span>Limpar Tudo</span>
+            </button>
             
-            <div className="grid grid-cols-4 gap-3">
+            {tool === 'brush' && isDraftDirty && !editingLayerId && (
+              <button
+                onClick={handleSaveDraftAsLayer}
+                className="px-5 py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-wider transition flex items-center gap-1.5 shadow-md shadow-amber-500/10 animate-bounce"
+              >
+                <Check size={15} />
+                <span>Salvar Parede Pintada</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setIsSaveModalOpen(true);
+                setShowPdfForm(false);
+              }}
+              className="px-7 py-3.5 bg-[#000747] hover:bg-[#9A077B] text-white rounded-2xl font-black uppercase text-[10px] tracking-wider transition flex items-center gap-1.5 shadow-lg shadow-[#000747]/10"
+            >
+              <Download size={15} />
+              <span>Salvar Foto</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE GRUPO: AJUSTES / FERRAMENTAS */}
+      {activeGroupModal === 'edition' && (
+        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
+                <Hammer size={16} className="text-[#9A077B]" />
+                <span>Ferramentas de Edição</span>
+              </h3>
+              <button onClick={() => setActiveGroupModal(null)} className="text-slate-400 hover:text-slate-700">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Seleção de Ferramenta */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setTool('brush')}
+                className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
+                  tool === 'brush' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <Paintbrush size={18} />
+                <span className="text-[10px] font-black uppercase tracking-wider">Pincel</span>
+              </button>
+              <button
+                onClick={() => setTool('eraser')}
+                className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
+                  tool === 'eraser' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <Eraser size={18} />
+                <span className="text-[10px] font-black uppercase tracking-wider">Borracha</span>
+              </button>
+              <button
+                onClick={() => setTool('magic')}
+                className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition ${
+                  tool === 'magic' ? 'border-[#9A077B] bg-[#9A077B]/5 text-[#9A077B]' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <Sparkles size={18} />
+                <span className="text-[10px] font-black uppercase tracking-wider">Varredura</span>
+              </button>
+            </div>
+
+            {/* Controles deslizantes de acordo com a ferramenta */}
+            <div className="space-y-4 pt-2">
+              <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span>Tamanho do Pincel</span>
+                  <span className="text-slate-800">{brushSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  disabled={tool === 'magic'}
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
+                />
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span>Opacidade / Realismo</span>
+                  <span className="text-slate-800">{opacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={opacity}
+                  onChange={(e) => setOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
+                />
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span>Sensibilidade Mágica</span>
+                  <span className="text-slate-800">{tolerance}</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="80"
+                  disabled={tool !== 'magic'}
+                  value={tolerance}
+                  onChange={(e) => setTolerance(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B] disabled:opacity-50"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE GRUPO: PALETA DE CORES */}
+      {activeGroupModal === 'colors' && (
+        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
+                <Palette size={16} className="text-[#9A077B]" />
+                <span>Paleta de Cores Premium</span>
+              </h3>
+              <button onClick={() => setActiveGroupModal(null)} className="text-slate-400 hover:text-slate-700">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 py-2">
               {PREMIUM_COLORS.map((color) => {
                 const isSelected = selectedColor === color.hex;
                 return (
                   <button
                     key={color.name}
-                    onClick={() => setSelectedColor(color.hex)}
+                    onClick={() => {
+                      setSelectedColor(color.hex);
+                    }}
                     className="flex flex-col items-center gap-1.5 focus:outline-none"
                   >
                     <div
                       style={{ backgroundColor: color.hex }}
-                      className={`w-12 h-12 rounded-xl transition-all duration-200 shadow-inner relative flex items-center justify-center ${
-                        isSelected ? 'scale-110 ring-4 ring-[#9A077B]/20 border border-[#9A077B]' : 'hover:scale-105 border border-slate-200'
+                      className={`w-11 h-11 rounded-xl transition-all duration-200 shadow-inner relative flex items-center justify-center ${
+                        isSelected ? 'scale-105 ring-4 ring-[#9A077B]/20 border border-[#9A077B]' : 'hover:scale-105 border border-slate-200'
                       }`}
                     >
                       {isSelected && (
-                        <div className="w-2.5 h-2.5 bg-[#9A077B] rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#9A077B] rounded-full"></div>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 text-center truncate w-full">{color.name}</span>
+                    <span className="text-[9px] font-bold text-slate-500 text-center truncate w-full">{color.name}</span>
                   </button>
                 );
               })}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Seção 2: Tipos de Acabamento/Textura */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center gap-2">
-              <Sliders size={16} className="text-[#9A077B]" />
-              <span>Tipos de Textura / Efeitos</span>
-            </h3>
-            
-            <div className="space-y-3">
+      {/* MODAL DE GRUPO: TEXTURAS E EFEITOS */}
+      {activeGroupModal === 'textures' && (
+        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
+                <Sliders size={16} className="text-[#9A077B]" />
+                <span>Tipos de Textura / Efeitos</span>
+              </h3>
+              <button onClick={() => setActiveGroupModal(null)} className="text-slate-400 hover:text-slate-700">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-2 py-2">
               {TEXTURE_OPTIONS.map((texture) => {
                 const isSelected = selectedTexture === texture.id;
                 return (
                   <button
                     key={texture.id}
-                    onClick={() => setSelectedTexture(texture.id)}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition duration-200 flex flex-col gap-1 ${
-                      isSelected ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-200 hover:bg-slate-50'
+                    onClick={() => {
+                      setSelectedTexture(texture.id);
+                    }}
+                    className={`w-full text-left p-3 rounded-xl border transition duration-200 flex flex-col gap-0.5 ${
+                      isSelected ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="text-sm font-black text-slate-800 uppercase tracking-wide leading-none">{texture.name}</span>
-                    <span className="text-[11px] text-slate-400 font-medium">{texture.description}</span>
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide leading-none">{texture.name}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{texture.description}</span>
                   </button>
                 );
               })}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Seção 3: Dados de Relatório de Obra */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-sm font-black text-[#000747] uppercase tracking-widest flex items-center gap-2">
-              <FileText size={16} className="text-[#9A077B]" />
-              <span>Dados para o PDF</span>
-            </h3>
+      {/* MODAL DE GRUPO: LISTA DE PAREDES */}
+      {activeGroupModal === 'layers' && (
+        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md p-6 border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
+                <Layers size={16} className="text-[#9A077B]" />
+                <span>Paredes Simuladas ({layers.length})</span>
+              </h3>
+              <button onClick={() => setActiveGroupModal(null)} className="text-slate-400 hover:text-slate-700">
+                <X size={20} />
+              </button>
+            </div>
 
-            <div className="space-y-3.5">
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nome do Cliente</label>
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Ex: João Silva"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#9A077B]"
-                />
+            {editingLayerId && (
+              <div className="bg-[#9A077B]/5 border border-[#9A077B]/20 p-3 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-[9px] font-black text-[#9A077B] uppercase tracking-widest leading-none block mb-0.5">Editando ativamente</span>
+                  <span className="text-xs font-bold text-slate-800">{layers.find(l => l.id === editingLayerId)?.name}</span>
+                </div>
+                <button
+                  onClick={() => setEditingLayerId(null)}
+                  className="px-3 py-1 bg-[#9A077B] text-white text-[9px] font-black uppercase rounded-lg"
+                >
+                  Concluir
+                </button>
               </div>
+            )}
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Endereço da Obra</label>
-                <input
-                  type="text"
-                  value={clientAddress}
-                  onChange={(e) => setClientAddress(e.target.value)}
-                  placeholder="Ex: Av. Brasil, 1200 - Centro"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#9A077B]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Descrição Técnica / Materiais</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva detalhes como: Tinta utilizada (ex: Suvinil Fosca Completo), quantidade de demãos, reparos prévios necessários na parede, etc..."
-                  rows={4}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#9A077B] resize-none"
-                />
-              </div>
+            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              {layers.length > 0 ? (
+                layers.map((layer) => {
+                  const isEditing = editingLayerId === layer.id;
+                  const textureLabel = TEXTURE_OPTIONS.find(t => t.id === layer.texture)?.name || 'Lisa';
+                  return (
+                    <div
+                      key={layer.id}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition duration-200 ${
+                        isEditing ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50'
+                      }`}
+                    >
+                      <button
+                        onClick={() => setEditingLayerId(layer.id)}
+                        className="flex items-center gap-2 text-left focus:outline-none flex-1"
+                      >
+                        <div
+                          style={{ backgroundColor: layer.color }}
+                          className="w-4.5 h-4.5 rounded-full border border-slate-300 shrink-0 shadow-inner"
+                        />
+                        <div className="truncate">
+                          <span className="text-xs font-black text-slate-700 block truncate uppercase tracking-wide">{layer.name}</span>
+                          <span className="text-[9px] text-slate-400 block truncate">{textureLabel} | {layer.opacity}%</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLayer(layer.id)}
+                        className="p-1 text-red-400 hover:text-red-600 transition"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="border border-dashed border-slate-200 p-6 rounded-2xl text-center">
+                  <p className="text-xs text-slate-400 font-medium">Nenhuma parede cadastrada ainda.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Modal / Diálogo das Ferramentas */}
-      {isToolsModalOpen && (
+      {/* MODAL PRINCIPAL: SALVAR FOTO (PDF COM DESCRIÇÃO OU APENAS JPG) */}
+      {isSaveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 border border-slate-200 space-y-6 mx-4 relative">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 border border-slate-200 space-y-6 mx-4 relative animate-in zoom-in-95 duration-200">
             <button
-              onClick={() => setIsToolsModalOpen(false)}
+              onClick={() => {
+                setIsSaveModalOpen(false);
+                setShowPdfForm(false);
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition"
             >
               <X size={24} />
             </button>
 
-            <div>
-              <h3 className="text-xl font-black text-[#000747] uppercase tracking-wide">Ferramentas de Edição</h3>
-              <p className="text-slate-500 text-sm font-medium">Selecione uma ferramenta abaixo para aplicar cor e texturas na parede.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {/* Opção 1: Pincel */}
-              <button
-                onClick={() => {
-                  setTool('brush');
-                  setIsToolsModalOpen(false);
-                }}
-                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
-                  tool === 'brush' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-3 bg-[#9A077B] text-white rounded-xl"><Paintbrush size={18} /></div>
+            {!showPdfForm ? (
+              <div className="space-y-5">
                 <div>
-                  <h4 className="font-bold text-slate-800">Pincel Manual</h4>
-                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Desenhe livremente sobre as áreas do ambiente com a ponta dos dedos ou mouse.</p>
+                  <h3 className="text-xl font-black text-[#000747] uppercase tracking-wide">Como deseja salvar?</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-1">Selecione o formato de exportação para a sua simulação de obra.</p>
                 </div>
-              </button>
 
-              {/* Opção 2: Borracha */}
-              <button
-                onClick={() => {
-                  setTool('eraser');
-                  setIsToolsModalOpen(false);
-                }}
-                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
-                  tool === 'eraser' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-3 bg-slate-800 text-white rounded-xl"><Eraser size={18} /></div>
-                <div>
-                  <h4 className="font-bold text-slate-800">Borracha</h4>
-                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Apague manualmente imperfeições ou partes da máscara que vazaram.</p>
-                </div>
-              </button>
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Opção A: Apenas Imagem JPG */}
+                  <button
+                    onClick={handleExportJPG}
+                    className="p-4 rounded-2xl border border-slate-200 hover:border-[#9A077B] text-left flex items-start gap-3.5 hover:bg-slate-50/50 transition group"
+                  >
+                    <div className="p-3 bg-indigo-50 text-indigo-600 group-hover:bg-[#9A077B] group-hover:text-white rounded-xl transition">
+                      <ImageIcon size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Apenas Imagem (JPG)</h4>
+                      <p className="text-slate-400 text-xs mt-0.5 leading-normal">Baixa somente a imagem final pintada direto no seu celular ou computador.</p>
+                    </div>
+                  </button>
 
-              {/* Opção 3: Varredura Mágica */}
-              <button
-                onClick={() => {
-                  setTool('magic');
-                  setIsToolsModalOpen(false);
-                }}
-                className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition ${
-                  tool === 'magic' ? 'border-[#9A077B] bg-[#9A077B]/5' : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-3 bg-amber-500 text-white rounded-xl"><Sparkles size={18} /></div>
-                <div>
-                  <h4 className="font-bold text-slate-800">Varredura Mágica</h4>
-                  <p className="text-slate-400 text-xs mt-0.5 leading-normal">Toque na parede e o sistema preenche de forma inteligente detectando cantos.</p>
+                  {/* Opção B: Relatório Completo PDF */}
+                  <button
+                    onClick={() => setShowPdfForm(true)}
+                    className="p-4 rounded-2xl border border-slate-200 hover:border-[#9A077B] text-left flex items-start gap-3.5 hover:bg-slate-50/50 transition group"
+                  >
+                    <div className="p-3 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white rounded-xl transition">
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Relatório Completo (PDF)</h4>
+                      <p className="text-slate-400 text-xs mt-0.5 leading-normal">Gera um PDF profissional com seus dados, dados do cliente e notas técnicas.</p>
+                    </div>
+                  </button>
                 </div>
-              </button>
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in slide-in-from-right duration-200">
+                <div>
+                  <h3 className="text-xl font-black text-[#000747] uppercase tracking-wide">Dados do Relatório</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-1">Preencha os campos abaixo para constar no documento final.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nome do Cliente</label>
+                    <input
+                      type="text"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Ex: João Silva"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#9A077B]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Endereço da Obra</label>
+                    <input
+                      type="text"
+                      value={clientAddress}
+                      onChange={(e) => setClientAddress(e.target.value)}
+                      placeholder="Ex: Av. Brasil, 1200 - Centro"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#9A077B]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Especificações Técnicas / Materiais</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Descreva detalhes como: Tinta utilizada (ex: Suvinil Fosca Completo), quantidade de demãos, reparos prévios necessários na parede, etc..."
+                      rows={3}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#9A077B] resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={() => setShowPdfForm(false)}
+                    className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold uppercase text-[11px] tracking-wider rounded-xl transition"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={isGeneratingPdf}
+                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[11px] tracking-wider rounded-xl transition flex items-center justify-center gap-1 shadow-md shadow-emerald-600/10 disabled:opacity-75"
+                  >
+                    {isGeneratingPdf ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>Gerar PDF</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
