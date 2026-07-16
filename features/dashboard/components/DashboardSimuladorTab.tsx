@@ -197,28 +197,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     if (type === 'cimento') {
       // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de manchas no canvas
     } else if (type === 'grafiato') {
-      tempCtx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-      tempCtx.lineWidth = 1.5;
-      for (let i = 0; i < 40; i++) {
-        const x = Math.random() * 120;
-        const yLength = 15 + Math.random() * 35;
-        const yStart = Math.random() * 120;
-        tempCtx.beginPath();
-        tempCtx.moveTo(x, yStart);
-        tempCtx.lineTo(x, yStart + yLength);
-        tempCtx.stroke();
-      }
-      tempCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      tempCtx.lineWidth = 1;
-      for (let i = 0; i < 20; i++) {
-        const x = Math.random() * 120;
-        const yLength = 10 + Math.random() * 20;
-        const yStart = Math.random() * 120;
-        tempCtx.beginPath();
-        tempCtx.moveTo(x, yStart);
-        tempCtx.lineTo(x, yStart + yLength);
-        tempCtx.stroke();
-      }
+      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de ranhuras no canvas
     } else if (type === 'areia') {
       tempCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
       for (let i = 0; i < 180; i++) {
