@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
-import cimentoClaroImage from '../../../imagens/texturas/CIMENTO QUEIMADO COR CLARA.png';
+import cimentoEscuroImage from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
 
 interface DashboardSimuladorTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -133,7 +133,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   // Carrega a imagem da textura de cimento queimado ao montar o componente
   useEffect(() => {
     const img = new Image();
-    img.src = cimentoClaroImage;
+    img.src = cimentoEscuroImage;
     img.onload = () => {
       setCimentoImageObj(img);
     };
