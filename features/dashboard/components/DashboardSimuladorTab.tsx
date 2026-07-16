@@ -195,20 +195,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     tempCtx.fillRect(0, 0, 120, 120);
 
     if (type === 'cimento') {
-      for (let i = 0; i < 6; i++) {
-        const x = Math.random() * 120;
-        const y = Math.random() * 120;
-        const r = 20 + Math.random() * 30;
-        const grad = tempCtx.createRadialGradient(x, y, 0, x, y, r);
-        const alpha = 0.08 + Math.random() * 0.12;
-        const shade = Math.random() > 0.5 ? '255, 255, 255' : '0, 0, 0';
-        grad.addColorStop(0, `rgba(${shade}, ${alpha})`);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        tempCtx.fillStyle = grad;
-        tempCtx.beginPath();
-        tempCtx.arc(x, y, r, 0, Math.PI * 2);
-        tempCtx.fill();
-      }
+      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de manchas no canvas
     } else if (type === 'grafiato') {
       tempCtx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
       tempCtx.lineWidth = 1.5;
