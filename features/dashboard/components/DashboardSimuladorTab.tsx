@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
+import cimentoClaroImage from '../../../imagens/texturas/CIMENTO QUEIMADO COR CLARA.png';
 
 interface DashboardSimuladorTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -86,6 +87,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [clientAddress, setClientAddress] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [cimentoImageObj, setCimentoImageObj] = useState<HTMLImageElement | null>(null);
 
   // Estados de Zoom & Pan (Mover foto livremente)
   const [zoom, setZoom] = useState<number>(1.0);
@@ -128,6 +130,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const canvasRectRef = useRef<DOMRect | null>(null);
   const patternCacheRef = useRef<Map<string, CanvasPattern | string>>(new Map());
 
+  // Carrega a imagem da textura de cimento queimado ao montar o componente
+  useEffect(() => {
+    const img = new Image();
+    img.src = cimentoClaroImage;
+    img.onload = () => {
+      setCimentoImageObj(img);
+    };
+  }, []);
+
   // Limpa feedback após 4 segundos
   useEffect(() => {
     if (feedback) {
@@ -165,12 +176,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [selectedColor, selectedTexture, opacity, editingLayerId]);
 
-  // Redesenha se mudar a ferramenta, zoom, pan ou camadas
+  // Redesenha se mudar a ferramenta, zoom, pan, camadas ou a imagem da textura
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [activeTool, layers, editingLayerId, zoom, panX, panY]);
+  }, [activeTool, layers, editingLayerId, zoom, panX, panY, cimentoImageObj]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -185,17 +196,22 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       tempCanvas = document.createElement('canvas');
       patternCanvasRef.current = tempCanvas;
     }
-    tempCanvas.width = 120;
-    tempCanvas.height = 120;
+    const size = type === 'cimento' ? 512 : 120;
+    tempCanvas.width = size;
+    tempCanvas.height = size;
     const tempCtx = tempCanvas.getContext('2d');
     if (!tempCtx) return colorHex;
 
     // Fundo da cor base
     tempCtx.fillStyle = colorHex;
-    tempCtx.fillRect(0, 0, 120, 120);
+    tempCtx.fillRect(0, 0, size, size);
 
     if (type === 'cimento') {
-      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de manchas no canvas
+      if (cimentoImageObj) {
+        tempCtx.globalCompositeOperation = 'multiply';
+        tempCtx.drawImage(cimentoImageObj, 0, 0, size, size);
+        tempCtx.globalCompositeOperation = 'source-over';
+      }
     } else if (type === 'grafiato') {
       // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de ranhuras no canvas
     } else if (type === 'areia') {
