@@ -34,14 +34,13 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: typeof LayoutDashboard;
 }> = [
-  { id: 'inicio', label: 'Vis\u00e3o Geral', icon: LayoutDashboard },
-  { id: 'portfolio', label: 'Meu Portf\u00f3lio', icon: Briefcase },
-  { id: 'orcamentos', label: 'Or\u00e7amentos', icon: FileText },
+  { id: 'inicio', label: 'Visão Geral', icon: LayoutDashboard },
+  { id: 'portfolio', label: 'Meu Portfólio', icon: Briefcase },
+  { id: 'orcamentos', label: 'Orçamentos', icon: FileText },
   { id: 'financeiro', label: 'Controle Financeiro', icon: WalletCards },
-  { id: 'equipe', label: 'Gest\u00e3o de Equipe', icon: Users },
+  { id: 'equipe', label: 'Gestão de Equipe', icon: Users },
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },
-  { id: 'simulador', label: 'Simulador de Cores', icon: Paintbrush },
-  { id: 'config', label: 'Configura\u00e7\u00f5es', icon: Settings }
+  { id: 'config', label: 'Configurações', icon: Settings }
 ];
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({

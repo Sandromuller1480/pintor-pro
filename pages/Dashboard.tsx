@@ -46,7 +46,7 @@ import { DashboardSettingsTab } from '../features/dashboard/components/Dashboard
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
 import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
 import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
-import { DashboardSimuladorTab } from '../features/dashboard/components/DashboardSimuladorTab';
+
 import {
   AnalyticsPeriodDays,
   CurrentPainterProfile,
@@ -1679,13 +1679,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         />
       );
       break;
-    case 'simulador':
-      content = (
-        <DashboardSimuladorTab
-          currentProfile={currentProfile}
-        />
-      );
-      break;
+
   }
 
   if (isCheckingAccess) {
