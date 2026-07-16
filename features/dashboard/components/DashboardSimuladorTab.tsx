@@ -284,56 +284,38 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         return null;
       };
 
-      const isCustomTexture = (textureType: string) => {
-        return textureType === 'cimento' || textureType === 'grafiato' || textureType === 'areia';
-      };
-
-      // Helper function to blend texture image and color, and draw inside the mask
-      const drawTextureMasked = (maskCanvas: HTMLCanvasElement, textureImg: HTMLImageElement, color: string) => {
-        let tempCanvas = patternCanvasRef.current;
-        if (!tempCanvas) {
-          tempCanvas = document.createElement('canvas');
-          patternCanvasRef.current = tempCanvas;
-        }
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-
-        tempCtx.clearRect(0, 0, img.width, img.height);
-        tempCtx.drawImage(textureImg, 0, 0, img.width, img.height);
-        tempCtx.globalCompositeOperation = 'multiply';
-        tempCtx.fillStyle = color;
-        tempCtx.fillRect(0, 0, img.width, img.height);
-        tempCtx.globalCompositeOperation = 'source-over';
-
+      // Helper function to blend original photo, texture image and paint color inside the mask
+      const drawTextureMasked = (maskCanvas: HTMLCanvasElement, textureImg: HTMLImageElement | null, color: string, textureType: string) => {
+        // 1. Desenha a máscara no offscreen canvas
         offCtx.clearRect(0, 0, img.width, img.height);
         offCtx.globalCompositeOperation = 'source-over';
         offCtx.drawImage(maskCanvas, 0, 0);
 
+        // 2. Desenha a foto original apenas onde a máscara está preenchida (source-in)
         offCtx.globalCompositeOperation = 'source-in';
-        offCtx.drawImage(tempCanvas, 0, 0);
+        offCtx.drawImage(img, 0, 0);
+
+        // 3. Aplica a cor e a textura por cima da foto recortada usando multiply
+        offCtx.globalCompositeOperation = 'multiply';
+        if (textureImg) {
+          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
+          offCtx.fillStyle = color;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        } else {
+          const patternOrColor = createTexturePattern(offCtx, textureType, img.width, img.height, color);
+          offCtx.fillStyle = patternOrColor;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        }
       };
 
       // 3. Renderiza cada parede salva
       layers.forEach(layer => {
         const textureImg = getTextureImage(layer.texture);
-        if (textureImg) {
-          drawTextureMasked(layer.maskCanvas, textureImg, layer.color);
-        } else {
-          offCtx.clearRect(0, 0, img.width, img.height);
-          offCtx.globalCompositeOperation = 'source-over';
-          offCtx.drawImage(layer.maskCanvas, 0, 0);
-          
-          offCtx.globalCompositeOperation = 'source-in';
-          const patternOrColor = createTexturePattern(offCtx, layer.texture, img.width, img.height, layer.color);
-          offCtx.fillStyle = patternOrColor;
-          offCtx.fillRect(0, 0, img.width, img.height);
-        }
+        drawTextureMasked(layer.maskCanvas, textureImg, layer.color, layer.texture);
 
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
-        ctx.globalCompositeOperation = (layer.texture === 'lisa' || isCustomTexture(layer.texture)) ? 'multiply' : 'overlay';
+        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       });
@@ -341,22 +323,11 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       // 4. Desenha o rascunho de pintura ativo
       if (!editingLayerId) {
         const textureImg = getTextureImage(selectedTexture);
-        if (textureImg) {
-          drawTextureMasked(draftCanvas, textureImg, selectedColor);
-        } else {
-          offCtx.clearRect(0, 0, img.width, img.height);
-          offCtx.globalCompositeOperation = 'source-over';
-          offCtx.drawImage(draftCanvas, 0, 0);
-          
-          offCtx.globalCompositeOperation = 'source-in';
-          const patternOrColor = createTexturePattern(offCtx, selectedTexture, img.width, img.height, selectedColor);
-          offCtx.fillStyle = patternOrColor;
-          offCtx.fillRect(0, 0, img.width, img.height);
-        }
+        drawTextureMasked(draftCanvas, textureImg, selectedColor, selectedTexture);
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
-        ctx.globalCompositeOperation = (selectedTexture === 'lisa' || isCustomTexture(selectedTexture)) ? 'multiply' : 'overlay';
+        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       }
