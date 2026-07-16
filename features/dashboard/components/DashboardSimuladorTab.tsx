@@ -1094,6 +1094,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                             onChange={(e) => setTolerance(Number(e.target.value))}
                             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#9A077B]"
                           />
+                          <p className="text-[7px] text-slate-400 leading-tight">
+                            * Diminua a sensibilidade se a pintura se espalhar para o teto ou móveis.
+                          </p>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-1">
