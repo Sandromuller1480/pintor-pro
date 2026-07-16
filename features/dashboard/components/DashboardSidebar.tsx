@@ -10,8 +10,7 @@ import {
   Star,
   Users,
   WalletCards,
-  X,
-  Paintbrush
+  X
 } from 'lucide-react';
 import { Logo } from '../../../components/Logo';
 import { CurrentPainterProfile, DashboardTab } from '../types';
