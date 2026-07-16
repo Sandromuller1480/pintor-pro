@@ -196,7 +196,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
       tempCanvas = document.createElement('canvas');
       patternCanvasRef.current = tempCanvas;
     }
-    const size = type === 'cimento' ? 512 : 120;
+    const size = 120;
     tempCanvas.width = size;
     tempCanvas.height = size;
     const tempCtx = tempCanvas.getContext('2d');
@@ -207,11 +207,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     tempCtx.fillRect(0, 0, size, size);
 
     if (type === 'cimento') {
-      if (cimentoImageObj) {
-        tempCtx.globalCompositeOperation = 'multiply';
-        tempCtx.drawImage(cimentoImageObj, 0, 0, size, size);
-        tempCtx.globalCompositeOperation = 'source-over';
-      }
+      // Já é tratado diretamente na renderização para cobrir a área total sem repetição
     } else if (type === 'grafiato') {
       // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de ranhuras no canvas
     } else if (type === 'areia') {
@@ -271,13 +267,20 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         offCtx.drawImage(layer.maskCanvas, 0, 0);
         
         offCtx.globalCompositeOperation = 'source-in';
-        const patternOrColor = createTexturePattern(offCtx, layer.texture, img.width, img.height, layer.color);
-        offCtx.fillStyle = patternOrColor;
-        offCtx.fillRect(0, 0, img.width, img.height);
+        if (layer.texture === 'cimento' && cimentoImageObj) {
+          offCtx.drawImage(cimentoImageObj, 0, 0, img.width, img.height);
+          offCtx.globalCompositeOperation = 'multiply';
+          offCtx.fillStyle = layer.color;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        } else {
+          const patternOrColor = createTexturePattern(offCtx, layer.texture, img.width, img.height, layer.color);
+          offCtx.fillStyle = patternOrColor;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        }
 
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
-        ctx.globalCompositeOperation = layer.texture !== 'lisa' ? 'overlay' : 'multiply';
+        ctx.globalCompositeOperation = (layer.texture === 'lisa' || layer.texture === 'cimento') ? 'multiply' : 'overlay';
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       });
@@ -289,13 +292,20 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         offCtx.drawImage(draftCanvas, 0, 0);
         
         offCtx.globalCompositeOperation = 'source-in';
-        const patternOrColor = createTexturePattern(offCtx, selectedTexture, img.width, img.height, selectedColor);
-        offCtx.fillStyle = patternOrColor;
-        offCtx.fillRect(0, 0, img.width, img.height);
+        if (selectedTexture === 'cimento' && cimentoImageObj) {
+          offCtx.drawImage(cimentoImageObj, 0, 0, img.width, img.height);
+          offCtx.globalCompositeOperation = 'multiply';
+          offCtx.fillStyle = selectedColor;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        } else {
+          const patternOrColor = createTexturePattern(offCtx, selectedTexture, img.width, img.height, selectedColor);
+          offCtx.fillStyle = patternOrColor;
+          offCtx.fillRect(0, 0, img.width, img.height);
+        }
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
-        ctx.globalCompositeOperation = selectedTexture !== 'lisa' ? 'overlay' : 'multiply';
+        ctx.globalCompositeOperation = (selectedTexture === 'lisa' || selectedTexture === 'cimento') ? 'multiply' : 'overlay';
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       }
