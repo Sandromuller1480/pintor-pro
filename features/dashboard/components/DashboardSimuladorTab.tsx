@@ -21,9 +21,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
-import cimentoEscuroImage from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
-import grafiatoEscuroImage from '../../../imagens/texturas/GRAFIATO COR ESCURA.png';
-import cabeloAnjoImage from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
+
 
 interface DashboardSimuladorTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -70,10 +68,7 @@ const PREMIUM_COLORS: ColorOption[] = [
 ];
 
 const TEXTURE_OPTIONS: TextureOption[] = [
-  { id: 'lisa', name: 'Pintura Lisa', description: 'Acabamento acrílico fosco padrão.' },
-  { id: 'cimento', name: 'Cimento Queimado', description: 'Efeito manchado contemporâneo.' },
-  { id: 'grafiato', name: 'Grafiato / Rústico', description: 'Ranhuras verticais marcadas.' },
-  { id: 'areia', name: 'Textura Cabelo de Anjo', description: 'Aspecto levemente granulado.' }
+  { id: 'lisa', name: 'Pintura Lisa', description: 'Acabamento acrílico fosco padrão.' }
 ];
 
 export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ currentProfile }) => {
@@ -89,9 +84,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [clientAddress, setClientAddress] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [cimentoImageObj, setCimentoImageObj] = useState<HTMLImageElement | null>(null);
-  const [grafiatoImageObj, setGrafiatoImageObj] = useState<HTMLImageElement | null>(null);
-  const [cabeloAnjoImageObj, setCabeloAnjoImageObj] = useState<HTMLImageElement | null>(null);
+
 
   // Estados de Zoom & Pan (Mover foto livremente)
   const [zoom, setZoom] = useState<number>(1.0);
@@ -134,26 +127,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const canvasRectRef = useRef<DOMRect | null>(null);
   const patternCacheRef = useRef<Map<string, CanvasPattern | string>>(new Map());
 
-  // Carrega as imagens das texturas ao montar o componente
-  useEffect(() => {
-    const imgCimento = new Image();
-    imgCimento.src = cimentoEscuroImage;
-    imgCimento.onload = () => {
-      setCimentoImageObj(imgCimento);
-    };
 
-    const imgGrafiato = new Image();
-    imgGrafiato.src = grafiatoEscuroImage;
-    imgGrafiato.onload = () => {
-      setGrafiatoImageObj(imgGrafiato);
-    };
-
-    const imgCabeloAnjo = new Image();
-    imgCabeloAnjo.src = cabeloAnjoImage;
-    imgCabeloAnjo.onload = () => {
-      setCabeloAnjoImageObj(imgCabeloAnjo);
-    };
-  }, []);
 
   // Limpa feedback após 4 segundos
   useEffect(() => {
@@ -192,12 +166,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [selectedColor, selectedTexture, opacity, editingLayerId]);
 
-  // Redesenha se mudar a ferramenta, zoom, pan, camadas ou as imagens de textura
+  // Redesenha se mudar a ferramenta, zoom, pan ou camadas
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [activeTool, layers, editingLayerId, zoom, panX, panY, cimentoImageObj, grafiatoImageObj, cabeloAnjoImageObj]);
+  }, [activeTool, layers, editingLayerId, zoom, panX, panY]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -221,14 +195,6 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     // Fundo da cor base
     tempCtx.fillStyle = colorHex;
     tempCtx.fillRect(0, 0, size, size);
-
-    if (type === 'cimento') {
-      // Já é tratado diretamente na renderização para cobrir a área total sem repetição
-    } else if (type === 'grafiato') {
-      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de ranhuras no canvas
-    } else if (type === 'areia') {
-      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de grânulos no canvas
-    }
 
     const pattern = ctx.createPattern(tempCanvas, 'repeat');
     return pattern || colorHex;
@@ -277,16 +243,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const offCtx = offscreen.getContext('2d');
 
     if (offCtx) {
-      // Helper function to check and get texture image
-      const getTextureImage = (textureType: string) => {
-        if (textureType === 'cimento') return cimentoImageObj;
-        if (textureType === 'grafiato') return grafiatoImageObj;
-        if (textureType === 'areia') return cabeloAnjoImageObj;
-        return null;
-      };
-
-      // Helper function to blend original photo, texture image and paint color inside the mask
-      const drawTextureMasked = (maskCanvas: HTMLCanvasElement, textureImg: HTMLImageElement | null, color: string, textureType: string) => {
+      // Helper function to blend original photo and paint color inside the mask
+      const drawTextureMasked = (maskCanvas: HTMLCanvasElement, color: string, textureType: string) => {
         let tempCanvas = patternCanvasRef.current;
         if (!tempCanvas) {
           tempCanvas = document.createElement('canvas');
@@ -302,17 +260,11 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         tempCtx.globalCompositeOperation = 'source-over';
         tempCtx.drawImage(img, 0, 0);
 
-        // 2. Aplica a cor e a textura por cima usando multiply
+        // 2. Aplica a cor de tinta por cima usando multiply
         tempCtx.globalCompositeOperation = 'multiply';
-        if (textureImg) {
-          tempCtx.drawImage(textureImg, 0, 0, img.width, img.height);
-          tempCtx.fillStyle = color;
-          tempCtx.fillRect(0, 0, img.width, img.height);
-        } else {
-          const patternOrColor = createTexturePattern(tempCtx, textureType, img.width, img.height, color);
-          tempCtx.fillStyle = patternOrColor;
-          tempCtx.fillRect(0, 0, img.width, img.height);
-        }
+        const patternOrColor = createTexturePattern(tempCtx, textureType, img.width, img.height, color);
+        tempCtx.fillStyle = patternOrColor;
+        tempCtx.fillRect(0, 0, img.width, img.height);
         tempCtx.globalCompositeOperation = 'source-over';
 
         // 3. Desenha a máscara no offscreen canvas
@@ -327,8 +279,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       // 3. Renderiza cada parede salva
       layers.forEach(layer => {
-        const textureImg = getTextureImage(layer.texture);
-        drawTextureMasked(layer.maskCanvas, textureImg, layer.color, layer.texture);
+        drawTextureMasked(layer.maskCanvas, layer.color, layer.texture);
 
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
@@ -339,8 +290,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       // 4. Desenha o rascunho de pintura ativo
       if (!editingLayerId) {
-        const textureImg = getTextureImage(selectedTexture);
-        drawTextureMasked(draftCanvas, textureImg, selectedColor, selectedTexture);
+        drawTextureMasked(draftCanvas, selectedColor, selectedTexture);
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
@@ -1144,16 +1094,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
                 <span className="text-[9px] font-black uppercase tracking-wider">Cores</span>
               </button>
 
-              {/* Grupo 3: Texturas */}
-              <button
-                onClick={() => setActiveGroupModal('textures')}
-                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
-                  activeGroupModal === 'textures' ? 'bg-[#9A077B]/10 text-[#9A077B]' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Sliders size={20} />
-                <span className="text-[9px] font-black uppercase tracking-wider">Texturas</span>
-              </button>
+
 
               {/* Grupo 4: Paredes (Lista de Camadas) */}
               <button
@@ -1328,42 +1269,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         </div>
       )}
 
-      {/* MODAL CENTRAL: TEXTURAS E EFEITOS */}
-      {activeGroupModal === 'textures' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 space-y-4 mx-4 relative animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-black text-[#000747] uppercase text-sm tracking-wider flex items-center gap-1.5">
-                <Sliders size={16} className="text-[#9A077B]" />
-                <span>Tipos de Textura / Efeitos</span>
-              </h3>
-              <button onClick={() => setActiveGroupModal(null)} className="text-slate-400 hover:text-slate-700">
-                <X size={20} />
-              </button>
-            </div>
 
-            <div className="space-y-2 py-2">
-              {TEXTURE_OPTIONS.map((texture) => {
-                const isSelected = selectedTexture === texture.id;
-                return (
-                  <button
-                    key={texture.id}
-                    onClick={() => {
-                      setSelectedTexture(texture.id);
-                    }}
-                    className={`w-full text-left p-3 rounded-xl border transition duration-200 flex flex-col gap-0.5 ${
-                      isSelected ? 'border-[#9A077B] bg-[#9A077B]/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide leading-none">{texture.name}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{texture.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL CENTRAL: LISTA DE PAREDES */}
       {activeGroupModal === 'layers' && (
