@@ -252,7 +252,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const px = panXRef.current;
     const py = panYRef.current;
 
-    // 1. Limpa tela geral
+    // 1. Limpa tela geral em estado limpo de composição
+    ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, width, height);
 
     // 2. Aplica matriz de transformação de zoom/pan para toda a renderização
@@ -286,26 +287,42 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       // Helper function to blend original photo, texture image and paint color inside the mask
       const drawTextureMasked = (maskCanvas: HTMLCanvasElement, textureImg: HTMLImageElement | null, color: string, textureType: string) => {
-        // 1. Desenha a máscara no offscreen canvas
+        let tempCanvas = patternCanvasRef.current;
+        if (!tempCanvas) {
+          tempCanvas = document.createElement('canvas');
+          patternCanvasRef.current = tempCanvas;
+        }
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+
+        // 1. Desenha a foto original no tempCanvas (totalmente opaca, evitando bug de transparência com multiply)
+        tempCtx.clearRect(0, 0, img.width, img.height);
+        tempCtx.globalCompositeOperation = 'source-over';
+        tempCtx.drawImage(img, 0, 0);
+
+        // 2. Aplica a cor e a textura por cima usando multiply
+        tempCtx.globalCompositeOperation = 'multiply';
+        if (textureImg) {
+          tempCtx.drawImage(textureImg, 0, 0, img.width, img.height);
+          tempCtx.fillStyle = color;
+          tempCtx.fillRect(0, 0, img.width, img.height);
+        } else {
+          const patternOrColor = createTexturePattern(tempCtx, textureType, img.width, img.height, color);
+          tempCtx.fillStyle = patternOrColor;
+          tempCtx.fillRect(0, 0, img.width, img.height);
+        }
+        tempCtx.globalCompositeOperation = 'source-over';
+
+        // 3. Desenha a máscara no offscreen canvas
         offCtx.clearRect(0, 0, img.width, img.height);
         offCtx.globalCompositeOperation = 'source-over';
         offCtx.drawImage(maskCanvas, 0, 0);
 
-        // 2. Desenha a foto original apenas onde a máscara está preenchida (source-in)
+        // 4. Copia a textura misturada recortando pela máscara (source-in)
         offCtx.globalCompositeOperation = 'source-in';
-        offCtx.drawImage(img, 0, 0);
-
-        // 3. Aplica a cor e a textura por cima da foto recortada usando multiply
-        offCtx.globalCompositeOperation = 'multiply';
-        if (textureImg) {
-          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
-          offCtx.fillStyle = color;
-          offCtx.fillRect(0, 0, img.width, img.height);
-        } else {
-          const patternOrColor = createTexturePattern(offCtx, textureType, img.width, img.height, color);
-          offCtx.fillStyle = patternOrColor;
-          offCtx.fillRect(0, 0, img.width, img.height);
-        }
+        offCtx.drawImage(tempCanvas, 0, 0);
       };
 
       // 3. Renderiza cada parede salva
@@ -315,7 +332,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
-        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros
+        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros de transparência
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       });
@@ -327,7 +344,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
-        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros
+        ctx.globalCompositeOperation = 'source-over'; // Desenha por cima da foto original sem erros de transparência
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       }
