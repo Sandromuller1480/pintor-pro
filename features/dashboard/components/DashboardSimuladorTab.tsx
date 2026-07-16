@@ -22,6 +22,8 @@ import {
 import { jsPDF } from 'jspdf';
 import type { CurrentPainterProfile } from '../types';
 import cimentoEscuroImage from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
+import grafiatoEscuroImage from '../../../imagens/texturas/GRAFIATO COR ESCURA.png';
+import cabeloAnjoImage from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
 
 interface DashboardSimuladorTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -88,6 +90,8 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [cimentoImageObj, setCimentoImageObj] = useState<HTMLImageElement | null>(null);
+  const [grafiatoImageObj, setGrafiatoImageObj] = useState<HTMLImageElement | null>(null);
+  const [cabeloAnjoImageObj, setCabeloAnjoImageObj] = useState<HTMLImageElement | null>(null);
 
   // Estados de Zoom & Pan (Mover foto livremente)
   const [zoom, setZoom] = useState<number>(1.0);
@@ -130,12 +134,24 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
   const canvasRectRef = useRef<DOMRect | null>(null);
   const patternCacheRef = useRef<Map<string, CanvasPattern | string>>(new Map());
 
-  // Carrega a imagem da textura de cimento queimado ao montar o componente
+  // Carrega as imagens das texturas ao montar o componente
   useEffect(() => {
-    const img = new Image();
-    img.src = cimentoEscuroImage;
-    img.onload = () => {
-      setCimentoImageObj(img);
+    const imgCimento = new Image();
+    imgCimento.src = cimentoEscuroImage;
+    imgCimento.onload = () => {
+      setCimentoImageObj(imgCimento);
+    };
+
+    const imgGrafiato = new Image();
+    imgGrafiato.src = grafiatoEscuroImage;
+    imgGrafiato.onload = () => {
+      setGrafiatoImageObj(imgGrafiato);
+    };
+
+    const imgCabeloAnjo = new Image();
+    imgCabeloAnjo.src = cabeloAnjoImage;
+    imgCabeloAnjo.onload = () => {
+      setCabeloAnjoImageObj(imgCabeloAnjo);
     };
   }, []);
 
@@ -176,12 +192,12 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     }
   }, [selectedColor, selectedTexture, opacity, editingLayerId]);
 
-  // Redesenha se mudar a ferramenta, zoom, pan, camadas ou a imagem da textura
+  // Redesenha se mudar a ferramenta, zoom, pan, camadas ou as imagens de textura
   useEffect(() => {
     if (imageSrc) {
       redrawCanvas();
     }
-  }, [activeTool, layers, editingLayerId, zoom, panX, panY, cimentoImageObj]);
+  }, [activeTool, layers, editingLayerId, zoom, panX, panY, cimentoImageObj, grafiatoImageObj, cabeloAnjoImageObj]);
 
   // Função para desenhar a textura no Canvas
   const createTexturePattern = (
@@ -260,6 +276,18 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     const offCtx = offscreen.getContext('2d');
 
     if (offCtx) {
+      // Helper function to check and get texture image
+      const getTextureImage = (textureType: string) => {
+        if (textureType === 'cimento') return cimentoImageObj;
+        if (textureType === 'grafiato') return grafiatoImageObj;
+        if (textureType === 'areia') return cabeloAnjoImageObj;
+        return null;
+      };
+
+      const isCustomTexture = (textureType: string) => {
+        return textureType === 'cimento' || textureType === 'grafiato' || textureType === 'areia';
+      };
+
       // 3. Renderiza cada parede salva
       layers.forEach(layer => {
         offCtx.clearRect(0, 0, img.width, img.height);
@@ -267,8 +295,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         offCtx.drawImage(layer.maskCanvas, 0, 0);
         
         offCtx.globalCompositeOperation = 'source-in';
-        if (layer.texture === 'cimento' && cimentoImageObj) {
-          offCtx.drawImage(cimentoImageObj, 0, 0, img.width, img.height);
+        const textureImg = getTextureImage(layer.texture);
+        if (textureImg) {
+          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
           offCtx.globalCompositeOperation = 'multiply';
           offCtx.fillStyle = layer.color;
           offCtx.fillRect(0, 0, img.width, img.height);
@@ -280,7 +309,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
-        ctx.globalCompositeOperation = (layer.texture === 'lisa' || layer.texture === 'cimento') ? 'multiply' : 'overlay';
+        ctx.globalCompositeOperation = (layer.texture === 'lisa' || isCustomTexture(layer.texture)) ? 'multiply' : 'overlay';
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       });
@@ -292,8 +321,9 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         offCtx.drawImage(draftCanvas, 0, 0);
         
         offCtx.globalCompositeOperation = 'source-in';
-        if (selectedTexture === 'cimento' && cimentoImageObj) {
-          offCtx.drawImage(cimentoImageObj, 0, 0, img.width, img.height);
+        const textureImg = getTextureImage(selectedTexture);
+        if (textureImg) {
+          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
           offCtx.globalCompositeOperation = 'multiply';
           offCtx.fillStyle = selectedColor;
           offCtx.fillRect(0, 0, img.width, img.height);
@@ -305,7 +335,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
         ctx.save();
         ctx.globalAlpha = opacity / 100;
-        ctx.globalCompositeOperation = (selectedTexture === 'lisa' || selectedTexture === 'cimento') ? 'multiply' : 'overlay';
+        ctx.globalCompositeOperation = (selectedTexture === 'lisa' || isCustomTexture(selectedTexture)) ? 'multiply' : 'overlay';
         ctx.drawImage(offscreen, 0, 0);
         ctx.restore();
       }
