@@ -70,7 +70,7 @@ const TEXTURE_OPTIONS: TextureOption[] = [
   { id: 'lisa', name: 'Pintura Lisa', description: 'Acabamento acrílico fosco padrão.' },
   { id: 'cimento', name: 'Cimento Queimado', description: 'Efeito manchado contemporâneo.' },
   { id: 'grafiato', name: 'Grafiato / Rústico', description: 'Ranhuras verticais marcadas.' },
-  { id: 'areia', name: 'Textura de Areia', description: 'Aspecto levemente granulado.' }
+  { id: 'areia', name: 'Textura Cabelo de Anjo', description: 'Aspecto levemente granulado.' }
 ];
 
 export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ currentProfile }) => {
@@ -199,18 +199,7 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
     } else if (type === 'grafiato') {
       // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de ranhuras no canvas
     } else if (type === 'areia') {
-      tempCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-      for (let i = 0; i < 180; i++) {
-        const x = Math.random() * 120;
-        const y = Math.random() * 120;
-        tempCtx.fillRect(x, y, 1, 1);
-      }
-      tempCtx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-      for (let i = 0; i < 120; i++) {
-        const x = Math.random() * 120;
-        const y = Math.random() * 120;
-        tempCtx.fillRect(x, y, 1, 1);
-      }
+      // Apenas mantém o card de seleção no simulador, sem aplicar efeito visual de grânulos no canvas
     }
 
     const pattern = ctx.createPattern(tempCanvas, 'repeat');
