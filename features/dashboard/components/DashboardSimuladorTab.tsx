@@ -288,20 +288,44 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
         return textureType === 'cimento' || textureType === 'grafiato' || textureType === 'areia';
       };
 
-      // 3. Renderiza cada parede salva
-      layers.forEach(layer => {
+      // Helper function to blend texture image and color, and draw inside the mask
+      const drawTextureMasked = (maskCanvas: HTMLCanvasElement, textureImg: HTMLImageElement, color: string) => {
+        let tempCanvas = patternCanvasRef.current;
+        if (!tempCanvas) {
+          tempCanvas = document.createElement('canvas');
+          patternCanvasRef.current = tempCanvas;
+        }
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return;
+
+        tempCtx.clearRect(0, 0, img.width, img.height);
+        tempCtx.drawImage(textureImg, 0, 0, img.width, img.height);
+        tempCtx.globalCompositeOperation = 'multiply';
+        tempCtx.fillStyle = color;
+        tempCtx.fillRect(0, 0, img.width, img.height);
+        tempCtx.globalCompositeOperation = 'source-over';
+
         offCtx.clearRect(0, 0, img.width, img.height);
         offCtx.globalCompositeOperation = 'source-over';
-        offCtx.drawImage(layer.maskCanvas, 0, 0);
-        
+        offCtx.drawImage(maskCanvas, 0, 0);
+
         offCtx.globalCompositeOperation = 'source-in';
+        offCtx.drawImage(tempCanvas, 0, 0);
+      };
+
+      // 3. Renderiza cada parede salva
+      layers.forEach(layer => {
         const textureImg = getTextureImage(layer.texture);
         if (textureImg) {
-          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
-          offCtx.globalCompositeOperation = 'multiply';
-          offCtx.fillStyle = layer.color;
-          offCtx.fillRect(0, 0, img.width, img.height);
+          drawTextureMasked(layer.maskCanvas, textureImg, layer.color);
         } else {
+          offCtx.clearRect(0, 0, img.width, img.height);
+          offCtx.globalCompositeOperation = 'source-over';
+          offCtx.drawImage(layer.maskCanvas, 0, 0);
+          
+          offCtx.globalCompositeOperation = 'source-in';
           const patternOrColor = createTexturePattern(offCtx, layer.texture, img.width, img.height, layer.color);
           offCtx.fillStyle = patternOrColor;
           offCtx.fillRect(0, 0, img.width, img.height);
@@ -316,18 +340,15 @@ export const DashboardSimuladorTab: React.FC<DashboardSimuladorTabProps> = ({ cu
 
       // 4. Desenha o rascunho de pintura ativo
       if (!editingLayerId) {
-        offCtx.clearRect(0, 0, img.width, img.height);
-        offCtx.globalCompositeOperation = 'source-over';
-        offCtx.drawImage(draftCanvas, 0, 0);
-        
-        offCtx.globalCompositeOperation = 'source-in';
         const textureImg = getTextureImage(selectedTexture);
         if (textureImg) {
-          offCtx.drawImage(textureImg, 0, 0, img.width, img.height);
-          offCtx.globalCompositeOperation = 'multiply';
-          offCtx.fillStyle = selectedColor;
-          offCtx.fillRect(0, 0, img.width, img.height);
+          drawTextureMasked(draftCanvas, textureImg, selectedColor);
         } else {
+          offCtx.clearRect(0, 0, img.width, img.height);
+          offCtx.globalCompositeOperation = 'source-over';
+          offCtx.drawImage(draftCanvas, 0, 0);
+          
+          offCtx.globalCompositeOperation = 'source-in';
           const patternOrColor = createTexturePattern(offCtx, selectedTexture, img.width, img.height, selectedColor);
           offCtx.fillStyle = patternOrColor;
           offCtx.fillRect(0, 0, img.width, img.height);
