@@ -489,14 +489,6 @@ export const DashboardWallColorTab: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#000747] px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5"
-          >
-            <Upload size={18} />
-            Escolher foto
-          </button>
-          <button
-            type="button"
             onClick={saveImage}
             disabled={!hasImage}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
@@ -509,7 +501,6 @@ export const DashboardWallColorTab: React.FC = () => {
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -555,15 +546,19 @@ export const DashboardWallColorTab: React.FC = () => {
                 </div>
               )}
               {!hasImage && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center transition hover:bg-white/[0.03] focus:outline-none focus:ring-2 focus:ring-white/40"
+                >
+                  <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-slate-500 hover:text-white">
                     <Upload size={26} />
-                  </div>
-                  <p className="text-lg font-black uppercase tracking-wide text-white">Adicione uma foto do ambiente</p>
-                  <p className="mt-2 max-w-md text-sm font-semibold text-slate-400">
+                  </span>
+                  <span className="text-lg font-black uppercase tracking-wide text-white">Adicione uma foto do ambiente</span>
+                  <span className="mt-2 max-w-md text-sm font-semibold text-slate-400">
                     Depois marque a parede com o pincel e escolha a cor.
-                  </p>
-                </div>
+                  </span>
+                </button>
               )}
             </div>
           </div>
