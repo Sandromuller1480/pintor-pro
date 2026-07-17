@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Download, Eraser, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
 
 type ToolMode = 'brush' | 'eraser';
+type CursorPreview = {
+  x: number;
+  y: number;
+  diameter: number;
+  visible: boolean;
+};
 
 const DEFAULT_COLOR = '#c8a070';
 const MAX_CANVAS_SIDE = 1200;
@@ -37,6 +43,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const isDrawingRef = useRef(false);
+  const displayScaleRef = useRef(1);
   const [hasImage, setHasImage] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>('brush');
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
@@ -44,6 +51,12 @@ export const DashboardWallColorTab: React.FC = () => {
   const [strength, setStrength] = useState(72);
   const [showMask, setShowMask] = useState(true);
   const [feedback, setFeedback] = useState('');
+  const [cursorPreview, setCursorPreview] = useState<CursorPreview>({
+    x: 0,
+    y: 0,
+    diameter: brushSize,
+    visible: false
+  });
 
   const renderPreview = () => {
     const visibleCanvas = visibleCanvasRef.current;
@@ -113,6 +126,13 @@ export const DashboardWallColorTab: React.FC = () => {
   useEffect(() => {
     renderPreview();
   }, [selectedColor, strength, showMask, hasImage]);
+
+  useEffect(() => {
+    setCursorPreview((currentPreview) => ({
+      ...currentPreview,
+      diameter: brushSize * displayScaleRef.current
+    }));
+  }, [brushSize]);
 
   const loadImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -209,12 +229,34 @@ export const DashboardWallColorTab: React.FC = () => {
     renderPreview();
   };
 
+  const updateCursorPreview = (
+    canvas: HTMLCanvasElement,
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    if (!hasImage) {
+      setCursorPreview((currentPreview) => ({ ...currentPreview, visible: false }));
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const displayScale = rect.width / canvas.width;
+    displayScaleRef.current = displayScale;
+
+    setCursorPreview({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      diameter: brushSize * displayScale,
+      visible: true
+    });
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!hasImage || !visibleCanvasRef.current) {
       return;
     }
 
     event.currentTarget.setPointerCapture(event.pointerId);
+    updateCursorPreview(event.currentTarget, event);
     const point = getCanvasPoint(event.currentTarget, event);
     isDrawingRef.current = true;
     lastPointRef.current = point;
@@ -222,6 +264,8 @@ export const DashboardWallColorTab: React.FC = () => {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    updateCursorPreview(event.currentTarget, event);
+
     if (!isDrawingRef.current || !hasImage) {
       return;
     }
@@ -234,6 +278,11 @@ export const DashboardWallColorTab: React.FC = () => {
   const stopDrawing = () => {
     isDrawingRef.current = false;
     lastPointRef.current = null;
+  };
+
+  const hideCursorPreview = () => {
+    stopDrawing();
+    setCursorPreview((currentPreview) => ({ ...currentPreview, visible: false }));
   };
 
   const clearMask = () => {
@@ -304,13 +353,32 @@ export const DashboardWallColorTab: React.FC = () => {
             <div className="relative w-full max-w-5xl overflow-hidden rounded-xl bg-slate-950">
               <canvas
                 ref={visibleCanvasRef}
-                className={`block h-auto w-full touch-none ${hasImage ? 'cursor-crosshair' : 'min-h-[24rem]'}`}
+                className={`block h-auto w-full touch-none ${hasImage ? 'cursor-none' : 'min-h-[24rem]'}`}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={stopDrawing}
                 onPointerCancel={stopDrawing}
-                onPointerLeave={stopDrawing}
+                onPointerLeave={hideCursorPreview}
               />
+              {hasImage && cursorPreview.visible && (
+                <div
+                  className={`pointer-events-none absolute rounded-full border-2 shadow-[0_0_0_1px_rgba(15,23,42,0.35),0_0_22px_rgba(255,255,255,0.45)] ${
+                    toolMode === 'eraser'
+                      ? 'border-white bg-white/10'
+                      : 'border-white'
+                  }`}
+                  style={{
+                    left: cursorPreview.x,
+                    top: cursorPreview.y,
+                    width: cursorPreview.diameter,
+                    height: cursorPreview.diameter,
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: toolMode === 'brush' ? `${selectedColor}26` : undefined
+                  }}
+                >
+                  <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
+                </div>
+              )}
               {!hasImage && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300">
