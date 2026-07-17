@@ -46,6 +46,7 @@ import { DashboardSettingsTab } from '../features/dashboard/components/Dashboard
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
 import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
 import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
+import { DashboardWallColorTab } from '../features/dashboard/components/DashboardWallColorTab';
 
 import {
   AnalyticsPeriodDays,
@@ -1666,6 +1667,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           onDeleteVisit={(visitId) => handleVisitDeleted(visitId)}
         />
       );
+      break;
+    case 'colorir-parede':
+      content = <DashboardWallColorTab />;
       break;
     case 'config':
       content = (

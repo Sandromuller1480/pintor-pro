@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Paintbrush,
   Settings,
   Star,
   Users,
@@ -39,6 +40,7 @@ const NAV_ITEMS: Array<{
   { id: 'financeiro', label: 'Controle Financeiro', icon: WalletCards },
   { id: 'equipe', label: 'Gestão de Equipe', icon: Users },
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+  { id: 'colorir-parede', label: 'Colorir Parede', icon: Paintbrush },
   { id: 'config', label: 'Configurações', icon: Settings }
 ];
 
