@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, Eraser, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
+import { Download, Eraser, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
 
-type ToolMode = 'brush' | 'eraser';
+type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
+type CanvasPoint = { x: number; y: number };
 type CursorPreview = {
   x: number;
   y: number;
@@ -41,13 +42,15 @@ export const DashboardWallColorTab: React.FC = () => {
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPointRef = useRef<CanvasPoint | null>(null);
+  const shapeStartPointRef = useRef<CanvasPoint | null>(null);
   const isDrawingRef = useRef(false);
   const displayScaleRef = useRef(1);
   const [hasImage, setHasImage] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>('brush');
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [brushSize, setBrushSize] = useState(42);
+  const [curveBend, setCurveBend] = useState(35);
   const [strength, setStrength] = useState(72);
   const [showMask, setShowMask] = useState(true);
   const [feedback, setFeedback] = useState('');
@@ -193,8 +196,8 @@ export const DashboardWallColorTab: React.FC = () => {
   };
 
   const drawPoint = (
-    point: { x: number; y: number },
-    previousPoint: { x: number; y: number } | null
+    point: CanvasPoint,
+    previousPoint: CanvasPoint | null
   ) => {
     const maskCanvas = maskCanvasRef.current;
 
@@ -229,6 +232,86 @@ export const DashboardWallColorTab: React.FC = () => {
     renderPreview();
   };
 
+  const getCurveControlPoint = (startPoint: CanvasPoint, endPoint: CanvasPoint) => {
+    const middleX = (startPoint.x + endPoint.x) / 2;
+    const middleY = (startPoint.y + endPoint.y) / 2;
+    const deltaX = endPoint.x - startPoint.x;
+    const deltaY = endPoint.y - startPoint.y;
+    const length = Math.hypot(deltaX, deltaY) || 1;
+    const bendOffset = length * (curveBend / 100);
+
+    return {
+      x: middleX - (deltaY / length) * bendOffset,
+      y: middleY + (deltaX / length) * bendOffset
+    };
+  };
+
+  const traceShapePath = (
+    context: CanvasRenderingContext2D,
+    startPoint: CanvasPoint,
+    endPoint: CanvasPoint,
+    mode: Extract<ToolMode, 'line' | 'curve'>
+  ) => {
+    context.beginPath();
+    context.moveTo(startPoint.x, startPoint.y);
+
+    if (mode === 'curve') {
+      const controlPoint = getCurveControlPoint(startPoint, endPoint);
+      context.quadraticCurveTo(controlPoint.x, controlPoint.y, endPoint.x, endPoint.y);
+    } else {
+      context.lineTo(endPoint.x, endPoint.y);
+    }
+
+    context.stroke();
+  };
+
+  const commitShapeToMask = (
+    startPoint: CanvasPoint,
+    endPoint: CanvasPoint,
+    mode: Extract<ToolMode, 'line' | 'curve'>
+  ) => {
+    const maskCanvas = maskCanvasRef.current;
+    const context = maskCanvas?.getContext('2d');
+
+    if (!maskCanvas || !context) {
+      return;
+    }
+
+    context.save();
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = brushSize;
+    context.globalCompositeOperation = 'source-over';
+    context.strokeStyle = 'rgba(255,255,255,1)';
+    traceShapePath(context, startPoint, endPoint, mode);
+    context.restore();
+    renderPreview();
+  };
+
+  const drawShapePreview = (
+    startPoint: CanvasPoint,
+    endPoint: CanvasPoint,
+    mode: Extract<ToolMode, 'line' | 'curve'>
+  ) => {
+    const visibleCanvas = visibleCanvasRef.current;
+    const context = visibleCanvas?.getContext('2d');
+
+    if (!visibleCanvas || !context) {
+      return;
+    }
+
+    renderPreview();
+    context.save();
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = brushSize;
+    context.globalAlpha = 0.9;
+    context.strokeStyle = selectedColor;
+    context.setLineDash([Math.max(10, brushSize * 0.6), Math.max(8, brushSize * 0.35)]);
+    traceShapePath(context, startPoint, endPoint, mode);
+    context.restore();
+  };
+
   const updateCursorPreview = (
     canvas: HTMLCanvasElement,
     event: React.PointerEvent<HTMLCanvasElement>
@@ -260,7 +343,14 @@ export const DashboardWallColorTab: React.FC = () => {
     const point = getCanvasPoint(event.currentTarget, event);
     isDrawingRef.current = true;
     lastPointRef.current = point;
-    drawPoint(point, null);
+    shapeStartPointRef.current = point;
+
+    if (toolMode === 'brush' || toolMode === 'eraser') {
+      drawPoint(point, null);
+      return;
+    }
+
+    drawShapePreview(point, point, toolMode);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -271,13 +361,39 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     const point = getCanvasPoint(event.currentTarget, event);
-    drawPoint(point, lastPointRef.current);
+    const previousPoint = lastPointRef.current;
+
+    if (toolMode === 'brush' || toolMode === 'eraser') {
+      drawPoint(point, previousPoint);
+      lastPointRef.current = point;
+      return;
+    }
+
     lastPointRef.current = point;
+
+    if (shapeStartPointRef.current) {
+      drawShapePreview(shapeStartPointRef.current, point, toolMode);
+    }
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (
+      isDrawingRef.current
+      && hasImage
+      && shapeStartPointRef.current
+      && (toolMode === 'line' || toolMode === 'curve')
+    ) {
+      const point = getCanvasPoint(event.currentTarget, event);
+      commitShapeToMask(shapeStartPointRef.current, point, toolMode);
+    }
+
+    stopDrawing();
   };
 
   const stopDrawing = () => {
     isDrawingRef.current = false;
     lastPointRef.current = null;
+    shapeStartPointRef.current = null;
   };
 
   const hideCursorPreview = () => {
@@ -356,7 +472,7 @@ export const DashboardWallColorTab: React.FC = () => {
                 className={`block h-auto w-full touch-none ${hasImage ? 'cursor-none' : 'min-h-[24rem]'}`}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
-                onPointerUp={stopDrawing}
+                onPointerUp={handlePointerUp}
                 onPointerCancel={stopDrawing}
                 onPointerLeave={hideCursorPreview}
               />
@@ -373,7 +489,7 @@ export const DashboardWallColorTab: React.FC = () => {
                     width: cursorPreview.diameter,
                     height: cursorPreview.diameter,
                     transform: 'translate(-50%, -50%)',
-                    backgroundColor: toolMode === 'brush' ? `${selectedColor}26` : undefined
+                    backgroundColor: toolMode !== 'eraser' ? `${selectedColor}26` : undefined
                   }}
                 >
                   <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
@@ -430,6 +546,30 @@ export const DashboardWallColorTab: React.FC = () => {
                 <Eraser size={17} />
                 Borracha
               </button>
+              <button
+                type="button"
+                onClick={() => setToolMode('line')}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                  toolMode === 'line'
+                    ? 'bg-[#9A077B] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Minus size={17} />
+                Reta
+              </button>
+              <button
+                type="button"
+                onClick={() => setToolMode('curve')}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                  toolMode === 'curve'
+                    ? 'bg-[#9A077B] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Paintbrush size={17} />
+                Curva
+              </button>
             </div>
           </div>
 
@@ -472,6 +612,22 @@ export const DashboardWallColorTab: React.FC = () => {
                 className="w-full accent-[#9A077B]"
               />
             </label>
+            {toolMode === 'curve' && (
+              <label className="block">
+                <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                  <span>Curvatura</span>
+                  <span>{curveBend > 0 ? `+${curveBend}` : curveBend}</span>
+                </span>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={curveBend}
+                  onChange={(event) => setCurveBend(Number(event.target.value))}
+                  className="w-full accent-[#9A077B]"
+                />
+              </label>
+            )}
             <label className="block">
               <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
                 <span>Intensidade</span>
