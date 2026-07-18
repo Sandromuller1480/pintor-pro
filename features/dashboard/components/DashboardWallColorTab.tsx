@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 
-type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
+type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve';
+type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
 type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
@@ -455,7 +456,7 @@ export const DashboardWallColorTab: React.FC = () => {
     context: CanvasRenderingContext2D,
     startPoint: CanvasPoint,
     endPoint: CanvasPoint,
-    mode: Extract<ToolMode, 'line' | 'curve'>
+    mode: ShapeToolMode
   ) => {
     context.beginPath();
     context.moveTo(startPoint.x, startPoint.y);
@@ -473,7 +474,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const commitShapeToMask = (
     startPoint: CanvasPoint,
     endPoint: CanvasPoint,
-    mode: Extract<ToolMode, 'line' | 'curve'>
+    mode: ShapeToolMode
   ) => {
     const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current);
     const context = maskCanvas?.getContext('2d');
@@ -486,8 +487,8 @@ export const DashboardWallColorTab: React.FC = () => {
     context.lineCap = 'round';
     context.lineJoin = 'round';
     context.lineWidth = brushSize;
-    context.globalCompositeOperation = 'source-over';
-    context.strokeStyle = 'rgba(255,255,255,1)';
+    context.globalCompositeOperation = mode === 'eraser-line' ? 'destination-out' : 'source-over';
+    context.strokeStyle = mode === 'eraser-line' ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
     traceShapePath(context, startPoint, endPoint, mode);
     context.restore();
     renderPreview();
@@ -496,7 +497,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const drawShapePreview = (
     startPoint: CanvasPoint,
     endPoint: CanvasPoint,
-    mode: Extract<ToolMode, 'line' | 'curve'>
+    mode: ShapeToolMode
   ) => {
     const visibleCanvas = visibleCanvasRef.current;
     const context = visibleCanvas?.getContext('2d');
@@ -511,7 +512,7 @@ export const DashboardWallColorTab: React.FC = () => {
     context.lineJoin = 'round';
     context.lineWidth = brushSize;
     context.globalAlpha = 0.9;
-    context.strokeStyle = selectedColor;
+    context.strokeStyle = mode === 'eraser-line' ? 'rgba(255,255,255,0.95)' : selectedColor;
     context.setLineDash([Math.max(10, brushSize * 0.6), Math.max(8, brushSize * 0.35)]);
     traceShapePath(context, startPoint, endPoint, mode);
     context.restore();
@@ -606,7 +607,7 @@ export const DashboardWallColorTab: React.FC = () => {
       return;
     }
 
-    if (toolMode === 'line' || toolMode === 'curve') {
+    if (toolMode === 'line' || toolMode === 'curve' || toolMode === 'eraser-line') {
       drawShapePreview(point, point, toolMode);
     }
   };
@@ -670,7 +671,7 @@ export const DashboardWallColorTab: React.FC = () => {
 
     lastPointRef.current = point;
 
-    if (shapeStartPointRef.current && (toolMode === 'line' || toolMode === 'curve')) {
+    if (shapeStartPointRef.current && (toolMode === 'line' || toolMode === 'curve' || toolMode === 'eraser-line')) {
       drawShapePreview(shapeStartPointRef.current, point, toolMode);
     }
   };
@@ -715,7 +716,7 @@ export const DashboardWallColorTab: React.FC = () => {
       isDrawingRef.current
       && hasImage
       && shapeStartPointRef.current
-      && (toolMode === 'line' || toolMode === 'curve')
+      && (toolMode === 'line' || toolMode === 'curve' || toolMode === 'eraser-line')
     ) {
       const point = getCanvasPoint(event.currentTarget, event);
       commitShapeToMask(shapeStartPointRef.current, point, toolMode);
@@ -949,7 +950,7 @@ export const DashboardWallColorTab: React.FC = () => {
               {hasImage && cursorPreview.visible && (
                 <div
                   className={`pointer-events-none absolute rounded-full border-2 shadow-[0_0_0_1px_rgba(15,23,42,0.35),0_0_22px_rgba(255,255,255,0.45)] ${
-                    toolMode === 'eraser'
+                    toolMode === 'eraser' || toolMode === 'eraser-line'
                       ? 'border-white bg-white/10'
                       : 'border-white'
                   }`}
@@ -959,7 +960,7 @@ export const DashboardWallColorTab: React.FC = () => {
                     width: cursorPreview.diameter,
                     height: cursorPreview.diameter,
                     transform: 'translate(-50%, -50%)',
-                    backgroundColor: toolMode !== 'eraser' ? `${selectedColor}26` : undefined
+                    backgroundColor: toolMode !== 'eraser' && toolMode !== 'eraser-line' ? `${selectedColor}26` : undefined
                   }}
                 >
                   <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
@@ -1284,6 +1285,18 @@ export const DashboardWallColorTab: React.FC = () => {
                   >
                     <Eraser size={17} />
                     Borracha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleToolMode('eraser-line')}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                      toolMode === 'eraser-line'
+                        ? 'bg-[#9A077B] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Minus size={17} />
+                    Borracha reta
                   </button>
                   <button
                     type="button"
