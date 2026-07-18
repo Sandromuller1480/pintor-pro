@@ -6,6 +6,8 @@ type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
 type ActivePointer = { x: number; y: number; type: string };
+type RgbColor = { r: number; g: number; b: number };
+type HsvColor = { h: number; s: number; v: number };
 type WallPaint = {
   id: string;
   name: string;
@@ -37,6 +39,76 @@ function hexToRgb(hex: string) {
   };
 }
 
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function rgbToHex({ r, g, b }: RgbColor) {
+  return `#${[r, g, b].map((value) => clampNumber(Math.round(value), 0, 255).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function hsvToRgb({ h, s, v }: HsvColor): RgbColor {
+  const chroma = v * s;
+  const huePrime = h / 60;
+  const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+  const match = v - chroma;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (huePrime >= 0 && huePrime < 1) {
+    red = chroma;
+    green = x;
+  } else if (huePrime >= 1 && huePrime < 2) {
+    red = x;
+    green = chroma;
+  } else if (huePrime >= 2 && huePrime < 3) {
+    green = chroma;
+    blue = x;
+  } else if (huePrime >= 3 && huePrime < 4) {
+    green = x;
+    blue = chroma;
+  } else if (huePrime >= 4 && huePrime < 5) {
+    red = x;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = x;
+  }
+
+  return {
+    r: Math.round((red + match) * 255),
+    g: Math.round((green + match) * 255),
+    b: Math.round((blue + match) * 255)
+  };
+}
+
+function rgbToHsv({ r, g, b }: RgbColor): HsvColor {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (max === red) {
+      hue = 60 * (((green - blue) / delta) % 6);
+    } else if (max === green) {
+      hue = 60 * ((blue - red) / delta + 2);
+    } else {
+      hue = 60 * ((red - green) / delta + 4);
+    }
+  }
+
+  return {
+    h: hue < 0 ? hue + 360 : hue,
+    s: max === 0 ? 0 : delta / max,
+    v: max
+  };
+}
+
 function getCanvasPoint(canvas: HTMLCanvasElement, event: React.PointerEvent<HTMLCanvasElement>) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
@@ -52,6 +124,8 @@ export const DashboardWallColorTab: React.FC = () => {
   const visibleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const colorAreaRef = useRef<HTMLDivElement | null>(null);
+  const hueSliderRef = useRef<HTMLDivElement | null>(null);
   const lastPointRef = useRef<CanvasPoint | null>(null);
   const shapeStartPointRef = useRef<CanvasPoint | null>(null);
   const panStartPointRef = useRef<PanPoint | null>(null);
@@ -74,6 +148,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const [activeWallId, setActiveWallId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<EditorModal>(null);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
+  const [colorPicker, setColorPicker] = useState<HsvColor>(() => rgbToHsv(hexToRgb(DEFAULT_COLOR)));
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
   const [strength, setStrength] = useState(72);
@@ -657,6 +732,7 @@ export const DashboardWallColorTab: React.FC = () => {
     activeWallIdRef.current = wall.id;
     setActiveWallId(wall.id);
     setSelectedColor(wall.color);
+    setColorPicker(rgbToHsv(hexToRgb(wall.color)));
     setStrength(wall.strength);
     renderPreview();
   };
@@ -684,6 +760,7 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const updateSelectedColor = (nextColor: string) => {
     setSelectedColor(nextColor);
+    setColorPicker(rgbToHsv(hexToRgb(nextColor)));
 
     if (activeWallIdRef.current) {
       wallsRef.current = wallsRef.current.map((wall) => (
@@ -691,6 +768,52 @@ export const DashboardWallColorTab: React.FC = () => {
       ));
       setWalls(wallsRef.current);
     }
+  };
+
+  const updateColorFromHsv = (nextColorPicker: HsvColor) => {
+    const normalizedColorPicker = {
+      h: clampNumber(nextColorPicker.h, 0, 359.999),
+      s: clampNumber(nextColorPicker.s, 0, 1),
+      v: clampNumber(nextColorPicker.v, 0, 1)
+    };
+
+    setColorPicker(normalizedColorPicker);
+    updateSelectedColor(rgbToHex(hsvToRgb(normalizedColorPicker)));
+  };
+
+  const updateColorFromRgb = (channel: keyof RgbColor, value: number) => {
+    const currentRgb = hexToRgb(selectedColor);
+    const nextRgb = {
+      ...currentRgb,
+      [channel]: clampNumber(Number.isFinite(value) ? value : 0, 0, 255)
+    };
+
+    updateSelectedColor(rgbToHex(nextRgb));
+  };
+
+  const updateColorFromAreaPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = colorAreaRef.current?.getBoundingClientRect();
+
+    if (!rect) {
+      return;
+    }
+
+    const saturation = clampNumber((event.clientX - rect.left) / rect.width, 0, 1);
+    const value = clampNumber(1 - ((event.clientY - rect.top) / rect.height), 0, 1);
+    updateColorFromHsv({ ...colorPicker, s: saturation, v: value });
+  };
+
+  const updateColorFromHuePointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = hueSliderRef.current?.getBoundingClientRect();
+
+    if (!rect) {
+      return;
+    }
+
+    updateColorFromHsv({
+      ...colorPicker,
+      h: clampNumber(((event.clientX - rect.left) / rect.width) * 360, 0, 359.999)
+    });
   };
 
   const updateStrength = (nextStrength: number) => {
@@ -756,6 +879,7 @@ export const DashboardWallColorTab: React.FC = () => {
   };
 
   const activeWall = walls.find((wall) => wall.id === activeWallId) ?? null;
+  const selectedRgb = hexToRgb(selectedColor);
 
   return (
     <section className="space-y-6">
@@ -1156,19 +1280,95 @@ export const DashboardWallColorTab: React.FC = () => {
                   <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">
                     Cor da tinta
                   </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={selectedColor}
-                      onChange={(event) => updateSelectedColor(event.target.value)}
-                      className="h-12 w-16 cursor-pointer rounded-xl border border-slate-200 bg-white p-1"
-                    />
-                    <input
-                      type="text"
-                      value={selectedColor.toUpperCase()}
-                      onChange={(event) => updateSelectedColor(event.target.value)}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
-                    />
+                  <div className="space-y-3">
+                    <div
+                      ref={colorAreaRef}
+                      className="relative h-44 touch-none overflow-hidden rounded-xl border border-slate-200"
+                      style={{
+                        backgroundColor: `hsl(${colorPicker.h}, 100%, 50%)`,
+                        backgroundImage: 'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)'
+                      }}
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        updateColorFromAreaPointer(event);
+                      }}
+                      onPointerMove={(event) => {
+                        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                          updateColorFromAreaPointer(event);
+                        }
+                      }}
+                    >
+                      <span
+                        className="pointer-events-none absolute h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.55)]"
+                        style={{
+                          left: `${colorPicker.s * 100}%`,
+                          top: `${(1 - colorPicker.v) * 100}%`,
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                    </div>
+                    <div
+                      ref={hueSliderRef}
+                      className="relative h-4 touch-none rounded-full border border-slate-200"
+                      style={{
+                        background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
+                      }}
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        updateColorFromHuePointer(event);
+                      }}
+                      onPointerMove={(event) => {
+                        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                          updateColorFromHuePointer(event);
+                        }
+                      }}
+                    >
+                      <span
+                        className="pointer-events-none absolute top-1/2 h-6 w-6 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.45)]"
+                        style={{
+                          left: `${(colorPicker.h / 360) * 100}%`,
+                          backgroundColor: `hsl(${colorPicker.h}, 100%, 50%)`,
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="h-10 w-10 shrink-0 rounded-full border border-slate-200 shadow-sm"
+                        style={{ backgroundColor: selectedColor }}
+                      />
+                      <input
+                        type="text"
+                        value={selectedColor.toUpperCase()}
+                        onChange={(event) => {
+                          const nextValue = event.target.value.trim();
+
+                          if (/^#[0-9a-fA-F]{6}$/.test(nextValue)) {
+                            updateSelectedColor(nextValue);
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
+                        aria-label="Cor em hexadecimal"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['r', 'g', 'b'] as const).map((channel) => (
+                        <label key={channel} className="block text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="255"
+                            value={selectedRgb[channel]}
+                            onChange={(event) => updateColorFromRgb(channel, Number(event.target.value))}
+                            className="w-full rounded-xl border border-slate-200 px-2 py-2 text-center text-sm font-bold text-slate-700 outline-[#9A077B]"
+                            aria-label={channel.toUpperCase()}
+                          />
+                          <span className="mt-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            {channel.toUpperCase()}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
