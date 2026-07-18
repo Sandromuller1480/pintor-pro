@@ -764,17 +764,6 @@ export const DashboardWallColorTab: React.FC = () => {
           <p className="text-xs font-black uppercase tracking-widest text-[#9A077B]">Colorir parede</p>
           <h1 className="mt-1 text-2xl font-black text-[#000747]">Teste cores em uma foto real</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={saveImage}
-            disabled={!hasImage}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download size={18} />
-            Salvar
-          </button>
-        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -847,6 +836,15 @@ export const DashboardWallColorTab: React.FC = () => {
           )}
           {hasImage && (
             <div className="flex items-center justify-center gap-3 border-t border-slate-200 bg-white px-5 py-3">
+              <button
+                type="button"
+                onClick={saveImage}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
+                aria-label="Salvar"
+                title="Salvar"
+              >
+                <Download size={20} />
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveModal('tools')}
