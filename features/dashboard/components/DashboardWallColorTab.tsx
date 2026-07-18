@@ -13,6 +13,8 @@ type WallPaint = {
   name: string;
   color: string;
   strength: number;
+  blendMode: number;
+  opacity: number;
 };
 type CursorPreview = {
   x: number;
@@ -25,6 +27,8 @@ const DEFAULT_COLOR = '#c8a070';
 const MAX_CANVAS_SIDE = 1200;
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
+const DEFAULT_BLEND_MODE = 100;
+const DEFAULT_OPACITY = 100;
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');
@@ -152,6 +156,8 @@ export const DashboardWallColorTab: React.FC = () => {
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
   const [strength, setStrength] = useState(72);
+  const [blendMode, setBlendMode] = useState(DEFAULT_BLEND_MODE);
+  const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<PanPoint>({ x: 0, y: 0 });
   const [showMask, setShowMask] = useState(true);
@@ -191,7 +197,9 @@ export const DashboardWallColorTab: React.FC = () => {
       id: wallId,
       name: `Parede ${String(nextSequence).padStart(2, '0')}`,
       color: selectedColor,
-      strength
+      strength,
+      blendMode,
+      opacity
     };
 
     wallSequenceRef.current = nextSequence;
@@ -274,9 +282,11 @@ export const DashboardWallColorTab: React.FC = () => {
       const maskImageData = maskContext.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
       const color = hexToRgb(wall.color);
       const normalizedStrength = wall.strength / 100;
+      const normalizedBlendMode = wall.blendMode / 100;
+      const normalizedOpacity = wall.opacity / 100;
 
       for (let index = 0; index < outputImageData.data.length; index += 4) {
-        const maskAlpha = (maskImageData.data[index + 3] / 255) * normalizedStrength;
+        const maskAlpha = (maskImageData.data[index + 3] / 255) * normalizedStrength * normalizedOpacity;
 
         if (maskAlpha <= 0) {
           continue;
@@ -286,9 +296,10 @@ export const DashboardWallColorTab: React.FC = () => {
         const baseG = baseImageData.data[index + 1];
         const baseB = baseImageData.data[index + 2];
         const luminance = (0.2126 * baseR + 0.7152 * baseG + 0.0722 * baseB) / 255;
-        const shadedR = color.r * (0.42 + luminance * 0.7);
-        const shadedG = color.g * (0.42 + luminance * 0.7);
-        const shadedB = color.b * (0.42 + luminance * 0.7);
+        const shadeMultiplier = 1 + (((0.42 + luminance * 0.7) - 1) * normalizedBlendMode);
+        const shadedR = color.r * shadeMultiplier;
+        const shadedG = color.g * shadeMultiplier;
+        const shadedB = color.b * shadeMultiplier;
 
         outputImageData.data[index] = Math.round(outputImageData.data[index] * (1 - maskAlpha) + shadedR * maskAlpha);
         outputImageData.data[index + 1] = Math.round(outputImageData.data[index + 1] * (1 - maskAlpha) + shadedG * maskAlpha);
@@ -734,6 +745,8 @@ export const DashboardWallColorTab: React.FC = () => {
     setSelectedColor(wall.color);
     setColorPicker(rgbToHsv(hexToRgb(wall.color)));
     setStrength(wall.strength);
+    setBlendMode(wall.blendMode);
+    setOpacity(wall.opacity);
     renderPreview();
   };
 
@@ -822,6 +835,28 @@ export const DashboardWallColorTab: React.FC = () => {
     if (activeWallIdRef.current) {
       wallsRef.current = wallsRef.current.map((wall) => (
         wall.id === activeWallIdRef.current ? { ...wall, strength: nextStrength } : wall
+      ));
+      setWalls(wallsRef.current);
+    }
+  };
+
+  const updateBlendMode = (nextBlendMode: number) => {
+    setBlendMode(nextBlendMode);
+
+    if (activeWallIdRef.current) {
+      wallsRef.current = wallsRef.current.map((wall) => (
+        wall.id === activeWallIdRef.current ? { ...wall, blendMode: nextBlendMode } : wall
+      ));
+      setWalls(wallsRef.current);
+    }
+  };
+
+  const updateOpacity = (nextOpacity: number) => {
+    setOpacity(nextOpacity);
+
+    if (activeWallIdRef.current) {
+      wallsRef.current = wallsRef.current.map((wall) => (
+        wall.id === activeWallIdRef.current ? { ...wall, opacity: nextOpacity } : wall
       ));
       setWalls(wallsRef.current);
     }
@@ -1418,6 +1453,34 @@ export const DashboardWallColorTab: React.FC = () => {
                       max="100"
                       value={strength}
                       onChange={(event) => updateStrength(Number(event.target.value))}
+                      className="w-full accent-[#9A077B]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                      <span>Blend mode</span>
+                      <span>{blendMode}%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={blendMode}
+                      onChange={(event) => updateBlendMode(Number(event.target.value))}
+                      className="w-full accent-[#9A077B]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                      <span>Opacidade</span>
+                      <span>{opacity}%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={opacity}
+                      onChange={(event) => updateOpacity(Number(event.target.value))}
                       className="w-full accent-[#9A077B]"
                     />
                   </label>
