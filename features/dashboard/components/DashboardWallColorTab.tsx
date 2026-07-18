@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, Eraser, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
+import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
 
 type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
 type ActivePointer = { x: number; y: number; type: string };
+type WallPaint = {
+  id: string;
+  name: string;
+  color: string;
+  strength: number;
+};
 type CursorPreview = {
   x: number;
   y: number;
@@ -44,13 +50,17 @@ function getCanvasPoint(canvas: HTMLCanvasElement, event: React.PointerEvent<HTM
 export const DashboardWallColorTab: React.FC = () => {
   const visibleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastPointRef = useRef<CanvasPoint | null>(null);
   const shapeStartPointRef = useRef<CanvasPoint | null>(null);
   const panStartPointRef = useRef<PanPoint | null>(null);
   const panStartOffsetRef = useRef<PanPoint>({ x: 0, y: 0 });
   const activePointersRef = useRef<Map<number, ActivePointer>>(new Map<number, ActivePointer>());
+  const wallMasksRef = useRef<Map<string, HTMLCanvasElement>>(new Map<string, HTMLCanvasElement>());
+  const wallsRef = useRef<WallPaint[]>([]);
+  const activeWallIdRef = useRef<string | null>(null);
+  const drawingWallIdRef = useRef<string | null>(null);
+  const wallSequenceRef = useRef(0);
   const pinchStartDistanceRef = useRef(0);
   const pinchStartZoomRef = useRef(1);
   const isDrawingRef = useRef(false);
@@ -59,6 +69,8 @@ export const DashboardWallColorTab: React.FC = () => {
   const displayScaleRef = useRef(1);
   const [hasImage, setHasImage] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode | null>(null);
+  const [walls, setWalls] = useState<WallPaint[]>([]);
+  const [activeWallId, setActiveWallId] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
@@ -74,20 +86,90 @@ export const DashboardWallColorTab: React.FC = () => {
     visible: false
   });
 
+  const createMaskCanvas = (width: number, height: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  };
+
+  const getWallMaskCanvas = (wallId: string | null) => {
+    if (!wallId) {
+      return null;
+    }
+
+    return wallMasksRef.current.get(wallId) ?? null;
+  };
+
+  const createWallForDrawing = () => {
+    const visibleCanvas = visibleCanvasRef.current;
+
+    if (!visibleCanvas) {
+      return null;
+    }
+
+    const nextSequence = wallSequenceRef.current + 1;
+    const wallId = `wall-${nextSequence}`;
+    const nextWall: WallPaint = {
+      id: wallId,
+      name: `Parede ${String(nextSequence).padStart(2, '0')}`,
+      color: selectedColor,
+      strength
+    };
+
+    wallSequenceRef.current = nextSequence;
+    wallMasksRef.current.set(wallId, createMaskCanvas(visibleCanvas.width, visibleCanvas.height));
+    activeWallIdRef.current = wallId;
+    drawingWallIdRef.current = wallId;
+    wallsRef.current = [...wallsRef.current, nextWall];
+    setWalls(wallsRef.current);
+    setActiveWallId(wallId);
+
+    return wallId;
+  };
+
+  const getDrawingWallId = () => {
+    const wallId = activeWallIdRef.current ?? createWallForDrawing();
+    drawingWallIdRef.current = wallId;
+    return wallId;
+  };
+
+  const tintMaskPreview = (
+    context: CanvasRenderingContext2D,
+    maskCanvas: HTMLCanvasElement,
+    color: string,
+    alpha: number
+  ) => {
+    const tintCanvas = createMaskCanvas(maskCanvas.width, maskCanvas.height);
+    const tintContext = tintCanvas.getContext('2d');
+
+    if (!tintContext) {
+      return;
+    }
+
+    tintContext.fillStyle = color;
+    tintContext.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+    tintContext.globalCompositeOperation = 'destination-in';
+    tintContext.drawImage(maskCanvas, 0, 0);
+
+    context.save();
+    context.globalAlpha = alpha;
+    context.drawImage(tintCanvas, 0, 0);
+    context.restore();
+  };
+
   const renderPreview = () => {
     const visibleCanvas = visibleCanvasRef.current;
     const baseCanvas = baseCanvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
 
-    if (!visibleCanvas || !baseCanvas || !maskCanvas) {
+    if (!visibleCanvas || !baseCanvas) {
       return;
     }
 
     const context = visibleCanvas.getContext('2d');
     const baseContext = baseCanvas.getContext('2d');
-    const maskContext = maskCanvas.getContext('2d');
 
-    if (!context || !baseContext || !maskContext) {
+    if (!context || !baseContext) {
       return;
     }
 
@@ -98,50 +180,66 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     const baseImageData = baseContext.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
-    const maskImageData = maskContext.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
     const outputImageData = new ImageData(
       new Uint8ClampedArray(baseImageData.data),
       baseImageData.width,
       baseImageData.height
     );
-    const color = hexToRgb(selectedColor);
-    const normalizedStrength = strength / 100;
 
-    for (let index = 0; index < outputImageData.data.length; index += 4) {
-      const maskAlpha = (maskImageData.data[index + 3] / 255) * normalizedStrength;
+    for (const wall of wallsRef.current) {
+      const maskCanvas = getWallMaskCanvas(wall.id);
+      const maskContext = maskCanvas?.getContext('2d');
 
-      if (maskAlpha <= 0) {
+      if (!maskCanvas || !maskContext) {
         continue;
       }
 
-      const baseR = baseImageData.data[index];
-      const baseG = baseImageData.data[index + 1];
-      const baseB = baseImageData.data[index + 2];
-      const luminance = (0.2126 * baseR + 0.7152 * baseG + 0.0722 * baseB) / 255;
-      const shadedR = color.r * (0.42 + luminance * 0.7);
-      const shadedG = color.g * (0.42 + luminance * 0.7);
-      const shadedB = color.b * (0.42 + luminance * 0.7);
+      const maskImageData = maskContext.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const color = hexToRgb(wall.color);
+      const normalizedStrength = wall.strength / 100;
 
-      outputImageData.data[index] = Math.round(baseR * (1 - maskAlpha) + shadedR * maskAlpha);
-      outputImageData.data[index + 1] = Math.round(baseG * (1 - maskAlpha) + shadedG * maskAlpha);
-      outputImageData.data[index + 2] = Math.round(baseB * (1 - maskAlpha) + shadedB * maskAlpha);
+      for (let index = 0; index < outputImageData.data.length; index += 4) {
+        const maskAlpha = (maskImageData.data[index + 3] / 255) * normalizedStrength;
+
+        if (maskAlpha <= 0) {
+          continue;
+        }
+
+        const baseR = baseImageData.data[index];
+        const baseG = baseImageData.data[index + 1];
+        const baseB = baseImageData.data[index + 2];
+        const luminance = (0.2126 * baseR + 0.7152 * baseG + 0.0722 * baseB) / 255;
+        const shadedR = color.r * (0.42 + luminance * 0.7);
+        const shadedG = color.g * (0.42 + luminance * 0.7);
+        const shadedB = color.b * (0.42 + luminance * 0.7);
+
+        outputImageData.data[index] = Math.round(outputImageData.data[index] * (1 - maskAlpha) + shadedR * maskAlpha);
+        outputImageData.data[index + 1] = Math.round(outputImageData.data[index + 1] * (1 - maskAlpha) + shadedG * maskAlpha);
+        outputImageData.data[index + 2] = Math.round(outputImageData.data[index + 2] * (1 - maskAlpha) + shadedB * maskAlpha);
+      }
     }
 
     context.putImageData(outputImageData, 0, 0);
 
     if (showMask) {
-      context.save();
-      context.globalAlpha = 0.22;
-      context.fillStyle = selectedColor;
-      context.globalCompositeOperation = 'source-atop';
-      context.drawImage(maskCanvas, 0, 0);
-      context.restore();
+      for (const wall of wallsRef.current) {
+        const maskCanvas = getWallMaskCanvas(wall.id);
+
+        if (maskCanvas) {
+          tintMaskPreview(context, maskCanvas, wall.color, wall.id === activeWallIdRef.current ? 0.28 : 0.16);
+        }
+      }
     }
   };
 
   useEffect(() => {
+    wallsRef.current = walls;
     renderPreview();
-  }, [selectedColor, strength, showMask, hasImage]);
+  }, [walls, showMask, hasImage]);
+
+  useEffect(() => {
+    activeWallIdRef.current = activeWallId;
+  }, [activeWallId]);
 
   useEffect(() => {
     setCursorPreview((currentPreview) => ({
@@ -167,27 +265,31 @@ export const DashboardWallColorTab: React.FC = () => {
         const height = Math.max(1, Math.round(image.height * scale));
         const visibleCanvas = visibleCanvasRef.current;
         const baseCanvas = baseCanvasRef.current;
-        const maskCanvas = maskCanvasRef.current;
 
-        if (!visibleCanvas || !baseCanvas || !maskCanvas) {
+        if (!visibleCanvas || !baseCanvas) {
           return;
         }
 
-        for (const canvas of [visibleCanvas, baseCanvas, maskCanvas]) {
+        for (const canvas of [visibleCanvas, baseCanvas]) {
           canvas.width = width;
           canvas.height = height;
         }
 
         const baseContext = baseCanvas.getContext('2d');
-        const maskContext = maskCanvas.getContext('2d');
 
-        if (!baseContext || !maskContext) {
+        if (!baseContext) {
           return;
         }
 
         baseContext.clearRect(0, 0, width, height);
         baseContext.drawImage(image, 0, 0, width, height);
-        maskContext.clearRect(0, 0, width, height);
+        wallMasksRef.current.clear();
+        wallsRef.current = [];
+        wallSequenceRef.current = 0;
+        activeWallIdRef.current = null;
+        drawingWallIdRef.current = null;
+        setWalls([]);
+        setActiveWallId(null);
         setHasImage(true);
         setZoom(1);
         setPanOffset({ x: 0, y: 0 });
@@ -214,7 +316,7 @@ export const DashboardWallColorTab: React.FC = () => {
     point: CanvasPoint,
     previousPoint: CanvasPoint | null
   ) => {
-    const maskCanvas = maskCanvasRef.current;
+    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current);
 
     if (!maskCanvas) {
       return;
@@ -285,7 +387,7 @@ export const DashboardWallColorTab: React.FC = () => {
     endPoint: CanvasPoint,
     mode: Extract<ToolMode, 'line' | 'curve'>
   ) => {
-    const maskCanvas = maskCanvasRef.current;
+    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current);
     const context = maskCanvas?.getContext('2d');
 
     if (!maskCanvas || !context) {
@@ -401,6 +503,12 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     const point = getCanvasPoint(event.currentTarget, event);
+    const drawingWallId = getDrawingWallId();
+
+    if (!drawingWallId) {
+      return;
+    }
+
     isDrawingRef.current = true;
     lastPointRef.current = point;
     shapeStartPointRef.current = point;
@@ -489,6 +597,7 @@ export const DashboardWallColorTab: React.FC = () => {
     isDrawingRef.current = false;
     lastPointRef.current = null;
     shapeStartPointRef.current = null;
+    drawingWallIdRef.current = null;
     stopPan();
   };
 
@@ -541,8 +650,46 @@ export const DashboardWallColorTab: React.FC = () => {
     stopDrawing();
   };
 
+  const selectWall = (wall: WallPaint) => {
+    stopDrawing();
+    activeWallIdRef.current = wall.id;
+    setActiveWallId(wall.id);
+    setSelectedColor(wall.color);
+    setStrength(wall.strength);
+    renderPreview();
+  };
+
+  const finishPainting = () => {
+    stopDrawing();
+    activeWallIdRef.current = null;
+    setActiveWallId(null);
+    renderPreview();
+  };
+
+  const updateSelectedColor = (nextColor: string) => {
+    setSelectedColor(nextColor);
+
+    if (activeWallIdRef.current) {
+      wallsRef.current = wallsRef.current.map((wall) => (
+        wall.id === activeWallIdRef.current ? { ...wall, color: nextColor } : wall
+      ));
+      setWalls(wallsRef.current);
+    }
+  };
+
+  const updateStrength = (nextStrength: number) => {
+    setStrength(nextStrength);
+
+    if (activeWallIdRef.current) {
+      wallsRef.current = wallsRef.current.map((wall) => (
+        wall.id === activeWallIdRef.current ? { ...wall, strength: nextStrength } : wall
+      ));
+      setWalls(wallsRef.current);
+    }
+  };
+
   const clearMask = () => {
-    const maskCanvas = maskCanvasRef.current;
+    const maskCanvas = getWallMaskCanvas(activeWallIdRef.current);
     const context = maskCanvas?.getContext('2d');
 
     if (!maskCanvas || !context) {
@@ -566,6 +713,8 @@ export const DashboardWallColorTab: React.FC = () => {
     link.download = `pintor-pro-parede-${Date.now()}.png`;
     link.click();
   };
+
+  const activeWall = walls.find((wall) => wall.id === activeWallId) ?? null;
 
   return (
     <section className="space-y-6">
@@ -715,6 +864,47 @@ export const DashboardWallColorTab: React.FC = () => {
             </div>
           </div>
 
+          <div className="space-y-3 border-t border-slate-100 pt-4">
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+              <Layers size={16} />
+              Paredes
+            </p>
+            <div className="space-y-2">
+              {walls.map((wall) => (
+                <button
+                  key={wall.id}
+                  type="button"
+                  onClick={() => selectWall(wall)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm font-black transition ${
+                    wall.id === activeWallId
+                      ? 'bg-[#9A077B] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{wall.name}</span>
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
+                    style={{ backgroundColor: wall.color }}
+                  />
+                </button>
+              ))}
+              {walls.length === 0 && (
+                <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-400">
+                  Nenhuma parede
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={finishPainting}
+              disabled={!activeWall}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Check size={17} />
+              Finalizar Pintura
+            </button>
+          </div>
+
           <div>
             <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">
               Cor da tinta
@@ -723,13 +913,13 @@ export const DashboardWallColorTab: React.FC = () => {
               <input
                 type="color"
                 value={selectedColor}
-                onChange={(event) => setSelectedColor(event.target.value)}
+                onChange={(event) => updateSelectedColor(event.target.value)}
                 className="h-12 w-16 cursor-pointer rounded-xl border border-slate-200 bg-white p-1"
               />
               <input
                 type="text"
                 value={selectedColor.toUpperCase()}
-                onChange={(event) => setSelectedColor(event.target.value)}
+                onChange={(event) => updateSelectedColor(event.target.value)}
                 className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
               />
             </div>
@@ -780,7 +970,7 @@ export const DashboardWallColorTab: React.FC = () => {
                 min="15"
                 max="100"
                 value={strength}
-                onChange={(event) => setStrength(Number(event.target.value))}
+                onChange={(event) => updateStrength(Number(event.target.value))}
                 className="w-full accent-[#9A077B]"
               />
             </label>
@@ -799,7 +989,7 @@ export const DashboardWallColorTab: React.FC = () => {
             <button
               type="button"
               onClick={clearMask}
-              disabled={!hasImage}
+              disabled={!hasImage || !activeWall}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RotateCcw size={17} />
@@ -810,7 +1000,6 @@ export const DashboardWallColorTab: React.FC = () => {
       </div>
 
       <canvas ref={baseCanvasRef} className="hidden" />
-      <canvas ref={maskCanvasRef} className="hidden" />
     </section>
   );
 };
