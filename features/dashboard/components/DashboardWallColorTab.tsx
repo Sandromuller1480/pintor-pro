@@ -759,19 +759,13 @@ export const DashboardWallColorTab: React.FC = () => {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-[#9A077B]">Colorir parede</p>
-          <h1 className="mt-1 text-2xl font-black text-[#000747]">Teste cores em uma foto real</h1>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       <div>
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
