@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Image as ImageIcon, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
+import cimentoQueimadoTexture from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
+import grafiatoTexture from '../../../imagens/texturas/GRAFIATO COR ESCURA.png';
+import projetadaTexture from '../../../imagens/texturas/PROJETADA COR ESCURA.png';
+import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
 
 type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve';
 type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
 type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
-type ToolSection = 'tools' | 'color' | 'adjustments';
+type ToolSection = 'tools' | 'color' | 'texture' | 'adjustments';
+type PaintLayer = 'paint' | 'texture';
+type TextureId = 'cimento-queimado' | 'grafiato' | 'projetada' | 'cabelo-de-anjo';
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
 type ActivePointer = { x: number; y: number; type: string };
@@ -17,6 +23,11 @@ type WallPaint = {
   strength: number;
   blendMode: number;
   opacity: number;
+  hasPaint: boolean;
+  textureId: TextureId | null;
+  textureStrength: number;
+  textureBlendMode: number;
+  textureOpacity: number;
 };
 type CursorPreview = {
   x: number;
@@ -31,6 +42,12 @@ const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const DEFAULT_BLEND_MODE = 100;
 const DEFAULT_OPACITY = 100;
+const TEXTURE_OPTIONS: Array<{ id: TextureId; name: string; src: string }> = [
+  { id: 'cimento-queimado', name: 'Cimento queimado', src: cimentoQueimadoTexture },
+  { id: 'grafiato', name: 'Grafiato', src: grafiatoTexture },
+  { id: 'projetada', name: 'Projetada', src: projetadaTexture },
+  { id: 'cabelo-de-anjo', name: 'Cabelo de anjo', src: cabeloDeAnjoTexture }
+];
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');
@@ -138,9 +155,11 @@ export const DashboardWallColorTab: React.FC = () => {
   const panStartOffsetRef = useRef<PanPoint>({ x: 0, y: 0 });
   const activePointersRef = useRef<Map<number, ActivePointer>>(new Map<number, ActivePointer>());
   const wallMasksRef = useRef<Map<string, HTMLCanvasElement>>(new Map<string, HTMLCanvasElement>());
+  const textureImagesRef = useRef<Map<TextureId, HTMLImageElement>>(new Map<TextureId, HTMLImageElement>());
   const wallsRef = useRef<WallPaint[]>([]);
   const activeWallIdRef = useRef<string | null>(null);
   const drawingWallIdRef = useRef<string | null>(null);
+  const drawingLayerRef = useRef<PaintLayer>('paint');
   const wallSequenceRef = useRef(0);
   const pinchStartDistanceRef = useRef(0);
   const pinchStartZoomRef = useRef(1);
@@ -156,9 +175,12 @@ export const DashboardWallColorTab: React.FC = () => {
   const [expandedToolSections, setExpandedToolSections] = useState<Record<ToolSection, boolean>>({
     tools: false,
     color: false,
+    texture: false,
     adjustments: false
   });
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
+  const [activeLayer, setActiveLayer] = useState<PaintLayer>('paint');
+  const [selectedTextureId, setSelectedTextureId] = useState<TextureId | null>(TEXTURE_OPTIONS[0]?.id ?? null);
   const [colorPicker, setColorPicker] = useState<HsvColor>(() => rgbToHsv(hexToRgb(DEFAULT_COLOR)));
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
@@ -183,12 +205,14 @@ export const DashboardWallColorTab: React.FC = () => {
     return canvas;
   };
 
-  const getWallMaskCanvas = (wallId: string | null) => {
+  const getWallMaskKey = (wallId: string, layer: PaintLayer) => `${wallId}:${layer}`;
+
+  const getWallMaskCanvas = (wallId: string | null, layer: PaintLayer = 'paint') => {
     if (!wallId) {
       return null;
     }
 
-    return wallMasksRef.current.get(wallId) ?? null;
+    return wallMasksRef.current.get(getWallMaskKey(wallId, layer)) ?? null;
   };
 
   const createWallForDrawing = () => {
@@ -206,11 +230,17 @@ export const DashboardWallColorTab: React.FC = () => {
       color: selectedColor,
       strength,
       blendMode,
-      opacity
+      opacity,
+      hasPaint: activeLayer === 'paint',
+      textureId: activeLayer === 'texture' ? selectedTextureId : null,
+      textureStrength: strength,
+      textureBlendMode: blendMode,
+      textureOpacity: opacity
     };
 
     wallSequenceRef.current = nextSequence;
-    wallMasksRef.current.set(wallId, createMaskCanvas(visibleCanvas.width, visibleCanvas.height));
+    wallMasksRef.current.set(getWallMaskKey(wallId, 'paint'), createMaskCanvas(visibleCanvas.width, visibleCanvas.height));
+    wallMasksRef.current.set(getWallMaskKey(wallId, 'texture'), createMaskCanvas(visibleCanvas.width, visibleCanvas.height));
     activeWallIdRef.current = wallId;
     drawingWallIdRef.current = wallId;
     wallsRef.current = [...wallsRef.current, nextWall];
@@ -223,6 +253,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const getDrawingWallId = () => {
     const wallId = activeWallIdRef.current ?? createWallForDrawing();
     drawingWallIdRef.current = wallId;
+    drawingLayerRef.current = activeLayer;
     return wallId;
   };
 
@@ -248,6 +279,52 @@ export const DashboardWallColorTab: React.FC = () => {
     context.globalAlpha = alpha;
     context.drawImage(tintCanvas, 0, 0);
     context.restore();
+  };
+
+  const drawTextureOverlay = (
+    context: CanvasRenderingContext2D,
+    maskCanvas: HTMLCanvasElement,
+    textureId: TextureId,
+    alpha: number,
+    blendAmount: number
+  ) => {
+    const textureImage = textureImagesRef.current.get(textureId);
+
+    if (!textureImage?.complete) {
+      return;
+    }
+
+    const textureCanvas = createMaskCanvas(maskCanvas.width, maskCanvas.height);
+    const textureContext = textureCanvas.getContext('2d');
+
+    if (!textureContext) {
+      return;
+    }
+
+    const pattern = textureContext.createPattern(textureImage, 'repeat');
+
+    if (!pattern) {
+      return;
+    }
+
+    textureContext.fillStyle = pattern;
+    textureContext.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+    textureContext.globalCompositeOperation = 'destination-in';
+    textureContext.drawImage(maskCanvas, 0, 0);
+
+    context.save();
+    context.globalAlpha = alpha * (1 - blendAmount);
+    context.globalCompositeOperation = 'source-over';
+    context.drawImage(textureCanvas, 0, 0);
+    context.restore();
+
+    if (blendAmount > 0) {
+      context.save();
+      context.globalAlpha = alpha * blendAmount;
+      context.globalCompositeOperation = 'multiply';
+      context.drawImage(textureCanvas, 0, 0);
+      context.restore();
+    }
   };
 
   const renderPreview = () => {
@@ -279,7 +356,11 @@ export const DashboardWallColorTab: React.FC = () => {
     );
 
     for (const wall of wallsRef.current) {
-      const maskCanvas = getWallMaskCanvas(wall.id);
+      if (!wall.hasPaint) {
+        continue;
+      }
+
+      const maskCanvas = getWallMaskCanvas(wall.id, 'paint');
       const maskContext = maskCanvas?.getContext('2d');
 
       if (!maskCanvas || !maskContext) {
@@ -316,12 +397,35 @@ export const DashboardWallColorTab: React.FC = () => {
 
     context.putImageData(outputImageData, 0, 0);
 
+    for (const wall of wallsRef.current) {
+      if (!wall.textureId) {
+        continue;
+      }
+
+      const maskCanvas = getWallMaskCanvas(wall.id, 'texture');
+
+      if (maskCanvas) {
+        drawTextureOverlay(
+          context,
+          maskCanvas,
+          wall.textureId,
+          (wall.textureStrength / 100) * (wall.textureOpacity / 100),
+          wall.textureBlendMode / 100
+        );
+      }
+    }
+
     if (showMask) {
       for (const wall of wallsRef.current) {
-        const maskCanvas = getWallMaskCanvas(wall.id);
+        const paintMaskCanvas = getWallMaskCanvas(wall.id, 'paint');
+        const textureMaskCanvas = getWallMaskCanvas(wall.id, 'texture');
 
-        if (maskCanvas) {
-          tintMaskPreview(context, maskCanvas, wall.color, wall.id === activeWallIdRef.current ? 0.28 : 0.16);
+        if (paintMaskCanvas && wall.hasPaint) {
+          tintMaskPreview(context, paintMaskCanvas, wall.color, wall.id === activeWallIdRef.current ? 0.28 : 0.16);
+        }
+
+        if (textureMaskCanvas && wall.textureId) {
+          tintMaskPreview(context, textureMaskCanvas, '#ffffff', wall.id === activeWallIdRef.current ? 0.2 : 0.12);
         }
       }
     }
@@ -342,6 +446,15 @@ export const DashboardWallColorTab: React.FC = () => {
       diameter: brushSize * displayScaleRef.current
     }));
   }, [brushSize]);
+
+  useEffect(() => {
+    for (const texture of TEXTURE_OPTIONS) {
+      const image = new Image();
+      image.onload = () => renderPreview();
+      image.src = texture.src;
+      textureImagesRef.current.set(texture.id, image);
+    }
+  }, []);
 
   const loadImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -411,7 +524,7 @@ export const DashboardWallColorTab: React.FC = () => {
     point: CanvasPoint,
     previousPoint: CanvasPoint | null
   ) => {
-    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current);
+    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current, drawingLayerRef.current);
 
     if (!maskCanvas) {
       return;
@@ -482,7 +595,7 @@ export const DashboardWallColorTab: React.FC = () => {
     endPoint: CanvasPoint,
     mode: ShapeToolMode
   ) => {
-    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current);
+    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current, drawingLayerRef.current);
     const context = maskCanvas?.getContext('2d');
 
     if (!maskCanvas || !context) {
@@ -604,6 +717,7 @@ export const DashboardWallColorTab: React.FC = () => {
       return;
     }
 
+    markActiveLayerUsed();
     isDrawingRef.current = true;
     lastPointRef.current = point;
     shapeStartPointRef.current = point;
@@ -749,11 +863,20 @@ export const DashboardWallColorTab: React.FC = () => {
     stopDrawing();
     activeWallIdRef.current = wall.id;
     setActiveWallId(wall.id);
-    setSelectedColor(wall.color);
-    setColorPicker(rgbToHsv(hexToRgb(wall.color)));
-    setStrength(wall.strength);
-    setBlendMode(wall.blendMode);
-    setOpacity(wall.opacity);
+
+    if (activeLayer === 'texture') {
+      setSelectedTextureId(wall.textureId ?? selectedTextureId ?? TEXTURE_OPTIONS[0].id);
+      setStrength(wall.textureStrength);
+      setBlendMode(wall.textureBlendMode);
+      setOpacity(wall.textureOpacity);
+    } else {
+      setSelectedColor(wall.color);
+      setColorPicker(rgbToHsv(hexToRgb(wall.color)));
+      setStrength(wall.strength);
+      setBlendMode(wall.blendMode);
+      setOpacity(wall.opacity);
+    }
+
     renderPreview();
   };
 
@@ -766,7 +889,8 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const deleteWall = (wallId: string) => {
     stopDrawing();
-    wallMasksRef.current.delete(wallId);
+    wallMasksRef.current.delete(getWallMaskKey(wallId, 'paint'));
+    wallMasksRef.current.delete(getWallMaskKey(wallId, 'texture'));
     wallsRef.current = wallsRef.current.filter((wall) => wall.id !== wallId);
     setWalls(wallsRef.current);
 
@@ -779,6 +903,7 @@ export const DashboardWallColorTab: React.FC = () => {
   };
 
   const updateSelectedColor = (nextColor: string) => {
+    setActiveLayer('paint');
     setSelectedColor(nextColor);
     setColorPicker(rgbToHsv(hexToRgb(nextColor)));
 
@@ -786,6 +911,26 @@ export const DashboardWallColorTab: React.FC = () => {
       wallsRef.current = wallsRef.current.map((wall) => (
         wall.id === activeWallIdRef.current ? { ...wall, color: nextColor } : wall
       ));
+      setWalls(wallsRef.current);
+    }
+  };
+
+  const selectTexture = (textureId: TextureId) => {
+    setActiveLayer('texture');
+    setSelectedTextureId(textureId);
+
+    if (activeWallIdRef.current) {
+      wallsRef.current = wallsRef.current.map((wall) => (
+        wall.id === activeWallIdRef.current ? { ...wall, textureId } : wall
+      ));
+      const activeWall = wallsRef.current.find((wall) => wall.id === activeWallIdRef.current);
+
+      if (activeWall) {
+        setStrength(activeWall.textureStrength);
+        setBlendMode(activeWall.textureBlendMode);
+        setOpacity(activeWall.textureOpacity);
+      }
+
       setWalls(wallsRef.current);
     }
   };
@@ -841,7 +986,11 @@ export const DashboardWallColorTab: React.FC = () => {
 
     if (activeWallIdRef.current) {
       wallsRef.current = wallsRef.current.map((wall) => (
-        wall.id === activeWallIdRef.current ? { ...wall, strength: nextStrength } : wall
+        wall.id === activeWallIdRef.current
+          ? activeLayer === 'texture'
+            ? { ...wall, textureStrength: nextStrength }
+            : { ...wall, strength: nextStrength }
+          : wall
       ));
       setWalls(wallsRef.current);
     }
@@ -852,7 +1001,11 @@ export const DashboardWallColorTab: React.FC = () => {
 
     if (activeWallIdRef.current) {
       wallsRef.current = wallsRef.current.map((wall) => (
-        wall.id === activeWallIdRef.current ? { ...wall, blendMode: nextBlendMode } : wall
+        wall.id === activeWallIdRef.current
+          ? activeLayer === 'texture'
+            ? { ...wall, textureBlendMode: nextBlendMode }
+            : { ...wall, blendMode: nextBlendMode }
+          : wall
       ));
       setWalls(wallsRef.current);
     }
@@ -863,14 +1016,50 @@ export const DashboardWallColorTab: React.FC = () => {
 
     if (activeWallIdRef.current) {
       wallsRef.current = wallsRef.current.map((wall) => (
-        wall.id === activeWallIdRef.current ? { ...wall, opacity: nextOpacity } : wall
+        wall.id === activeWallIdRef.current
+          ? activeLayer === 'texture'
+            ? { ...wall, textureOpacity: nextOpacity }
+            : { ...wall, opacity: nextOpacity }
+          : wall
       ));
       setWalls(wallsRef.current);
     }
   };
 
+  const markActiveLayerUsed = () => {
+    if (!activeWallIdRef.current) {
+      return;
+    }
+
+    wallsRef.current = wallsRef.current.map((wall) => {
+      if (wall.id !== activeWallIdRef.current) {
+        return wall;
+      }
+
+      if (activeLayer === 'texture') {
+        return {
+          ...wall,
+          textureId: selectedTextureId ?? TEXTURE_OPTIONS[0].id,
+          textureStrength: strength,
+          textureBlendMode: blendMode,
+          textureOpacity: opacity
+        };
+      }
+
+      return {
+        ...wall,
+        hasPaint: true,
+        color: selectedColor,
+        strength,
+        blendMode,
+        opacity
+      };
+    });
+    setWalls(wallsRef.current);
+  };
+
   const clearMask = () => {
-    const maskCanvas = getWallMaskCanvas(activeWallIdRef.current);
+    const maskCanvas = getWallMaskCanvas(activeWallIdRef.current, activeLayer);
     const context = maskCanvas?.getContext('2d');
 
     if (!maskCanvas || !context) {
@@ -878,6 +1067,25 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     context.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    renderPreview();
+  };
+
+  const deleteWallLayer = (wallId: string, layer: PaintLayer) => {
+    const maskCanvas = getWallMaskCanvas(wallId, layer);
+    const context = maskCanvas?.getContext('2d');
+
+    if (maskCanvas && context) {
+      context.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    wallsRef.current = wallsRef.current.map((wall) => (
+      wall.id === wallId
+        ? layer === 'texture'
+          ? { ...wall, textureId: null }
+          : { ...wall, hasPaint: false }
+        : wall
+    ));
+    setWalls(wallsRef.current);
     renderPreview();
   };
 
@@ -924,6 +1132,7 @@ export const DashboardWallColorTab: React.FC = () => {
     setExpandedToolSections({
       tools: false,
       color: false,
+      texture: false,
       adjustments: false
     });
     setActiveModal('tools');
@@ -931,6 +1140,9 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const activeWall = walls.find((wall) => wall.id === activeWallId) ?? null;
   const selectedRgb = hexToRgb(selectedColor);
+  const getTextureName = (textureId: TextureId | null) => (
+    TEXTURE_OPTIONS.find((texture) => texture.id === textureId)?.name ?? 'Textura'
+  );
   const renderToolSectionHeader = (section: ToolSection, label: string, Icon: typeof Paintbrush) => {
     const isExpanded = expandedToolSections[section];
     const ArrowIcon = isExpanded ? ChevronDown : ChevronRight;
@@ -1458,6 +1670,35 @@ export const DashboardWallColorTab: React.FC = () => {
                   )}
                 </div>
 
+                <div className="space-y-3">
+                  {renderToolSectionHeader('texture', 'Textura', ImageIcon)}
+                  {expandedToolSections.texture && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {TEXTURE_OPTIONS.map((texture) => (
+                        <button
+                          key={texture.id}
+                          type="button"
+                          onClick={() => selectTexture(texture.id)}
+                          className={`overflow-hidden rounded-xl border text-left transition ${
+                            activeLayer === 'texture' && selectedTextureId === texture.id
+                              ? 'border-[#9A077B] bg-[#FDF3FA] text-[#9A077B] shadow-sm'
+                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          <img
+                            src={texture.src}
+                            alt=""
+                            className="h-16 w-full object-cover"
+                          />
+                          <span className="block px-3 py-2 text-xs font-black uppercase tracking-wider">
+                            {texture.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-4">
                   {renderToolSectionHeader('adjustments', 'Ajustes', SlidersHorizontal)}
                   {expandedToolSections.adjustments && (
@@ -1550,36 +1791,78 @@ export const DashboardWallColorTab: React.FC = () => {
                   {walls.map((wall) => (
                     <div
                       key={wall.id}
-                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-sm font-black transition ${
+                      className={`rounded-xl px-2 py-2 text-sm font-black transition ${
                         wall.id === activeWallId
                           ? 'bg-[#9A077B] text-white'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => selectWall(wall)}
-                        className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg px-1 py-1 text-left"
-                      >
-                        <span className="truncate">{wall.name}</span>
-                        <span
-                          className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
-                          style={{ backgroundColor: wall.color }}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteWall(wall.id)}
-                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
-                          wall.id === activeWallId
-                            ? 'text-white/85 hover:bg-white/15 hover:text-white'
-                            : 'text-slate-400 hover:bg-white hover:text-red-600'
-                        }`}
-                        aria-label={`Excluir ${wall.name}`}
-                        title={`Excluir ${wall.name}`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex w-full items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => selectWall(wall)}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg px-1 py-1 text-left"
+                        >
+                          <span className="truncate">{wall.name}</span>
+                          <span
+                            className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
+                            style={{ backgroundColor: wall.color }}
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteWall(wall.id)}
+                          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+                            wall.id === activeWallId
+                              ? 'text-white/85 hover:bg-white/15 hover:text-white'
+                              : 'text-slate-400 hover:bg-white hover:text-red-600'
+                          }`}
+                          aria-label={`Excluir ${wall.name}`}
+                          title={`Excluir ${wall.name}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      {(wall.hasPaint || wall.textureId) && (
+                        <div className="mt-2 space-y-1">
+                          {wall.hasPaint && (
+                            <div className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] font-black uppercase tracking-wider ${
+                              wall.id === activeWallId ? 'bg-white/12 text-white/90' : 'bg-white/70 text-slate-500'
+                            }`}>
+                              <span>Pintura</span>
+                              <button
+                                type="button"
+                                onClick={() => deleteWallLayer(wall.id, 'paint')}
+                                className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition ${
+                                  wall.id === activeWallId ? 'hover:bg-white/15' : 'hover:bg-red-50 hover:text-red-600'
+                                }`}
+                                aria-label={`Excluir pintura de ${wall.name}`}
+                                title={`Excluir pintura de ${wall.name}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                          {wall.textureId && (
+                            <div className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[11px] font-black uppercase tracking-wider ${
+                              wall.id === activeWallId ? 'bg-white/12 text-white/90' : 'bg-white/70 text-slate-500'
+                            }`}>
+                              <span className="truncate">Textura: {getTextureName(wall.textureId)}</span>
+                              <button
+                                type="button"
+                                onClick={() => deleteWallLayer(wall.id, 'texture')}
+                                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition ${
+                                  wall.id === activeWallId ? 'hover:bg-white/15' : 'hover:bg-red-50 hover:text-red-600'
+                                }`}
+                                aria-label={`Excluir textura de ${wall.name}`}
+                                title={`Excluir textura de ${wall.name}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {walls.length === 0 && (
