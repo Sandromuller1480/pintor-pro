@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
+import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload } from 'lucide-react';
 
 type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
 type CanvasPoint = { x: number; y: number };
@@ -666,6 +666,20 @@ export const DashboardWallColorTab: React.FC = () => {
     renderPreview();
   };
 
+  const deleteWall = (wallId: string) => {
+    stopDrawing();
+    wallMasksRef.current.delete(wallId);
+    wallsRef.current = wallsRef.current.filter((wall) => wall.id !== wallId);
+    setWalls(wallsRef.current);
+
+    if (activeWallIdRef.current === wallId) {
+      activeWallIdRef.current = null;
+      setActiveWallId(null);
+    }
+
+    renderPreview();
+  };
+
   const updateSelectedColor = (nextColor: string) => {
     setSelectedColor(nextColor);
 
@@ -871,22 +885,39 @@ export const DashboardWallColorTab: React.FC = () => {
             </p>
             <div className="space-y-2">
               {walls.map((wall) => (
-                <button
+                <div
                   key={wall.id}
-                  type="button"
-                  onClick={() => selectWall(wall)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm font-black transition ${
+                  className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-sm font-black transition ${
                     wall.id === activeWallId
                       ? 'bg-[#9A077B] text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  <span>{wall.name}</span>
-                  <span
-                    className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
-                    style={{ backgroundColor: wall.color }}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => selectWall(wall)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg px-1 py-1 text-left"
+                  >
+                    <span className="truncate">{wall.name}</span>
+                    <span
+                      className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
+                      style={{ backgroundColor: wall.color }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteWall(wall.id)}
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+                      wall.id === activeWallId
+                        ? 'text-white/85 hover:bg-white/15 hover:text-white'
+                        : 'text-slate-400 hover:bg-white hover:text-red-600'
+                    }`}
+                    aria-label={`Excluir ${wall.name}`}
+                    title={`Excluir ${wall.name}`}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               ))}
               {walls.length === 0 && (
                 <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-400">
