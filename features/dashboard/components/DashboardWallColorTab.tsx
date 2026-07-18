@@ -14,6 +14,8 @@ type CursorPreview = {
 
 const DEFAULT_COLOR = '#c8a070';
 const MAX_CANVAS_SIDE = 1200;
+const MIN_ZOOM = 0.01;
+const MAX_ZOOM = 4;
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace('#', '');
@@ -497,7 +499,7 @@ export const DashboardWallColorTab: React.FC = () => {
   };
 
   const adjustZoom = (nextZoom: number) => {
-    setZoom(Math.min(4, Math.max(0.5, nextZoom)));
+    setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom)));
   };
 
   const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
@@ -506,7 +508,7 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     event.preventDefault();
-    adjustZoom(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+    adjustZoom(zoom * (event.deltaY < 0 ? 1.12 : 0.88));
   };
 
   const handlePointerEnd = (event: React.PointerEvent<HTMLCanvasElement>) => {
