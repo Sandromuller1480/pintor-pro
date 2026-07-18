@@ -42,6 +42,8 @@ const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const DEFAULT_BLEND_MODE = 100;
 const DEFAULT_OPACITY = 100;
+const TEXTURE_DARK_CONTRAST = 1.35;
+const TEXTURE_SHADOW_DEPTH = 0.32;
 const TEXTURE_OPTIONS: Array<{ id: TextureId; name: string; src: string }> = [
   { id: 'cimento-queimado', name: 'Cimento queimado', src: cimentoQueimadoTexture },
   { id: 'grafiato', name: 'Grafiato', src: grafiatoTexture },
@@ -130,6 +132,25 @@ function rgbToHsv({ r, g, b }: RgbColor): HsvColor {
     s: max === 0 ? 0 : delta / max,
     v: max
   };
+}
+
+function increaseDarkTextureContrast(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D) {
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+    const shadowDepth = Math.max(0, 0.62 - luminance) * TEXTURE_SHADOW_DEPTH;
+
+    data[index] = clampNumber(((red - 128) * TEXTURE_DARK_CONTRAST) + 128 - (shadowDepth * 255), 0, 255);
+    data[index + 1] = clampNumber(((green - 128) * TEXTURE_DARK_CONTRAST) + 128 - (shadowDepth * 255), 0, 255);
+    data[index + 2] = clampNumber(((blue - 128) * TEXTURE_DARK_CONTRAST) + 128 - (shadowDepth * 255), 0, 255);
+  }
+
+  context.putImageData(imageData, 0, 0);
 }
 
 function getCanvasPoint(canvas: HTMLCanvasElement, event: React.PointerEvent<HTMLCanvasElement>) {
@@ -309,6 +330,7 @@ export const DashboardWallColorTab: React.FC = () => {
 
     textureContext.fillStyle = pattern;
     textureContext.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+    increaseDarkTextureContrast(textureCanvas, textureContext);
     textureContext.globalCompositeOperation = 'destination-in';
     textureContext.drawImage(maskCanvas, 0, 0);
 
