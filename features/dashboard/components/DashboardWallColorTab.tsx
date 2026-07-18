@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 
 type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve';
 type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
 type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
+type ToolSection = 'tools' | 'color' | 'adjustments';
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
 type ActivePointer = { x: number; y: number; type: string };
@@ -152,6 +153,11 @@ export const DashboardWallColorTab: React.FC = () => {
   const [walls, setWalls] = useState<WallPaint[]>([]);
   const [activeWallId, setActiveWallId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<EditorModal>(null);
+  const [expandedToolSections, setExpandedToolSections] = useState<Record<ToolSection, boolean>>({
+    tools: true,
+    color: true,
+    adjustments: true
+  });
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [colorPicker, setColorPicker] = useState<HsvColor>(() => rgbToHsv(hexToRgb(DEFAULT_COLOR)));
   const [brushSize, setBrushSize] = useState(42);
@@ -916,6 +922,28 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const activeWall = walls.find((wall) => wall.id === activeWallId) ?? null;
   const selectedRgb = hexToRgb(selectedColor);
+  const renderToolSectionHeader = (section: ToolSection, label: string, Icon: typeof Paintbrush) => {
+    const isExpanded = expandedToolSections[section];
+    const ArrowIcon = isExpanded ? ChevronDown : ChevronRight;
+
+    return (
+      <button
+        type="button"
+        onClick={() => setExpandedToolSections((currentSections) => ({
+          ...currentSections,
+          [section]: !currentSections[section]
+        }))}
+        className="flex w-full items-center justify-between gap-3 text-xs font-black uppercase tracking-widest text-slate-500 transition hover:text-[#9A077B]"
+        aria-expanded={isExpanded}
+      >
+        <span className="flex items-center gap-2">
+          <Icon size={16} />
+          {label}
+        </span>
+        <ArrowIcon size={16} />
+      </button>
+    );
+  };
 
   return (
     <section className="space-y-6">
@@ -1257,175 +1285,175 @@ export const DashboardWallColorTab: React.FC = () => {
 
             {activeModal === 'tools' && (
               <div className="space-y-5 pr-10">
-                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
-                  <Paintbrush size={16} />
-                  Ferramentas
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleToolMode('brush')}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                      toolMode === 'brush'
-                        ? 'bg-[#9A077B] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Paintbrush size={17} />
-                    Pincel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleToolMode('eraser')}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                      toolMode === 'eraser'
-                        ? 'bg-[#9A077B] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Eraser size={17} />
-                    Borracha
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleToolMode('eraser-line')}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                      toolMode === 'eraser-line'
-                        ? 'bg-[#9A077B] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Minus size={17} />
-                    Borracha reta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleToolMode('line')}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                      toolMode === 'line'
-                        ? 'bg-[#9A077B] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Minus size={17} />
-                    Reta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleToolMode('curve')}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                      toolMode === 'curve'
-                        ? 'bg-[#9A077B] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Paintbrush size={17} />
-                    Curva
-                  </button>
+                <div className="space-y-3">
+                  {renderToolSectionHeader('tools', 'Ferramentas', Paintbrush)}
+                  {expandedToolSections.tools && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleToolMode('brush')}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                          toolMode === 'brush'
+                            ? 'bg-[#9A077B] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Paintbrush size={17} />
+                        Pincel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleToolMode('eraser')}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                          toolMode === 'eraser'
+                            ? 'bg-[#9A077B] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Eraser size={17} />
+                        Borracha
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleToolMode('eraser-line')}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                          toolMode === 'eraser-line'
+                            ? 'bg-[#9A077B] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Minus size={17} />
+                        Borracha reta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleToolMode('line')}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                          toolMode === 'line'
+                            ? 'bg-[#9A077B] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Minus size={17} />
+                        Reta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleToolMode('curve')}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                          toolMode === 'curve'
+                            ? 'bg-[#9A077B] text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Paintbrush size={17} />
+                        Curva
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">
-                    Cor da tinta
-                  </label>
-                  <div className="space-y-3">
-                    <div
-                      ref={colorAreaRef}
-                      className="relative h-44 touch-none overflow-hidden rounded-xl border border-slate-200"
-                      style={{
-                        backgroundColor: `hsl(${colorPicker.h}, 100%, 50%)`,
-                        backgroundImage: 'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)'
-                      }}
-                      onPointerDown={(event) => {
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        updateColorFromAreaPointer(event);
-                      }}
-                      onPointerMove={(event) => {
-                        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                          updateColorFromAreaPointer(event);
-                        }
-                      }}
-                    >
-                      <span
-                        className="pointer-events-none absolute h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.55)]"
+                <div className="space-y-3">
+                  {renderToolSectionHeader('color', 'Cor da tinta', ClipboardList)}
+                  {expandedToolSections.color && (
+                    <div className="space-y-3">
+                      <div
+                        ref={colorAreaRef}
+                        className="relative h-44 touch-none overflow-hidden rounded-xl border border-slate-200"
                         style={{
-                          left: `${colorPicker.s * 100}%`,
-                          top: `${(1 - colorPicker.v) * 100}%`,
-                          transform: 'translate(-50%, -50%)'
-                        }}
-                      />
-                    </div>
-                    <div
-                      ref={hueSliderRef}
-                      className="relative h-4 touch-none rounded-full border border-slate-200"
-                      style={{
-                        background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
-                      }}
-                      onPointerDown={(event) => {
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        updateColorFromHuePointer(event);
-                      }}
-                      onPointerMove={(event) => {
-                        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                          updateColorFromHuePointer(event);
-                        }
-                      }}
-                    >
-                      <span
-                        className="pointer-events-none absolute top-1/2 h-6 w-6 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.45)]"
-                        style={{
-                          left: `${(colorPicker.h / 360) * 100}%`,
                           backgroundColor: `hsl(${colorPicker.h}, 100%, 50%)`,
-                          transform: 'translate(-50%, -50%)'
+                          backgroundImage: 'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)'
                         }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="h-10 w-10 shrink-0 rounded-full border border-slate-200 shadow-sm"
-                        style={{ backgroundColor: selectedColor }}
-                      />
-                      <input
-                        type="text"
-                        value={selectedColor.toUpperCase()}
-                        onChange={(event) => {
-                          const nextValue = event.target.value.trim();
-
-                          if (/^#[0-9a-fA-F]{6}$/.test(nextValue)) {
-                            updateSelectedColor(nextValue);
+                        onPointerDown={(event) => {
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                          updateColorFromAreaPointer(event);
+                        }}
+                        onPointerMove={(event) => {
+                          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                            updateColorFromAreaPointer(event);
                           }
                         }}
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
-                        aria-label="Cor em hexadecimal"
-                      />
+                      >
+                        <span
+                          className="pointer-events-none absolute h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.55)]"
+                          style={{
+                            left: `${colorPicker.s * 100}%`,
+                            top: `${(1 - colorPicker.v) * 100}%`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        />
+                      </div>
+                      <div
+                        ref={hueSliderRef}
+                        className="relative h-4 touch-none rounded-full border border-slate-200"
+                        style={{
+                          background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
+                        }}
+                        onPointerDown={(event) => {
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                          updateColorFromHuePointer(event);
+                        }}
+                        onPointerMove={(event) => {
+                          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                            updateColorFromHuePointer(event);
+                          }
+                        }}
+                      >
+                        <span
+                          className="pointer-events-none absolute top-1/2 h-6 w-6 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(15,23,42,0.45)]"
+                          style={{
+                            left: `${(colorPicker.h / 360) * 100}%`,
+                            backgroundColor: `hsl(${colorPicker.h}, 100%, 50%)`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="h-10 w-10 shrink-0 rounded-full border border-slate-200 shadow-sm"
+                          style={{ backgroundColor: selectedColor }}
+                        />
+                        <input
+                          type="text"
+                          value={selectedColor.toUpperCase()}
+                          onChange={(event) => {
+                            const nextValue = event.target.value.trim();
+
+                            if (/^#[0-9a-fA-F]{6}$/.test(nextValue)) {
+                              updateSelectedColor(nextValue);
+                            }
+                          }}
+                          className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
+                          aria-label="Cor em hexadecimal"
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['r', 'g', 'b'] as const).map((channel) => (
+                          <label key={channel} className="block text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="255"
+                              value={selectedRgb[channel]}
+                              onChange={(event) => updateColorFromRgb(channel, Number(event.target.value))}
+                              className="w-full rounded-xl border border-slate-200 px-2 py-2 text-center text-sm font-bold text-slate-700 outline-[#9A077B]"
+                              aria-label={channel.toUpperCase()}
+                            />
+                            <span className="mt-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              {channel.toUpperCase()}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['r', 'g', 'b'] as const).map((channel) => (
-                        <label key={channel} className="block text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max="255"
-                            value={selectedRgb[channel]}
-                            onChange={(event) => updateColorFromRgb(channel, Number(event.target.value))}
-                            className="w-full rounded-xl border border-slate-200 px-2 py-2 text-center text-sm font-bold text-slate-700 outline-[#9A077B]"
-                            aria-label={channel.toUpperCase()}
-                          />
-                          <span className="mt-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            {channel.toUpperCase()}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
-                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
-                    <SlidersHorizontal size={16} />
-                    Ajustes
-                  </p>
-                  <label className="block">
+                  {renderToolSectionHeader('adjustments', 'Ajustes', SlidersHorizontal)}
+                  {expandedToolSections.adjustments && (
+                    <>
+                      <label className="block">
                     <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
                       <span>Pincel</span>
                       <span>{brushSize}px</span>
@@ -1497,6 +1525,8 @@ export const DashboardWallColorTab: React.FC = () => {
                       className="w-full accent-[#9A077B]"
                     />
                   </label>
+                  </>
+                  )}
                 </div>
               </div>
             )}
