@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, Eraser, Minus, Move, Paintbrush, RotateCcw, SlidersHorizontal, Upload, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, Eraser, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Upload } from 'lucide-react';
 
-type ToolMode = 'brush' | 'eraser' | 'line' | 'curve' | 'pan';
+type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
+type ActivePointer = { x: number; y: number; type: string };
 type CursorPreview = {
   x: number;
   y: number;
@@ -47,11 +48,15 @@ export const DashboardWallColorTab: React.FC = () => {
   const shapeStartPointRef = useRef<CanvasPoint | null>(null);
   const panStartPointRef = useRef<PanPoint | null>(null);
   const panStartOffsetRef = useRef<PanPoint>({ x: 0, y: 0 });
+  const activePointersRef = useRef<Map<number, ActivePointer>>(new Map<number, ActivePointer>());
+  const pinchStartDistanceRef = useRef(0);
+  const pinchStartZoomRef = useRef(1);
   const isDrawingRef = useRef(false);
   const isPanningRef = useRef(false);
+  const isPinchingRef = useRef(false);
   const displayScaleRef = useRef(1);
   const [hasImage, setHasImage] = useState(false);
-  const [toolMode, setToolMode] = useState<ToolMode>('brush');
+  const [toolMode, setToolMode] = useState<ToolMode | null>(null);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
@@ -324,7 +329,7 @@ export const DashboardWallColorTab: React.FC = () => {
     canvas: HTMLCanvasElement,
     event: React.PointerEvent<HTMLCanvasElement>
   ) => {
-    if (!hasImage || toolMode === 'pan') {
+    if (!hasImage || !toolMode) {
       setCursorPreview((currentPreview) => ({ ...currentPreview, visible: false }));
       return;
     }
@@ -342,15 +347,51 @@ export const DashboardWallColorTab: React.FC = () => {
     });
   };
 
+  const getActivePointers = () => Array.from(activePointersRef.current.values()) as ActivePointer[];
+
+  const startPinch = () => {
+    const touchPointers = getActivePointers().filter((pointer) => pointer.type === 'touch');
+
+    if (touchPointers.length < 2) {
+      return false;
+    }
+
+    const [firstPointer, secondPointer] = touchPointers;
+    pinchStartDistanceRef.current = Math.hypot(
+      secondPointer.x - firstPointer.x,
+      secondPointer.y - firstPointer.y
+    );
+    pinchStartZoomRef.current = zoom;
+    isPinchingRef.current = true;
+    isPanningRef.current = false;
+    panStartPointRef.current = null;
+
+    return true;
+  };
+
+  const toggleToolMode = (mode: ToolMode) => {
+    setToolMode((currentMode) => (currentMode === mode ? null : mode));
+    stopDrawing();
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!hasImage || !visibleCanvasRef.current) {
       return;
     }
 
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+      type: event.pointerType
+    });
     event.currentTarget.setPointerCapture(event.pointerId);
     updateCursorPreview(event.currentTarget, event);
 
-    if (toolMode === 'pan') {
+    if (!toolMode) {
+      if (event.pointerType === 'touch' && startPinch()) {
+        return;
+      }
+
       isPanningRef.current = true;
       panStartPointRef.current = { x: event.clientX, y: event.clientY };
       panStartOffsetRef.current = panOffset;
@@ -367,11 +408,43 @@ export const DashboardWallColorTab: React.FC = () => {
       return;
     }
 
-    drawShapePreview(point, point, toolMode);
+    if (toolMode === 'line' || toolMode === 'curve') {
+      drawShapePreview(point, point, toolMode);
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const activePointer = activePointersRef.current.get(event.pointerId);
+
+    if (activePointer) {
+      activePointersRef.current.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY,
+        type: activePointer.type
+      });
+    }
+
     updateCursorPreview(event.currentTarget, event);
+
+    if (!toolMode && event.pointerType === 'touch' && (isPinchingRef.current || activePointersRef.current.size >= 2)) {
+      if (!isPinchingRef.current && !startPinch()) {
+        return;
+      }
+
+      const touchPointers = getActivePointers().filter((pointer) => pointer.type === 'touch');
+
+      if (touchPointers.length >= 2 && pinchStartDistanceRef.current > 0) {
+        const [firstPointer, secondPointer] = touchPointers;
+        const nextDistance = Math.hypot(
+          secondPointer.x - firstPointer.x,
+          secondPointer.y - firstPointer.y
+        );
+
+        adjustZoom(pinchStartZoomRef.current * (nextDistance / pinchStartDistanceRef.current));
+      }
+
+      return;
+    }
 
     if (isPanningRef.current && panStartPointRef.current) {
       const deltaX = event.clientX - panStartPointRef.current.x;
@@ -399,27 +472,14 @@ export const DashboardWallColorTab: React.FC = () => {
 
     lastPointRef.current = point;
 
-    if (shapeStartPointRef.current) {
+    if (shapeStartPointRef.current && (toolMode === 'line' || toolMode === 'curve')) {
       drawShapePreview(shapeStartPointRef.current, point, toolMode);
     }
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (
-      isDrawingRef.current
-      && hasImage
-      && shapeStartPointRef.current
-      && (toolMode === 'line' || toolMode === 'curve')
-    ) {
-      const point = getCanvasPoint(event.currentTarget, event);
-      commitShapeToMask(shapeStartPointRef.current, point, toolMode);
-    }
-
-    stopDrawing();
-  };
-
   const stopPan = () => {
     isPanningRef.current = false;
+    isPinchingRef.current = false;
     panStartPointRef.current = null;
   };
 
@@ -432,16 +492,12 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const hideCursorPreview = () => {
     stopDrawing();
+    activePointersRef.current.clear();
     setCursorPreview((currentPreview) => ({ ...currentPreview, visible: false }));
   };
 
   const adjustZoom = (nextZoom: number) => {
     setZoom(Math.min(4, Math.max(0.5, nextZoom)));
-  };
-
-  const resetView = () => {
-    setZoom(1);
-    setPanOffset({ x: 0, y: 0 });
   };
 
   const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
@@ -451,6 +507,36 @@ export const DashboardWallColorTab: React.FC = () => {
 
     event.preventDefault();
     adjustZoom(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    activePointersRef.current.delete(event.pointerId);
+
+    if (
+      isDrawingRef.current
+      && hasImage
+      && shapeStartPointRef.current
+      && (toolMode === 'line' || toolMode === 'curve')
+    ) {
+      const point = getCanvasPoint(event.currentTarget, event);
+      commitShapeToMask(shapeStartPointRef.current, point, toolMode);
+    }
+
+    if (!toolMode && activePointersRef.current.size === 1) {
+      const [remainingPointer] = getActivePointers();
+      isPinchingRef.current = false;
+      isPanningRef.current = true;
+      panStartPointRef.current = { x: remainingPointer.x, y: remainingPointer.y };
+      panStartOffsetRef.current = panOffset;
+      return;
+    }
+
+    stopDrawing();
+  };
+
+  const handlePointerCancel = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    activePointersRef.current.delete(event.pointerId);
+    stopDrawing();
   };
 
   const clearMask = () => {
@@ -515,15 +601,15 @@ export const DashboardWallColorTab: React.FC = () => {
             >
               <canvas
                 ref={visibleCanvasRef}
-                className={`block h-auto w-full touch-none ${hasImage ? (toolMode === 'pan' ? 'cursor-grab active:cursor-grabbing' : 'cursor-none') : 'min-h-[24rem]'}`}
+                className={`block h-auto w-full touch-none ${hasImage ? (!toolMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-none') : 'min-h-[24rem]'}`}
                 style={{
                   transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
                   transformOrigin: 'top left'
                 }}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={stopDrawing}
+                onPointerUp={handlePointerEnd}
+                onPointerCancel={handlePointerCancel}
                 onPointerLeave={hideCursorPreview}
               />
               {hasImage && cursorPreview.visible && (
@@ -578,19 +664,7 @@ export const DashboardWallColorTab: React.FC = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setToolMode('pan')}
-                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                  toolMode === 'pan'
-                    ? 'bg-[#9A077B] text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <Move size={17} />
-                Mover
-              </button>
-              <button
-                type="button"
-                onClick={() => setToolMode('brush')}
+                onClick={() => toggleToolMode('brush')}
                 className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
                   toolMode === 'brush'
                     ? 'bg-[#9A077B] text-white'
@@ -602,7 +676,7 @@ export const DashboardWallColorTab: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setToolMode('eraser')}
+                onClick={() => toggleToolMode('eraser')}
                 className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
                   toolMode === 'eraser'
                     ? 'bg-[#9A077B] text-white'
@@ -614,7 +688,7 @@ export const DashboardWallColorTab: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setToolMode('line')}
+                onClick={() => toggleToolMode('line')}
                 className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
                   toolMode === 'line'
                     ? 'bg-[#9A077B] text-white'
@@ -626,7 +700,7 @@ export const DashboardWallColorTab: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setToolMode('curve')}
+                onClick={() => toggleToolMode('curve')}
                 className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
                   toolMode === 'curve'
                     ? 'bg-[#9A077B] text-white'
@@ -637,50 +711,6 @@ export const DashboardWallColorTab: React.FC = () => {
                 Curva
               </button>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
-              <ZoomIn size={16} />
-              Visualização
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => adjustZoom(zoom - 0.15)}
-                disabled={!hasImage}
-                className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-3 text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Diminuir zoom"
-              >
-                <ZoomOut size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={resetView}
-                disabled={!hasImage}
-                className="rounded-xl bg-slate-100 px-3 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {Math.round(zoom * 100)}%
-              </button>
-              <button
-                type="button"
-                onClick={() => adjustZoom(zoom + 0.15)}
-                disabled={!hasImage}
-                className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-3 text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Aumentar zoom"
-              >
-                <ZoomIn size={18} />
-              </button>
-            </div>
-            <input
-              type="range"
-              min="50"
-              max="400"
-              value={Math.round(zoom * 100)}
-              onChange={(event) => adjustZoom(Number(event.target.value) / 100)}
-              disabled={!hasImage}
-              className="w-full accent-[#9A077B] disabled:opacity-50"
-            />
           </div>
 
           <div>
