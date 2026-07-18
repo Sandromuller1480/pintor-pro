@@ -154,9 +154,9 @@ export const DashboardWallColorTab: React.FC = () => {
   const [activeWallId, setActiveWallId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<EditorModal>(null);
   const [expandedToolSections, setExpandedToolSections] = useState<Record<ToolSection, boolean>>({
-    tools: true,
-    color: true,
-    adjustments: true
+    tools: false,
+    color: false,
+    adjustments: false
   });
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [colorPicker, setColorPicker] = useState<HsvColor>(() => rgbToHsv(hexToRgb(DEFAULT_COLOR)));
@@ -920,6 +920,15 @@ export const DashboardWallColorTab: React.FC = () => {
     link.click();
   };
 
+  const openToolsModal = () => {
+    setExpandedToolSections({
+      tools: false,
+      color: false,
+      adjustments: false
+    });
+    setActiveModal('tools');
+  };
+
   const activeWall = walls.find((wall) => wall.id === activeWallId) ?? null;
   const selectedRgb = hexToRgb(selectedColor);
   const renderToolSectionHeader = (section: ToolSection, label: string, Icon: typeof Paintbrush) => {
@@ -1029,7 +1038,7 @@ export const DashboardWallColorTab: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveModal('tools')}
+                onClick={openToolsModal}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
                 aria-label="Ferramentas"
                 title="Ferramentas"
@@ -1284,7 +1293,7 @@ export const DashboardWallColorTab: React.FC = () => {
             </button>
 
             {activeModal === 'tools' && (
-              <div className="space-y-5 pr-10">
+              <div className="max-h-[min(78vh,38rem)] space-y-5 overflow-y-auto pr-10">
                 <div className="space-y-3">
                   {renderToolSectionHeader('tools', 'Ferramentas', Paintbrush)}
                   {expandedToolSections.tools && (
