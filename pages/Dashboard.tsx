@@ -1722,7 +1722,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         {content}
       </main>
 
-      {portalTarget && currentProfile?.applicationId && createPortal(
+      {activeTab !== 'colorir-parede' && portalTarget && currentProfile?.applicationId && createPortal(
         <>
           <DashboardChatInbox
             isOpen={isChatInboxOpen}
