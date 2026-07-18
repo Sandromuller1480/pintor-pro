@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload } from 'lucide-react';
+import { Check, Download, Eraser, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
 
 type ToolMode = 'brush' | 'eraser' | 'line' | 'curve';
+type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
 type CanvasPoint = { x: number; y: number };
 type PanPoint = { x: number; y: number };
 type ActivePointer = { x: number; y: number; type: string };
@@ -71,6 +72,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const [toolMode, setToolMode] = useState<ToolMode | null>(null);
   const [walls, setWalls] = useState<WallPaint[]>([]);
   const [activeWallId, setActiveWallId] = useState<string | null>(null);
+  const [activeModal, setActiveModal] = useState<EditorModal>(null);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
@@ -714,6 +716,31 @@ export const DashboardWallColorTab: React.FC = () => {
     renderPreview();
   };
 
+  const deletePhoto = () => {
+    const visibleCanvas = visibleCanvasRef.current;
+    const baseCanvas = baseCanvasRef.current;
+    const visibleContext = visibleCanvas?.getContext('2d');
+    const baseContext = baseCanvas?.getContext('2d');
+
+    stopDrawing();
+    activePointersRef.current.clear();
+    wallMasksRef.current.clear();
+    wallsRef.current = [];
+    wallSequenceRef.current = 0;
+    activeWallIdRef.current = null;
+    drawingWallIdRef.current = null;
+    visibleContext?.clearRect(0, 0, visibleCanvas?.width ?? 0, visibleCanvas?.height ?? 0);
+    baseContext?.clearRect(0, 0, baseCanvas?.width ?? 0, baseCanvas?.height ?? 0);
+    setWalls([]);
+    setActiveWallId(null);
+    setHasImage(false);
+    setToolMode(null);
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+    setFeedback('');
+    setActiveModal(null);
+  };
+
   const saveImage = () => {
     const visibleCanvas = visibleCanvasRef.current;
 
@@ -757,7 +784,7 @@ export const DashboardWallColorTab: React.FC = () => {
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div>
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex h-[min(72vh,44rem)] min-h-[30rem] items-center justify-center bg-slate-100 p-3">
             <div
@@ -818,8 +845,40 @@ export const DashboardWallColorTab: React.FC = () => {
               {feedback}
             </div>
           )}
+          {hasImage && (
+            <div className="flex items-center justify-center gap-3 border-t border-slate-200 bg-white px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setActiveModal('tools')}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
+                aria-label="Ferramentas"
+                title="Ferramentas"
+              >
+                <Paintbrush size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveModal('walls')}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
+                aria-label="Paredes"
+                title="Paredes"
+              >
+                <Layers size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveModal('delete-photo')}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-red-50 hover:text-red-600"
+                aria-label="Deletar foto"
+                title="Deletar foto"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          )}
         </div>
 
+        {false && (
         <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-6 xl:self-start">
           <div>
             <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
@@ -1028,7 +1087,252 @@ export const DashboardWallColorTab: React.FC = () => {
             </button>
           </div>
         </aside>
+        )}
       </div>
+
+      {hasImage && activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <X size={18} />
+            </button>
+
+            {activeModal === 'tools' && (
+              <div className="space-y-5 pr-10">
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                  <Paintbrush size={16} />
+                  Ferramentas
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleToolMode('brush')}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                      toolMode === 'brush'
+                        ? 'bg-[#9A077B] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Paintbrush size={17} />
+                    Pincel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleToolMode('eraser')}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                      toolMode === 'eraser'
+                        ? 'bg-[#9A077B] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Eraser size={17} />
+                    Borracha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleToolMode('line')}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                      toolMode === 'line'
+                        ? 'bg-[#9A077B] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Minus size={17} />
+                    Reta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleToolMode('curve')}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                      toolMode === 'curve'
+                        ? 'bg-[#9A077B] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Paintbrush size={17} />
+                    Curva
+                  </button>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">
+                    Cor da tinta
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={selectedColor}
+                      onChange={(event) => updateSelectedColor(event.target.value)}
+                      className="h-12 w-16 cursor-pointer rounded-xl border border-slate-200 bg-white p-1"
+                    />
+                    <input
+                      type="text"
+                      value={selectedColor.toUpperCase()}
+                      onChange={(event) => updateSelectedColor(event.target.value)}
+                      className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black uppercase text-slate-700 outline-[#9A077B]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                    <SlidersHorizontal size={16} />
+                    Ajustes
+                  </p>
+                  <label className="block">
+                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                      <span>Pincel</span>
+                      <span>{brushSize}px</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="8"
+                      max="120"
+                      value={brushSize}
+                      onChange={(event) => setBrushSize(Number(event.target.value))}
+                      className="w-full accent-[#9A077B]"
+                    />
+                  </label>
+                  {toolMode === 'curve' && (
+                    <label className="block">
+                      <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                        <span>Curvatura</span>
+                        <span>{curveBend > 0 ? `+${curveBend}` : curveBend}</span>
+                      </span>
+                      <input
+                        type="range"
+                        min="-100"
+                        max="100"
+                        value={curveBend}
+                        onChange={(event) => setCurveBend(Number(event.target.value))}
+                        className="w-full accent-[#9A077B]"
+                      />
+                    </label>
+                  )}
+                  <label className="block">
+                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                      <span>Intensidade</span>
+                      <span>{strength}%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="15"
+                      max="100"
+                      value={strength}
+                      onChange={(event) => updateStrength(Number(event.target.value))}
+                      className="w-full accent-[#9A077B]"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {activeModal === 'walls' && (
+              <div className="space-y-4 pr-10">
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                  <Layers size={16} />
+                  Paredes
+                </p>
+                <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+                  {walls.map((wall) => (
+                    <div
+                      key={wall.id}
+                      className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-sm font-black transition ${
+                        wall.id === activeWallId
+                          ? 'bg-[#9A077B] text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectWall(wall)}
+                        className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg px-1 py-1 text-left"
+                      >
+                        <span className="truncate">{wall.name}</span>
+                        <span
+                          className="h-5 w-5 shrink-0 rounded-md border border-white/50 shadow-sm"
+                          style={{ backgroundColor: wall.color }}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteWall(wall.id)}
+                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+                          wall.id === activeWallId
+                            ? 'text-white/85 hover:bg-white/15 hover:text-white'
+                            : 'text-slate-400 hover:bg-white hover:text-red-600'
+                        }`}
+                        aria-label={`Excluir ${wall.name}`}
+                        title={`Excluir ${wall.name}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  {walls.length === 0 && (
+                    <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-400">
+                      Nenhuma parede
+                    </div>
+                  )}
+                </div>
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 text-sm font-bold text-slate-600">
+                  Ver marcação
+                  <input
+                    type="checkbox"
+                    checked={showMask}
+                    onChange={(event) => setShowMask(event.target.checked)}
+                    className="h-4 w-4 accent-[#9A077B]"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={finishPainting}
+                  disabled={!activeWall}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Check size={17} />
+                  Finalizar Pintura
+                </button>
+                <button
+                  type="button"
+                  onClick={clearMask}
+                  disabled={!hasImage || !activeWall}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RotateCcw size={17} />
+                  Limpar parede
+                </button>
+              </div>
+            )}
+
+            {activeModal === 'delete-photo' && (
+              <div className="space-y-5 pr-10">
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                  <Trash2 size={16} />
+                  Deletar foto
+                </p>
+                <p className="text-sm font-semibold leading-6 text-slate-600">
+                  Esta ação remove a foto atual e todas as paredes criadas nela.
+                </p>
+                <button
+                  type="button"
+                  onClick={deletePhoto}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700"
+                >
+                  <Trash2 size={17} />
+                  Deletar foto
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <canvas ref={baseCanvasRef} className="hidden" />
     </section>
