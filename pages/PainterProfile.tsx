@@ -979,7 +979,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
           <h1 className="text-2xl font-black text-slate-900 mb-4">Perfil não encontrado</h1>
           <p className="text-slate-500 mb-8">O pintor solicitado não está disponível ou foi removido.</p>
           <button
-            onClick={() => setPage?.(Page.FindPainter)}
+            onClick={() => setPage?.(Page.Home)}
             className="bg-[#9A077B] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
           >
             Voltar para busca

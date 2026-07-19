@@ -7,7 +7,6 @@ import { supabase } from './lib/supabase';
 import { AppRoute, NavigateToPage, Page, PageNavigationParams } from './types';
 
 const HomePage = lazy(() => import('./pages/Home').then((module) => ({ default: module.Home })));
-const FindPainterPage = lazy(() => import('./pages/FindPainter').then((module) => ({ default: module.FindPainter })));
 const PainterProfilePage = lazy(() => import('./pages/PainterProfile').then((module) => ({ default: module.PainterProfile })));
 const RegisterPage = lazy(() => import('./pages/Register').then((module) => ({ default: module.Register })));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorks').then((module) => ({ default: module.HowItWorks })));
@@ -25,8 +24,6 @@ const getPageLoadingMessage = (page: Page) => {
       return 'Carregando painel admin...';
     case Page.PainterProfile:
       return 'Carregando perfil...';
-    case Page.FindPainter:
-      return 'Carregando busca...';
     default:
       return 'Carregando pagina...';
   }
@@ -195,8 +192,6 @@ const App: React.FC = () => {
     switch (route.page) {
       case Page.Home:
         return <HomePage setPage={navigateToPage} />;
-      case Page.FindPainter:
-        return <FindPainterPage setPage={navigateToPage} />;
       case Page.PainterProfile:
         return <PainterProfilePage painterId={route.painterId} setPage={navigateToPage} />;
       case Page.Register:

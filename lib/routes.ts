@@ -2,7 +2,6 @@ import { AppRoute, Page } from '../types';
 
 export const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
   [Page.Home]: '/',
-  [Page.FindPainter]: '/encontrar-pintor',
   [Page.Register]: '/cadastro-pintor',
   [Page.HowItWorks]: '/como-funciona',
   [Page.Plans]: '/planos',
@@ -22,7 +21,7 @@ export const getInitialRoute = (): AppRoute => {
   const parts = cleanPath.split('/').filter(Boolean);
 
   if (parts.length === 0) return { page: Page.Home };
-  if (parts[0] === 'encontrar-pintor') return { page: Page.FindPainter };
+  if (parts[0] === 'encontrar-pintor') return { page: Page.Home };
   if (parts[0] === 'cadastro-pintor') return { page: Page.Register };
   if (parts[0] === 'como-funciona') return { page: Page.HowItWorks };
   if (parts[0] === 'planos') return { page: Page.Plans };
@@ -39,7 +38,7 @@ export const getInitialRoute = (): AppRoute => {
 
 export const buildPathForRoute = (route: AppRoute): string => {
   if (route.page === Page.PainterProfile) {
-    return route.painterId ? `/pintor/${encodeURIComponent(route.painterId)}` : ROUTE_PATHS[Page.FindPainter];
+    return route.painterId ? `/pintor/${encodeURIComponent(route.painterId)}` : ROUTE_PATHS[Page.Home];
   }
 
   return ROUTE_PATHS[route.page];

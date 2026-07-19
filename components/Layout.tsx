@@ -71,7 +71,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
 
   const clientFirstName = currentClientProfile?.fullName.trim().split(/\s+/)[0] ?? '';
   const shouldShowClientEntry = sessionRole !== 'painter';
-  const shouldShowFindPainterEntry = sessionRole !== 'painter';
   const shouldShowPlansEntry = sessionRole !== 'client';
   const shouldShowPainterEntry = sessionRole !== 'client';
   const shouldShowAdminEntry = Boolean(currentAdminProfile);
@@ -135,14 +134,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             </div>
 
             <nav className="hidden md:flex space-x-8 items-center">
-              {shouldShowFindPainterEntry && (
-                <button
-                  onClick={() => setPage(Page.FindPainter)}
-                  className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.FindPainter ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
-                >
-                  Encontrar Pintor
-                </button>
-              )}
               <button
                 onClick={() => setPage(Page.HowItWorks)}
                 className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.HowItWorks ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
@@ -216,17 +207,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               )
             )}
 
-            {shouldShowFindPainterEntry && (
-              <button
-                onClick={() => {
-                  setPage(Page.FindPainter);
-                  setIsMenuOpen(false);
-                }}
-                className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
-              >
-                Encontrar Pintor
-              </button>
-            )}
             <button
               onClick={() => {
                 setPage(Page.HowItWorks);
@@ -306,9 +286,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <div>
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Marketplace</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                {sessionRole !== 'painter' && (
-                  <li><button onClick={() => setPage(Page.FindPainter)} className="hover:text-[#C93EA6] transition">Encontrar Profissionais</button></li>
-                )}
                 {sessionRole !== 'painter' && (
                   <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
                 )}

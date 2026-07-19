@@ -71,7 +71,6 @@ export interface PainterReview {
 
 export enum Page {
   Home = 'home',
-  FindPainter = 'find-painter',
   PainterProfile = 'painter-profile',
   Register = 'register',
   HowItWorks = 'how-it-works',

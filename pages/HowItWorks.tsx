@@ -113,7 +113,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
           <h4 className="text-3xl font-black text-slate-900 mb-8 tracking-tighter uppercase">Pronto para começar?</h4>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <button
-              onClick={() => setPage(view === 'client' ? Page.FindPainter : Page.Register)}
+              onClick={() => setPage(view === 'client' ? Page.Home : Page.Register)}
               className="bg-[#9A077B] text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-2xl shadow-[#EFC6E3] hover:bg-[#7F0665] transition"
             >
               {view === 'client' ? "Encontrar meu Pintor" : "Entrar para a Elite"}

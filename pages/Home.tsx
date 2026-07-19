@@ -138,7 +138,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
       const currentClientProfile = await getCurrentClientProfile();
 
       if (currentClientProfile) {
-        setPage(Page.FindPainter);
         return;
       }
     } catch (error) {
@@ -593,14 +592,14 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
       <ClientLoginModal
         isOpen={isClientLoginModalOpen}
         onClose={() => setIsClientLoginModalOpen(false)}
-        onSuccess={() => setPage(Page.FindPainter)}
+        onSuccess={() => setIsClientLoginModalOpen(false)}
         onShowSignup={() => setIsClientSignupModalOpen(true)}
       />
 
       <ClientSignupModal
         isOpen={isClientSignupModalOpen}
         onClose={() => setIsClientSignupModalOpen(false)}
-        onSuccess={() => setPage(Page.FindPainter)}
+        onSuccess={() => setIsClientSignupModalOpen(false)}
       />
     </div>
   );
