@@ -147,7 +147,6 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ cla
 
 const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
 const planOptions = ['', 'monthly', 'annual'];
-const subscriptionStatusOptions = ['', 'trialing', 'active', 'past_due', 'cancelled'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
 const planValueMap: Record<string, number> = { monthly: 50, annual: 500 };
 
@@ -263,6 +262,11 @@ const getPlanLabel = (plan?: string | null) => {
     case 'ouro': return 'Ouro';
     default: return plan || 'Sem plano';
   }
+};
+
+const isSubscriptionAccessActive = (status?: string | null) => {
+  const normalizedStatus = (status || '').toLowerCase();
+  return normalizedStatus === 'active' || normalizedStatus === 'trialing';
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
@@ -758,10 +762,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     </div>
                     {subscribedPainters.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.subscription_status)}`}>{getStatusLabel(item.subscription_status)}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
+                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${isSubscriptionAccessActive(item.subscription_status) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{isSubscriptionAccessActive(item.subscription_status) ? 'Ativo' : 'Bloqueado'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
                         <div className="mt-6 grid gap-4 md:grid-cols-2">
                           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><select value={item.subscription_plan ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_plan: event.target.value || null }, 'Plano atualizado.', `plan:${item.id}`, 'subscription.plan_changed')} disabled={busyKey === `plan:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{planOptions.map((option) => <option key={option || 'empty'} value={option}>{getPlanLabel(option)}</option>)}</select></div>
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p><select value={item.subscription_status ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_status: event.target.value || null }, 'Situação da assinatura atualizada.', `subscription:${item.id}`, 'subscription.status_changed')} disabled={busyKey === `subscription:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{subscriptionStatusOptions.map((option) => <option key={option || 'empty'} value={option}>{option ? getStatusLabel(option) : 'Não informado'}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p>
+                            <div className="mt-3 grid grid-cols-2 gap-3">
+                              <div className={`rounded-2xl border px-4 py-4 ${isSubscriptionAccessActive(item.subscription_status) ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-400'}`}>
+                                <p className="text-sm font-black uppercase tracking-[0.16em]">Ativo</p>
+                              </div>
+                              <div className={`rounded-2xl border px-4 py-4 ${isSubscriptionAccessActive(item.subscription_status) ? 'border-slate-200 bg-white text-slate-400' : 'border-rose-300 bg-rose-50 text-rose-700'}`}>
+                                <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
