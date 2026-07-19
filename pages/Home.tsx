@@ -181,9 +181,9 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                 </button>
                 <button
                   onClick={() => setPage(Page.Register)}
-                  className="bg-white border-2 border-slate-100 text-[#1e293b] px-10 py-6 rounded-2xl font-black text-lg hover:border-[#9A077B] hover:text-[#9A077B] transition-all duration-300 flex items-center justify-center uppercase tracking-[0.1em] shadow-sm"
+                  className="bg-white border-2 border-[#000747] text-[#000747] px-10 py-6 rounded-2xl font-black text-lg hover:border-[#9A077B] hover:text-[#9A077B] transition-all duration-300 flex items-center justify-center uppercase tracking-[0.1em] shadow-sm"
                 >
-                  Sou Pintor PRO
+                  Sou Pintor
                 </button>
               </div>
 
