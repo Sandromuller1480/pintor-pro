@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   ChevronDown,
   SlidersHorizontal,
-  Star,
   Paintbrush
 } from 'lucide-react';
 
@@ -151,7 +150,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
     setIsClientLoginModalOpen(true);
   };
 
-  const socialProofPainters = painters.slice(0, 4);
   const totalPainters = painters.length;
   const verifiedPainters = painters.filter((painter) => painter.verified).length;
   const topRatedPainters = painters.filter((painter) => painter.topRated).length;
@@ -172,10 +170,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const topRatedPaintersLabel = formatMetricValue(topRatedPainters);
   const totalReviewsLabel = formatMetricValue(totalReviews);
   const uniqueLocationsLabel = formatMetricValue(uniqueLocations.length);
-  const socialProofLabel = totalReviews > 0 && averageRating > 0
-    ? `${averageRating.toFixed(1)} de média em ${totalReviewsLabel} avaliações públicas`
-    : `${totalPaintersLabel} perfis publicados na vitrine`;
-
   const availableSpecialties = useMemo(() => {
     return Array.from(
       new Set<string>(
@@ -308,30 +302,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-8 pt-8">
-                <div className="flex -space-x-3">
-                  {socialProofPainters.length > 0 ? (
-                    socialProofPainters.map((painter) => (
-                      <img
-                        key={painter.id}
-                        src={painter.avatar}
-                        alt={painter.name}
-                        className="w-12 h-12 rounded-full border-4 border-white shadow-sm object-cover"
-                      />
-                    ))
-                  ) : (
-                    [1, 2, 3, 4].map((item) => (
-                      <div key={item} className="w-12 h-12 rounded-full border-4 border-white shadow-sm bg-slate-100" />
-                    ))
-                  )}
-                </div>
-                <div>
-                  <div className="flex text-yellow-400 mb-1">
-                    <Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" /><Star className="fill-current w-3.5 h-3.5" />
-                  </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{socialProofLabel}</p>
-                </div>
-              </div>
             </div>
 
             <div className="relative">
