@@ -1,6 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { ProfilePhotoCropModal } from '../components/ProfilePhotoCropModal';
-import { SPECIALTY_OPTIONS } from '../lib/painterProfileOptions';
 import {
   paintersService,
   type ApplicationFormSubmission,
@@ -28,19 +27,7 @@ const SUPPORTED_PROFILE_IMAGE_TYPES = new Set([
 
 const PROFILE_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.bmp,.webp,image/jpeg,image/jpg,image/png,image/bmp,image/x-ms-bmp,image/webp';
 const PROFILE_IMAGE_EXTENSION_PATTERN = /\.(jpg|jpeg|png|bmp|webp)$/i;
-const buildSelectedFileKey = (file: File) => `${file.name}::${file.size}::${file.lastModified}::${file.type}`;
-const mergeSelectedFiles = (currentFiles: File[], nextFiles: File[]) => {
-  const mergedFiles = new Map<string, File>(currentFiles.map((file) => [buildSelectedFileKey(file), file]));
-
-  nextFiles.forEach((file) => {
-    mergedFiles.set(buildSelectedFileKey(file), file);
-  });
-
-  return Array.from(mergedFiles.values());
-};
-
 type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' | 'processingWarning'>;
-type FileFieldKey = 'workPhotos' | 'certifications';
 
 type ApplicationFormData = {
   fullName: string;
@@ -95,8 +82,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
   const [pendingProfilePhotoFile, setPendingProfilePhotoFile] = useState<File | null>(null);
   const [isProfileCropModalOpen, setIsProfileCropModalOpen] = useState(false);
   const successTimeoutRef = useRef<number | null>(null);
-  const workPhotosInputRef = useRef<HTMLInputElement | null>(null);
-  const certificationsInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!formData.profilePhoto) {
@@ -134,7 +119,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
       !formData.password ||
       !formData.confirmPassword ||
       !formData.experienceTime ||
-      formData.specialty.length === 0 ||
       !formData.profilePhoto
     ) {
       alert('Por favor, preencha todos os campos obrigatorios e adicione a foto de perfil.');
@@ -148,11 +132,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
 
     if (formData.password.length < 6) {
       alert('A senha precisa ter no minimo 6 caracteres.');
-      return;
-    }
-
-    if (formData.workPhotos.length < 5) {
-      alert('Envie no minimo 5 fotos de trabalhos.');
       return;
     }
 
@@ -214,25 +193,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
       alert(`Erro ao enviar solicitação.\n\n${errorMessage}`);
       setIsSubmitting(false);
     }
-  };
-
-  const updateSelectedFiles = (field: FileFieldKey, updater: (currentFiles: File[]) => File[]) => {
-    setFormData((currentData) => ({
-      ...currentData,
-      workPhotos: field === 'workPhotos' ? updater(currentData.workPhotos) : currentData.workPhotos,
-      certifications: field === 'certifications' ? updater(currentData.certifications) : currentData.certifications
-    }));
-  };
-
-  const handleWorkPhotosChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles: File[] = Array.from(event.target.files ?? []);
-    event.target.value = '';
-
-    if (!selectedFiles.length) {
-      return;
-    }
-
-    updateSelectedFiles('workPhotos', (currentFiles) => mergeSelectedFiles(currentFiles, selectedFiles));
   };
 
   const handleProfilePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,79 +261,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         console.error('Erro ao buscar CEP', error);
       }
     }
-  };
-
-  const handleCertificationsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles: File[] = Array.from(event.target.files ?? []);
-    event.target.value = '';
-
-    if (!selectedFiles.length) {
-      return;
-    }
-
-    updateSelectedFiles('certifications', (currentFiles) => mergeSelectedFiles(currentFiles, selectedFiles));
-  };
-
-  const handleRemoveSelectedFile = (field: FileFieldKey, fileKey: string) => {
-    updateSelectedFiles(field, (currentFiles) => currentFiles.filter((file) => buildSelectedFileKey(file) !== fileKey));
-  };
-
-  const handleClearSelectedFiles = (field: FileFieldKey) => {
-    updateSelectedFiles(field, () => []);
-  };
-
-  const openFilePicker = (inputRef: React.RefObject<HTMLInputElement | null>) => {
-    inputRef.current?.click();
-  };
-
-  const renderSelectedFiles = (files: File[], field: FileFieldKey) => {
-    if (!files.length) {
-      return null;
-    }
-
-    return (
-      <div className="mt-3 space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {files.map((file) => {
-            const fileKey = buildSelectedFileKey(file);
-
-            return (
-              <div
-                key={fileKey}
-                className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#EFC6E3] bg-[#FDF3FA] px-3 py-2 text-[11px] font-semibold text-slate-700"
-              >
-                <span className="max-w-[180px] truncate sm:max-w-[220px]">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveSelectedFile(field, fileKey)}
-                  className="rounded-full border border-[#E7B8DA] bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-[#9A077B] transition hover:bg-[#F7E3F1]"
-                >
-                  Remover
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          onClick={() => handleClearSelectedFiles(field)}
-          className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-[#9A077B]"
-        >
-          Limpar selecao
-        </button>
-      </div>
-    );
-  };
-
-  const toggleSpecialty = (option: string) => {
-    setFormData((currentData) => {
-      const isSelected = currentData.specialty.includes(option);
-      if (isSelected) {
-        return { ...currentData, specialty: currentData.specialty.filter((item) => item !== option) };
-      }
-
-      return { ...currentData, specialty: [...currentData.specialty, option] };
-    });
   };
 
   return (
@@ -630,131 +517,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
               onChange={(event) => setFormData({ ...formData, experienceTime: event.target.value })}
               required
             />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-              SELECIONE SUAS ESPECIALIDADES
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-6 rounded-2xl border border-slate-200 max-h-64 overflow-y-auto no-scrollbar">
-              {SPECIALTY_OPTIONS.map((option) => (
-                <label
-                  key={option}
-                  className={`flex items-center p-3 rounded-xl border transition-all cursor-pointer group ${
-                    formData.specialty.includes(option)
-                      ? 'bg-[#9A077B] border-[#9A077B] shadow-lg shadow-[#F7E3F1]'
-                      : 'bg-white border-slate-100 hover:border-[#EFC6E3]'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={formData.specialty.includes(option)}
-                    onChange={() => toggleSpecialty(option)}
-                  />
-                  <div
-                    className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
-                      formData.specialty.includes(option)
-                        ? 'bg-white border-white text-[#9A077B]'
-                        : 'bg-slate-50 border-slate-200 group-hover:border-[#C93EA6]'
-                    }`}
-                  >
-                    {formData.specialty.includes(option) && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span
-                    className={`text-xs font-bold uppercase tracking-tight leading-tight ${
-                      formData.specialty.includes(option) ? 'text-white' : 'text-slate-600'
-                    }`}
-                  >
-                    {option}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <p className="text-[9px] text-slate-400 mt-2 font-bold uppercase tracking-widest">
-              Selecionadas: {formData.specialty.length} especialidades
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                Fotos de Trabalhos
-              </label>
-              <input
-                ref={workPhotosInputRef}
-                id="work-photos-upload"
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                onChange={handleWorkPhotosChange}
-              />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    onClick={() => openFilePicker(workPhotosInputRef)}
-                    className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-5 py-3 text-sm font-black text-white transition hover:bg-[#7F0665]"
-                  >
-                    Escolher fotos
-                  </button>
-                  <p className="text-xs text-slate-500">
-                    {formData.workPhotos.length
-                      ? `${formData.workPhotos.length} foto(s) selecionada(s)`
-                      : 'Nenhuma foto selecionada ainda.'}
-                  </p>
-                </div>
-                <p className="mt-2 text-[11px] text-slate-400">
-                  No celular, voce pode escolher as fotos em etapas. As novas selecoes serao somadas.
-                </p>
-                {renderSelectedFiles(formData.workPhotos, 'workPhotos')}
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Minimo de 5 fotos. Selecionadas: {formData.workPhotos.length}</p>
-            </div>
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                Certificados (Opcional para Bronze)
-              </label>
-              <input
-                ref={certificationsInputRef}
-                id="certifications-upload"
-                type="file"
-                accept=".pdf,.jpg,.jpeg"
-                multiple
-                className="sr-only"
-                onChange={handleCertificationsChange}
-              />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    onClick={() => openFilePicker(certificationsInputRef)}
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-700 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-                  >
-                    Escolher arquivos
-                  </button>
-                  <p className="text-xs text-slate-500">
-                    {formData.certifications.length
-                      ? `${formData.certifications.length} arquivo(s) selecionado(s)`
-                      : 'Nenhum arquivo selecionado ainda.'}
-                  </p>
-                </div>
-                <p className="mt-2 text-[11px] text-slate-400">
-                  Se precisar, selecione os certificados aos poucos que eles tambem serao somados.
-                </p>
-                {renderSelectedFiles(formData.certifications, 'certifications')}
-              </div>
-              <p className="text-xs text-slate-500 mt-2">
-                PDF ou JPG. Opcional para Bronze e obrigatorio para Ouro/Prata. Selecionados: {formData.certifications.length}
-              </p>
-            </div>
           </div>
           <button
             onClick={() => void handleSubmit()}
