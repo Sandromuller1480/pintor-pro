@@ -1,12 +1,15 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Award,
   BellRing,
   Briefcase,
   CalendarDays,
   Clock3,
   Facebook,
+  FileText,
   Globe2,
+  ImagePlus,
   Instagram,
   Loader2,
   Mail,
@@ -17,6 +20,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { DashboardConfirmationDialog } from './DashboardConfirmationDialog';
+import { SPECIALTY_OPTIONS } from '../../../lib/painterProfileOptions';
 import {
   BRAZIL_TIMEZONE_OPTIONS,
   buildBusinessHoursSummary,
@@ -24,7 +28,7 @@ import {
   isWorkingHoursRangeValid,
   WEEK_DAY_OPTIONS
 } from '../../../lib/painterAvailability';
-import { CurrentPainterProfile, FeedbackMessage, PainterSettingsForm } from '../types';
+import { CurrentPainterProfile, FeedbackMessage, PainterSettingsAssetsForm, PainterSettingsForm } from '../types';
 import { getApplicationStatusLabel, getPlanLabel } from '../utils';
 
 interface DashboardSettingsTabProps {
@@ -32,7 +36,7 @@ interface DashboardSettingsTabProps {
   feedback: FeedbackMessage | null;
   isSaving: boolean;
   isDeletingAccount: boolean;
-  onSave: (settings: PainterSettingsForm) => void;
+  onSave: (settings: PainterSettingsForm, assets: PainterSettingsAssetsForm) => void;
   onDeleteAccount: () => void;
 }
 
@@ -43,6 +47,24 @@ type SettingsToggleCardProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
 };
+
+type FileFieldKey = keyof PainterSettingsAssetsForm;
+
+const buildSelectedFileKey = (file: File) => `${file.name}::${file.size}::${file.lastModified}::${file.type}`;
+
+const mergeSelectedFiles = (currentFiles: File[], nextFiles: File[]) => {
+  const mergedFiles = new Map<string, File>(currentFiles.map((file) => [buildSelectedFileKey(file), file]));
+
+  nextFiles.forEach((file) => {
+    mergedFiles.set(buildSelectedFileKey(file), file);
+  });
+
+  return Array.from(mergedFiles.values());
+};
+
+const getVisibleWorkPhotoCount = (paths: string[]) => (
+  paths.filter((path) => !path.includes('/profile-photo/')).length
+);
 
 const SettingsToggleCard: React.FC<SettingsToggleCardProps> = ({
   icon: Icon,
@@ -102,9 +124,16 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     emailNotifications: true,
     dailySummaryEnabled: false,
     instagramUrl: '',
-    facebookUrl: ''
+    facebookUrl: '',
+    specialties: []
+  });
+  const [selectedAssets, setSelectedAssets] = useState<PainterSettingsAssetsForm>({
+    workPhotos: [],
+    certifications: []
   });
   const [localValidationError, setLocalValidationError] = useState('');
+  const workPhotosInputRef = useRef<HTMLInputElement | null>(null);
+  const certificationsInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!currentProfile) {
@@ -124,7 +153,12 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
       emailNotifications: currentProfile.emailNotifications,
       dailySummaryEnabled: currentProfile.dailySummaryEnabled,
       instagramUrl: currentProfile.instagramUrl,
-      facebookUrl: currentProfile.facebookUrl
+      facebookUrl: currentProfile.facebookUrl,
+      specialties: currentProfile.specialties
+    });
+    setSelectedAssets({
+      workPhotos: [],
+      certifications: []
     });
   }, [currentProfile]);
 
@@ -150,6 +184,42 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     });
   };
 
+  const toggleSpecialty = (specialty: string) => {
+    setLocalValidationError('');
+    setForm((currentForm) => ({
+      ...currentForm,
+      specialties: currentForm.specialties.includes(specialty)
+        ? currentForm.specialties.filter((item) => item !== specialty)
+        : [...currentForm.specialties, specialty]
+    }));
+  };
+
+  const updateSelectedFiles = (field: FileFieldKey, updater: (currentFiles: File[]) => File[]) => {
+    setLocalValidationError('');
+    setSelectedAssets((currentAssets) => ({
+      ...currentAssets,
+      [field]: updater(currentAssets[field])
+    }));
+  };
+
+  const handleAssetFilesChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: FileFieldKey
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+
+    if (!files.length) {
+      return;
+    }
+
+    updateSelectedFiles(field, (currentFiles) => mergeSelectedFiles(currentFiles, files));
+  };
+
+  const removeSelectedFile = (field: FileFieldKey, fileKey: string) => {
+    updateSelectedFiles(field, (currentFiles) => currentFiles.filter((file) => buildSelectedFileKey(file) !== fileKey));
+  };
+
   const handleSaveClick = () => {
     if (form.businessHoursEnabled) {
       if (form.workingDays.length === 0) {
@@ -163,8 +233,13 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
       }
     }
 
+    if (form.specialties.length === 0) {
+      setLocalValidationError('Selecione pelo menos uma especialidade.');
+      return;
+    }
+
     setLocalValidationError('');
-    onSave(form);
+    onSave(form, selectedAssets);
   };
 
   const handleDeleteConfirmation = async () => {
@@ -178,6 +253,36 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
     : 'Localização não informada';
   const scheduleSummary = buildBusinessHoursSummary(form);
+  const existingWorkPhotoCount = currentProfile ? getVisibleWorkPhotoCount(currentProfile.workPhotoPaths) : 0;
+  const existingCertificationCount = currentProfile?.certificationPaths.length ?? 0;
+  const totalWorkPhotoCount = existingWorkPhotoCount + selectedAssets.workPhotos.length;
+  const totalCertificationCount = existingCertificationCount + selectedAssets.certifications.length;
+
+  const renderSelectedFiles = (files: File[], field: FileFieldKey) => {
+    if (!files.length) {
+      return null;
+    }
+
+    return (
+      <div className="mt-4 flex flex-wrap gap-2">
+        {files.map((file) => {
+          const fileKey = buildSelectedFileKey(file);
+
+          return (
+            <button
+              key={fileKey}
+              type="button"
+              onClick={() => removeSelectedFile(field, fileKey)}
+              className="max-w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-left text-[11px] font-bold text-slate-600 transition hover:border-red-200 hover:text-red-600"
+              title="Remover da seleção"
+            >
+              <span className="block truncate">{file.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="animate-in fade-in duration-500 space-y-8">
@@ -223,6 +328,132 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_0.95fr]">
         <section className="space-y-8">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#9A077B]/10 p-3 text-[#9A077B]">
+                <Award size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#000747]">Credenciais do perfil</h3>
+                <p className="text-sm font-medium text-slate-500">Atualize especialidades, fotos de trabalhos e certificados exibidos na sua avaliação.</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Selecione suas especialidades</p>
+              <div className="grid max-h-72 grid-cols-1 gap-3 overflow-y-auto rounded-[28px] border border-slate-200 bg-slate-50 p-5 md:grid-cols-2">
+                {SPECIALTY_OPTIONS.map((option) => {
+                  const isSelected = form.specialties.includes(option);
+
+                  return (
+                    <label
+                      key={option}
+                      className={`flex cursor-pointer items-center rounded-2xl border p-3 transition ${
+                        isSelected
+                          ? 'border-[#9A077B] bg-[#9A077B] text-white shadow-lg shadow-[#F7E3F1]'
+                          : 'border-slate-100 bg-white text-slate-600 hover:border-[#EFC6E3]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={isSelected}
+                        onChange={() => toggleSpecialty(option)}
+                      />
+                      <span
+                        className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          isSelected ? 'border-white bg-white text-[#9A077B]' : 'border-slate-200 bg-slate-50'
+                        }`}
+                      >
+                        {isSelected && <Check size={14} strokeWidth={3} />}
+                      </span>
+                      <span className="text-xs font-black uppercase leading-tight">{option}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Selecionadas: {form.specialties.length} especialidades
+              </p>
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Fotos de trabalhos</p>
+                <input
+                  ref={workPhotosInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => handleAssetFilesChange(event, 'workPhotos')}
+                />
+                <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={() => workPhotosInputRef.current?.click()}
+                      disabled={isSaving}
+                      className="inline-flex items-center justify-center rounded-2xl bg-[#9A077B] px-5 py-3 text-sm font-black text-white transition hover:bg-[#7F0665] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <ImagePlus size={16} className="mr-2" />
+                      Escolher fotos
+                    </button>
+                    <p className="text-xs font-medium text-slate-500">
+                      {selectedAssets.workPhotos.length
+                        ? `${selectedAssets.workPhotos.length} nova(s) foto(s)`
+                        : 'Nenhuma foto nova selecionada.'}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-[11px] font-medium text-slate-400">
+                    No celular, voce pode selecionar em etapas. As novas selecoes serao somadas ao perfil.
+                  </p>
+                  {renderSelectedFiles(selectedAssets.workPhotos, 'workPhotos')}
+                </div>
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  Existentes: {existingWorkPhotoCount}. Total apos salvar: {totalWorkPhotoCount}
+                </p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Certificados</p>
+                <input
+                  ref={certificationsInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg"
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => handleAssetFilesChange(event, 'certifications')}
+                />
+                <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={() => certificationsInputRef.current?.click()}
+                      disabled={isSaving}
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-700 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FileText size={16} className="mr-2" />
+                      Escolher arquivos
+                    </button>
+                    <p className="text-xs font-medium text-slate-500">
+                      {selectedAssets.certifications.length
+                        ? `${selectedAssets.certifications.length} novo(s) arquivo(s)`
+                        : 'Nenhum arquivo novo selecionado.'}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-[11px] font-medium text-slate-400">
+                    PDF ou JPG. Novos certificados serao somados aos que voce ja enviou.
+                  </p>
+                  {renderSelectedFiles(selectedAssets.certifications, 'certifications')}
+                </div>
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  Existentes: {existingCertificationCount}. Total apos salvar: {totalCertificationCount}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-2xl bg-[#9A077B]/10 p-3 text-[#9A077B]">

@@ -12,6 +12,9 @@ export type CurrentPainterProfile = {
   whatsapp: string;
   experienceTime: string;
   specialties: string[];
+  onboardingToken: string | null;
+  workPhotoPaths: string[];
+  certificationPaths: string[];
   profilePhotoPath: string | null;
   profilePhotoUrl: string | null;
   coverPhotoPath: string | null;
@@ -47,6 +50,12 @@ export type PainterSettingsForm = {
   dailySummaryEnabled: boolean;
   instagramUrl: string;
   facebookUrl: string;
+  specialties: string[];
+};
+
+export type PainterSettingsAssetsForm = {
+  workPhotos: File[];
+  certifications: File[];
 };
 
 export type AnalyticsPeriodDays = 7 | 30 | 90;

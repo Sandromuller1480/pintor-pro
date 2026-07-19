@@ -12,6 +12,7 @@ import { normalizePortfolioStageMedia } from '../../lib/portfolioStages';
 import { supabase } from '../../lib/supabase';
 import {
   buildPainterMediaPath,
+  createUuid,
   getPublicMediaUrl,
   getSignedLegacyMediaUrl,
   PAINTER_MEDIA_BUCKET
@@ -549,6 +550,9 @@ export const fetchCurrentPainterProfile = async ({
     whatsapp: application.whatsapp || '',
     experienceTime: application.experience_time || '',
     specialties: application.specialties || [],
+    onboardingToken: application.onboarding_token || null,
+    workPhotoPaths: Array.isArray(application.work_photo_paths) ? application.work_photo_paths : [],
+    certificationPaths: Array.isArray(application.certification_paths) ? application.certification_paths : [],
     profilePhotoPath,
     profilePhotoUrl,
     coverPhotoPath: publicCoverPhotoPath,
@@ -592,10 +596,11 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
       email_notifications: settings.emailNotifications,
       daily_summary_enabled: settings.dailySummaryEnabled,
       instagram_url: normalizeSocialProfileUrl(settings.instagramUrl),
-      facebook_url: normalizeSocialProfileUrl(settings.facebookUrl)
+      facebook_url: normalizeSocialProfileUrl(settings.facebookUrl),
+      specialties: settings.specialties.map((item) => item.trim()).filter(Boolean)
     })
     .eq('id', applicationId)
-    .select('allow_chat, allow_visit_requests, pause_lead_intake, business_hours_enabled, working_days, working_hours_start, working_hours_end, service_timezone, email_notifications, daily_summary_enabled, instagram_url, facebook_url')
+    .select('allow_chat, allow_visit_requests, pause_lead_intake, business_hours_enabled, working_days, working_hours_start, working_hours_end, service_timezone, email_notifications, daily_summary_enabled, instagram_url, facebook_url, specialties')
     .single();
 
   if (error) {
@@ -614,8 +619,112 @@ export const updatePainterSettings = async (applicationId: string, settings: Pai
     emailNotifications: data.email_notifications ?? true,
     dailySummaryEnabled: data.daily_summary_enabled ?? false,
     instagramUrl: normalizeSocialProfileUrl(data.instagram_url),
-    facebookUrl: normalizeSocialProfileUrl(data.facebook_url)
+    facebookUrl: normalizeSocialProfileUrl(data.facebook_url),
+    specialties: Array.isArray(data.specialties) ? data.specialties : []
   };
+};
+
+type ApplicationAssetField = 'workPhotoPaths' | 'certificationPaths';
+
+type UploadApplicationAssetsParams = {
+  applicationId: string;
+  onboardingToken: string;
+  files: File[];
+  field: ApplicationAssetField;
+  currentPaths: string[];
+};
+
+const APPLICATION_ASSET_BUCKETS: Record<ApplicationAssetField, string> = {
+  workPhotoPaths: 'application-work-photos',
+  certificationPaths: 'application-certifications'
+};
+
+const APPLICATION_ASSET_FOLDERS: Record<ApplicationAssetField, string> = {
+  workPhotoPaths: 'work-photos',
+  certificationPaths: 'certifications'
+};
+
+const APPLICATION_ASSET_COLUMNS: Record<ApplicationAssetField, string> = {
+  workPhotoPaths: 'work_photo_paths',
+  certificationPaths: 'certification_paths'
+};
+
+const sanitizeApplicationAssetFileName = (fileName: string) => {
+  const cleanedName = fileName
+    .replace(/\.[^/.]+$/, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+
+  return cleanedName || 'arquivo';
+};
+
+export const uploadApplicationAssets = async ({
+  applicationId,
+  onboardingToken,
+  files,
+  field,
+  currentPaths
+}: UploadApplicationAssetsParams) => {
+  if (!files.length) {
+    return currentPaths;
+  }
+
+  if (!onboardingToken) {
+    throw new Error('Cadastro sem token de upload para anexos.');
+  }
+
+  const bucket = APPLICATION_ASSET_BUCKETS[field];
+  const folder = APPLICATION_ASSET_FOLDERS[field];
+  const uploadedPaths: string[] = [];
+
+  try {
+    for (const file of files) {
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'bin';
+      const filePath = `${applicationId}/${onboardingToken}/${folder}/${createUuid()}-${sanitizeApplicationAssetFileName(file.name)}.${extension}`;
+
+      const { error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          upsert: false,
+          contentType: file.type || undefined
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      uploadedPaths.push(filePath);
+    }
+
+    const nextPaths = [...currentPaths, ...uploadedPaths];
+    const { data, error } = await supabase
+      .from('applications')
+      .update({ [APPLICATION_ASSET_COLUMNS[field]]: nextPaths })
+      .eq('id', applicationId)
+      .select(APPLICATION_ASSET_COLUMNS[field])
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const savedPaths = data[APPLICATION_ASSET_COLUMNS[field]];
+    return Array.isArray(savedPaths) ? savedPaths : nextPaths;
+  } catch (error) {
+    if (uploadedPaths.length) {
+      const { error: removeError } = await supabase.storage.from(bucket).remove(uploadedPaths);
+
+      if (removeError) {
+        console.error('Erro ao remover anexos apos falha no salvamento:', removeError);
+      }
+    }
+
+    throw error;
+  }
 };
 
 export const deleteCurrentPainterAccount = async (applicationId: string): Promise<void> => {

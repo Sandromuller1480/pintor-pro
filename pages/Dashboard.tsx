@@ -33,6 +33,7 @@ import {
   fetchVisitItems,
   normalizeChatMessagesError,
   normalizeChatThreadsError,
+  uploadApplicationAssets,
   updatePainterSettings,
   updatePainterPresence,
   uploadPainterMedia
@@ -59,6 +60,7 @@ import {
   SavedTeamMember,
   PainterProfileEngagementMetrics,
   PainterProfileViewMetrics,
+  PainterSettingsAssetsForm,
   PainterSettingsForm,
   SavedChatMessage,
   SavedChatThread,
@@ -1289,7 +1291,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     setIsEditProfileModalOpen(false);
   };
 
-  const handleSettingsSave = async (settings: PainterSettingsForm) => {
+  const handleSettingsSave = async (settings: PainterSettingsForm, assets: PainterSettingsAssetsForm) => {
     if (!currentProfile?.applicationId) {
       setSettingsFeedback({
         type: 'error',
@@ -1303,12 +1305,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     try {
       const savedSettings = await updatePainterSettings(currentProfile.applicationId, settings);
+      let savedWorkPhotoPaths = currentProfile.workPhotoPaths;
+      let savedCertificationPaths = currentProfile.certificationPaths;
+
+      if (assets.workPhotos.length || assets.certifications.length) {
+        if (!currentProfile.onboardingToken) {
+          throw new Error('Cadastro sem token de upload para anexos.');
+        }
+
+        const [workPhotosResult, certificationsResult] = await Promise.all([
+          assets.workPhotos.length
+            ? uploadApplicationAssets({
+                applicationId: currentProfile.applicationId,
+                onboardingToken: currentProfile.onboardingToken,
+                files: assets.workPhotos,
+                field: 'workPhotoPaths',
+                currentPaths: currentProfile.workPhotoPaths
+              })
+            : Promise.resolve(currentProfile.workPhotoPaths),
+          assets.certifications.length
+            ? uploadApplicationAssets({
+                applicationId: currentProfile.applicationId,
+                onboardingToken: currentProfile.onboardingToken,
+                files: assets.certifications,
+                field: 'certificationPaths',
+                currentPaths: currentProfile.certificationPaths
+              })
+            : Promise.resolve(currentProfile.certificationPaths)
+        ]);
+
+        savedWorkPhotoPaths = workPhotosResult;
+        savedCertificationPaths = certificationsResult;
+      }
 
       setCurrentProfile((profile) => (
         profile
           ? {
               ...profile,
-              ...savedSettings
+              ...savedSettings,
+              specialties: savedSettings.specialties,
+              workPhotoPaths: savedWorkPhotoPaths,
+              certificationPaths: savedCertificationPaths
             }
           : profile
       ));
@@ -1678,7 +1715,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           feedback={settingsFeedback}
           isSaving={isSavingSettings}
           isDeletingAccount={isDeletingAccount}
-          onSave={(settings) => void handleSettingsSave(settings)}
+          onSave={(settings, assets) => void handleSettingsSave(settings, assets)}
           onDeleteAccount={() => void handleDeleteAccount()}
         />
       );
