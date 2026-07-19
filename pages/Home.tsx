@@ -260,7 +260,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   return (
     <div className="overflow-x-hidden">
       {/* HERO SECTION - PUBLICITÁRIA */}
-      <section className="relative bg-white pt-12 pb-24 lg:pt-20 lg:pb-40 overflow-hidden">
+      <section className="relative bg-white pt-12 pb-8 lg:pt-20 lg:pb-10 overflow-hidden">
         <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] bg-[#FDF3FA] rounded-full blur-[100px] -z-10"></div>
         <div className="absolute bottom-[5%] left-[40%] w-[500px] h-[500px] bg-[#FDF3FA]/50 rounded-full blur-[120px] -z-10"></div>
 
@@ -343,7 +343,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         </div>
       </section>
 
-      <section className="bg-slate-50 py-12 lg:py-16">
+      <section className="bg-slate-50 pt-6 pb-12 lg:pt-8 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
             <form className="grid grid-cols-1 md:grid-cols-12 gap-4" onSubmit={handleSearchSubmit}>
