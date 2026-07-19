@@ -1,16 +1,20 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavigateToPage, Page, Painter } from '../types';
 import { HOW_IT_WORKS_CLIENTS, FAQ_DATA } from '../constants';
+import { PainterCard } from '../components/PainterCard';
 import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
+import { PublicPainterMap } from '../components/PublicPainterMap';
 import { getCurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
 import {
+  MapPin,
   ShieldCheck,
   ChevronDown,
+  SlidersHorizontal,
   Star,
   Paintbrush
 } from 'lucide-react';
@@ -21,11 +25,54 @@ interface HomeProps {
 
 const formatMetricValue = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
 
+type LocationFocusRequest = {
+  location: string;
+  requestId: number;
+};
+
+const normalizeText = (value: string) => (
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const matchesNormalizedTerm = (source: string, query: string) => {
+  const normalizedQuery = normalizeText(query);
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const normalizedSource = normalizeText(source);
+
+  if (normalizedSource.includes(normalizedQuery)) {
+    return true;
+  }
+
+  return normalizedQuery
+    .split(' ')
+    .every((term) => normalizedSource.includes(term));
+};
+
 export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [imgError, setImgError] = useState(false);
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [painterSearchError, setPainterSearchError] = useState('');
+  const [locationDraft, setLocationDraft] = useState('');
+  const [appliedLocationTerm, setAppliedLocationTerm] = useState('');
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [onlyTopRated, setOnlyTopRated] = useState(false);
+  const [onlyOnline, setOnlyOnline] = useState(false);
+  const [visiblePainterIds, setVisiblePainterIds] = useState<string[] | null>(null);
+  const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
+  const [locationFocusRequest, setLocationFocusRequest] = useState<LocationFocusRequest | null>(null);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
   const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
@@ -46,6 +93,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         }
 
         setPainters(data);
+        setPainterSearchError('');
       } catch (error) {
         console.error('Erro ao carregar pintores na home:', error);
 
@@ -54,6 +102,9 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         }
 
         setPainters([]);
+        if (!silent) {
+          setPainterSearchError('Não foi possível carregar os pintores agora.');
+        }
       } finally {
         if (isMounted && !silent) {
           setLoading(false);
@@ -110,7 +161,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
     ? ratedPainters.reduce((total, painter) => total + painter.rating, 0) / ratedPainters.length
     : 0;
   const uniqueLocations = Array.from(
-    new Set(
+    new Set<string>(
       painters
         .map((painter) => painter.location.trim())
         .filter(Boolean)
@@ -124,6 +175,93 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const socialProofLabel = totalReviews > 0 && averageRating > 0
     ? `${averageRating.toFixed(1)} de média em ${totalReviewsLabel} avaliações públicas`
     : `${totalPaintersLabel} perfis publicados na vitrine`;
+
+  const availableSpecialties = useMemo(() => {
+    return Array.from(
+      new Set<string>(
+        painters.flatMap((painter) => painter.specialties ?? [])
+      )
+    )
+      .sort((firstItem, secondItem) => firstItem.localeCompare(secondItem, 'pt-BR'))
+      .slice(0, 10);
+  }, [painters]);
+
+  const locationSuggestions = useMemo(() => {
+    const trimmedDraft = locationDraft.trim();
+
+    if (!trimmedDraft) {
+      return uniqueLocations.slice(0, 8);
+    }
+
+    return uniqueLocations
+      .filter((location) => matchesNormalizedTerm(location, trimmedDraft))
+      .slice(0, 8);
+  }, [locationDraft, uniqueLocations]);
+
+  const filteredPainters = useMemo(() => {
+    const normalizedLocationTerm = normalizeText(appliedLocationTerm);
+
+    return painters.filter((painter) => {
+      const matchesLocation = !normalizedLocationTerm || matchesNormalizedTerm(painter.location, normalizedLocationTerm);
+      const matchesSpecialties = selectedSpecialties.length === 0 ||
+        selectedSpecialties.every((specialty) => (
+          painter.specialties.some((painterSpecialty) => normalizeText(painterSpecialty) === normalizeText(specialty))
+        ));
+      const matchesVerified = !onlyVerified || painter.verified;
+      const matchesTopRated = !onlyTopRated || painter.topRated;
+      const matchesOnline = !onlyOnline || painter.isOnline === true;
+
+      return matchesLocation && matchesSpecialties && matchesVerified && matchesTopRated && matchesOnline;
+    });
+  }, [appliedLocationTerm, onlyOnline, onlyTopRated, onlyVerified, painters, selectedSpecialties]);
+
+  const filteredPainterIdsKey = useMemo(
+    () => filteredPainters.map((painter) => painter.id).join('|'),
+    [filteredPainters]
+  );
+
+  useEffect(() => {
+    setVisiblePainterIds(null);
+  }, [filteredPainterIdsKey]);
+
+  const displayedPainters = useMemo(() => {
+    if (visiblePainterIds === null) {
+      return filteredPainters;
+    }
+
+    return filteredPainters.filter((painter) => visiblePainterIds.includes(painter.id));
+  }, [filteredPainters, visiblePainterIds]);
+
+  const handleSearchSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    const nextLocation = locationDraft.trim();
+
+    setAppliedLocationTerm(nextLocation);
+    setLocationFocusRequest(nextLocation ? {
+      location: nextLocation,
+      requestId: Date.now()
+    } : null);
+    setIsLocationSuggestionsOpen(false);
+  };
+
+  const clearFilters = () => {
+    setLocationDraft('');
+    setAppliedLocationTerm('');
+    setSelectedSpecialties([]);
+    setOnlyVerified(false);
+    setOnlyTopRated(false);
+    setOnlyOnline(false);
+    setIsLocationSuggestionsOpen(false);
+    setLocationFocusRequest(null);
+  };
+
+  const toggleSpecialty = (specialty: string) => {
+    setSelectedSpecialties((currentSpecialties) =>
+      currentSpecialties.includes(specialty)
+        ? currentSpecialties.filter((item) => item !== specialty)
+        : [...currentSpecialties, specialty]
+    );
+  };
 
   return (
     <div className="overflow-x-hidden">
@@ -230,6 +368,173 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
               <div className="absolute -top-16 -right-16 w-64 h-64 bg-[#9A077B]/5 rounded-full blur-[80px]"></div>
               <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#C93EA6]/10 rounded-full blur-[100px]"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50 py-12 lg:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 mb-12">
+            <form className="grid grid-cols-1 md:grid-cols-12 gap-4" onSubmit={handleSearchSubmit}>
+              <div className="relative md:col-span-9">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Cidade ou região"
+                  autoComplete="off"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#9A077B] focus:border-transparent outline-none transition font-medium"
+                  value={locationDraft}
+                  onFocus={() => setIsLocationSuggestionsOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsLocationSuggestionsOpen(false), 120);
+                  }}
+                  onChange={(event) => {
+                    setLocationDraft(event.target.value);
+                    setIsLocationSuggestionsOpen(true);
+                  }}
+                />
+
+                {isLocationSuggestionsOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+                    {locationSuggestions.length > 0 ? (
+                      locationSuggestions.map((location) => (
+                        <button
+                          key={location}
+                          type="button"
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setLocationDraft(location);
+                            setIsLocationSuggestionsOpen(false);
+                          }}
+                        >
+                          <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                          <span className="truncate">{location}</span>
+                        </button>
+                      ))
+                    ) : locationDraft.trim() ? (
+                      <div className="px-4 py-3 text-sm font-medium text-slate-400">Nenhuma cidade encontrada.</div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div className="md:col-span-3">
+                <button type="submit" className="w-full bg-[#9A077B] text-white py-4 rounded-2xl font-bold hover:bg-[#7F0665] transition shadow-lg shadow-[#EFC6E3]">
+                  Buscar Pintores
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="mb-12">
+            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-[#9A077B] text-xs font-black uppercase tracking-[0.28em] mb-2">Mapa da Busca</h2>
+                <p className="text-2xl font-black tracking-tight text-slate-900">Explore a área visível e encontre pintores por região.</p>
+              </div>
+              <p className="text-sm font-bold text-slate-500">
+                Mostrando <span className="text-[#9A077B]">{displayedPainters.length}</span> de <span className="text-slate-900">{filteredPainters.length}</span> pintores na área atual do mapa
+              </p>
+            </div>
+
+            <div className="mx-auto max-w-[82rem]">
+              <PublicPainterMap
+                painters={filteredPainters}
+                onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
+                onVisiblePaintersChange={(visiblePainters) => setVisiblePainterIds(visiblePainters.map((painter) => painter.id))}
+                primaryActionLabel="Entrar em contato"
+                showDirectoryButton={false}
+                size="compact"
+                focusRequest={locationFocusRequest}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8">
+            <aside className="lg:w-72 space-y-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold flex items-center"><SlidersHorizontal className="w-4 h-4 mr-2" /> Filtros</h3>
+                  <button className="text-xs text-[#9A077B] font-bold hover:underline" onClick={clearFilters}>Limpar</button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Especialidade</h4>
+                    <div className="space-y-2">
+                      {availableSpecialties.length > 0 ? availableSpecialties.map((specialty) => (
+                        <label key={specialty} className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox" checked={selectedSpecialties.includes(specialty)} onChange={() => toggleSpecialty(specialty)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                          <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">{specialty}</span>
+                        </label>
+                      )) : (
+                        <p className="text-sm text-slate-400">Nenhuma especialidade disponível.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Selo de Confiança</h4>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Verificado</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" checked={onlyTopRated} onChange={(event) => setOnlyTopRated(event.target.checked)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Disponibilidade</h4>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={onlyOnline} onChange={(event) => setOnlyOnline(event.target.checked)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
+                      <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Somente online</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#9A077B] rounded-2xl p-6 text-white relative overflow-hidden">
+                <div className="relative z-10">
+                  <h4 className="font-bold mb-2">Quer aparecer aqui?</h4>
+                  <p className="text-xs text-[#F7E3F1] mb-4 leading-relaxed">Profissionais aprovados aparecem na vitrine da PINTOR PRO e recebem contatos mais qualificados.</p>
+                  <button onClick={() => setPage(Page.Register)} className="w-full bg-white text-[#9A077B] py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Cadastrar Perfil</button>
+                </div>
+                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
+              </div>
+            </aside>
+
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-slate-500 font-medium">{displayedPainters.length} pintores encontrados</p>
+                <div className="flex items-center gap-2 text-sm font-bold cursor-default text-slate-500">
+                  <span>Ordenar por: <span className="text-[#9A077B]">Mais recentes</span></span>
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              {painterSearchError && (
+                <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">{painterSearchError}</div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {loading ? (
+                  <div className="col-span-full py-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando pintores...</div>
+                ) : displayedPainters.length > 0 ? (
+                  displayedPainters.map((painter) => (
+                    <PainterCard key={painter.id} painter={painter} onClick={(id) => setPage(Page.PainterProfile, { painterId: id })} />
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center text-slate-400 font-medium">
+                    {filteredPainters.length > 0 ? 'Nenhum pintor visível na área atual do mapa. Arraste ou ajuste o zoom para ver mais profissionais.' : 'Nenhum pintor encontrado com os filtros atuais.'}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
