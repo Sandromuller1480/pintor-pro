@@ -1531,67 +1531,71 @@ export const DashboardWallColorTab: React.FC = () => {
                 <div className="space-y-3">
                   {renderToolSectionHeader('tools', 'Ferramentas', Paintbrush)}
                   {expandedToolSections.tools && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleToolMode('brush')}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                          toolMode === 'brush'
-                            ? 'bg-[#9A077B] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        <Paintbrush size={17} />
-                        Pincel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleToolMode('eraser')}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                          toolMode === 'eraser'
-                            ? 'bg-[#9A077B] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        <Eraser size={17} />
-                        Borracha
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleToolMode('eraser-line')}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                          toolMode === 'eraser-line'
-                            ? 'bg-[#9A077B] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        <Minus size={17} />
-                        Borracha reta
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleToolMode('line')}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                          toolMode === 'line'
-                            ? 'bg-[#9A077B] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        <Minus size={17} />
-                        Reta
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleToolMode('curve')}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
-                          toolMode === 'curve'
-                            ? 'bg-[#9A077B] text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        <Paintbrush size={17} />
-                        Curva
-                      </button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleToolMode('brush')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'brush'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Paintbrush size={17} />
+                          Pincel livre
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleToolMode('line')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'line'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Minus size={17} />
+                          Pincel reto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleToolMode('curve')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'curve'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Paintbrush size={17} />
+                          Pincel curvo
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleToolMode('eraser')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'eraser'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Eraser size={17} />
+                          Borracha livre
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleToolMode('eraser-line')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'eraser-line'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Minus size={17} />
+                          Borracha reta
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
