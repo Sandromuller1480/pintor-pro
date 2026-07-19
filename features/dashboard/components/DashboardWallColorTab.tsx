@@ -1693,7 +1693,7 @@ export const DashboardWallColorTab: React.FC = () => {
                           }`}
                         >
                           <Sparkles size={17} />
-                          Seleção inteligente
+                          Pincel mágico
                         </button>
                         <button
                           type="button"
