@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Image as ImageIcon, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Image as ImageIcon, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import cimentoQueimadoTexture from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
 import grafiatoTexture from '../../../imagens/texturas/GRAFIATO COR ESCURA.png';
 import projetadaTexture from '../../../imagens/texturas/PROJETADA COR ESCURA.png';
 import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
 
-type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve';
+type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve' | 'smart-select';
 type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
 type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
 type ToolSection = 'tools' | 'color' | 'texture' | 'adjustments';
@@ -205,6 +205,7 @@ export const DashboardWallColorTab: React.FC = () => {
   const [colorPicker, setColorPicker] = useState<HsvColor>(() => rgbToHsv(hexToRgb(DEFAULT_COLOR)));
   const [brushSize, setBrushSize] = useState(42);
   const [curveBend, setCurveBend] = useState(35);
+  const [smartSelectionTolerance, setSmartSelectionTolerance] = useState(38);
   const [strength, setStrength] = useState(72);
   const [blendMode, setBlendMode] = useState(DEFAULT_BLEND_MODE);
   const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
@@ -635,6 +636,102 @@ export const DashboardWallColorTab: React.FC = () => {
     renderPreview();
   };
 
+  const getPixelOffset = (x: number, y: number, width: number) => (y * width + x) * 4;
+
+  const getPixelDistance = (data: Uint8ClampedArray, firstOffset: number, secondOffset: number) => {
+    const redDelta = data[firstOffset] - data[secondOffset];
+    const greenDelta = data[firstOffset + 1] - data[secondOffset + 1];
+    const blueDelta = data[firstOffset + 2] - data[secondOffset + 2];
+    const luminanceDelta = Math.abs(
+      (0.2126 * data[firstOffset] + 0.7152 * data[firstOffset + 1] + 0.0722 * data[firstOffset + 2])
+      - (0.2126 * data[secondOffset] + 0.7152 * data[secondOffset + 1] + 0.0722 * data[secondOffset + 2])
+    );
+
+    return Math.hypot(redDelta, greenDelta, blueDelta) + luminanceDelta * 0.65;
+  };
+
+  const applySmartSelection = (point: CanvasPoint) => {
+    const baseCanvas = baseCanvasRef.current;
+    const maskCanvas = getWallMaskCanvas(drawingWallIdRef.current, drawingLayerRef.current);
+    const baseContext = baseCanvas?.getContext('2d');
+    const maskContext = maskCanvas?.getContext('2d');
+
+    if (!baseCanvas || !maskCanvas || !baseContext || !maskContext) {
+      return;
+    }
+
+    const width = baseCanvas.width;
+    const height = baseCanvas.height;
+    const startX = clampNumber(Math.round(point.x), 0, width - 1);
+    const startY = clampNumber(Math.round(point.y), 0, height - 1);
+    const imageData = baseContext.getImageData(0, 0, width, height);
+    const maskImageData = maskContext.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const maskData = maskImageData.data;
+    const visited = new Uint8Array(width * height);
+    const queue = new Int32Array(width * height);
+    const seedOffset = getPixelOffset(startX, startY, width);
+    const seedLuminance = 0.2126 * data[seedOffset] + 0.7152 * data[seedOffset + 1] + 0.0722 * data[seedOffset + 2];
+    const colorTolerance = 22 + smartSelectionTolerance * 3.1;
+    const edgeTolerance = 14 + smartSelectionTolerance * 1.45;
+    const luminanceTolerance = 16 + smartSelectionTolerance * 1.6;
+    let queueStart = 0;
+    let queueEnd = 0;
+
+    const enqueue = (x: number, y: number, previousOffset: number | null) => {
+      if (x < 0 || x >= width || y < 0 || y >= height) {
+        return;
+      }
+
+      const pixelIndex = y * width + x;
+
+      if (visited[pixelIndex]) {
+        return;
+      }
+
+      const offset = pixelIndex * 4;
+      const colorDistance = getPixelDistance(data, seedOffset, offset);
+      const localDistance = previousOffset === null ? 0 : getPixelDistance(data, previousOffset, offset);
+      const luminance = 0.2126 * data[offset] + 0.7152 * data[offset + 1] + 0.0722 * data[offset + 2];
+
+      if (
+        colorDistance > colorTolerance
+        || localDistance > edgeTolerance
+        || Math.abs(luminance - seedLuminance) > luminanceTolerance
+      ) {
+        return;
+      }
+
+      visited[pixelIndex] = 1;
+      queue[queueEnd] = pixelIndex;
+      queueEnd += 1;
+    };
+
+    enqueue(startX, startY, null);
+
+    while (queueStart < queueEnd) {
+      const pixelIndex = queue[queueStart];
+      queueStart += 1;
+
+      const x = pixelIndex % width;
+      const y = Math.floor(pixelIndex / width);
+      const offset = pixelIndex * 4;
+
+      maskData[offset] = 255;
+      maskData[offset + 1] = 255;
+      maskData[offset + 2] = 255;
+      maskData[offset + 3] = 255;
+
+      enqueue(x + 1, y, offset);
+      enqueue(x - 1, y, offset);
+      enqueue(x, y + 1, offset);
+      enqueue(x, y - 1, offset);
+    }
+
+    maskContext.putImageData(maskImageData, 0, 0);
+    renderPreview();
+  };
+
   const drawShapePreview = (
     startPoint: CanvasPoint,
     endPoint: CanvasPoint,
@@ -663,7 +760,7 @@ export const DashboardWallColorTab: React.FC = () => {
     canvas: HTMLCanvasElement,
     event: React.PointerEvent<HTMLCanvasElement>
   ) => {
-    if (!hasImage || !toolMode) {
+    if (!hasImage || !toolMode || toolMode === 'smart-select') {
       setCursorPreview((currentPreview) => ({ ...currentPreview, visible: false }));
       return;
     }
@@ -740,6 +837,13 @@ export const DashboardWallColorTab: React.FC = () => {
     }
 
     markActiveLayerUsed();
+
+    if (toolMode === 'smart-select') {
+      applySmartSelection(point);
+      stopDrawing();
+      return;
+    }
+
     isDrawingRef.current = true;
     lastPointRef.current = point;
     shapeStartPointRef.current = point;
@@ -1573,6 +1677,18 @@ export const DashboardWallColorTab: React.FC = () => {
                       <div className="space-y-2">
                         <button
                           type="button"
+                          onClick={() => toggleToolMode('smart-select')}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
+                            toolMode === 'smart-select'
+                              ? 'bg-[#9A077B] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Sparkles size={17} />
+                          Seleção inteligente
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => toggleToolMode('eraser')}
                           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-black transition ${
                             toolMode === 'eraser'
@@ -1743,6 +1859,22 @@ export const DashboardWallColorTab: React.FC = () => {
                       className="w-full accent-[#9A077B]"
                     />
                   </label>
+                  {toolMode === 'smart-select' && (
+                    <label className="block">
+                      <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+                        <span>Abrangencia</span>
+                        <span>{smartSelectionTolerance}%</span>
+                      </span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={smartSelectionTolerance}
+                        onChange={(event) => setSmartSelectionTolerance(Number(event.target.value))}
+                        className="w-full accent-[#9A077B]"
+                      />
+                    </label>
+                  )}
                   {toolMode === 'curve' && (
                     <label className="block">
                       <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
