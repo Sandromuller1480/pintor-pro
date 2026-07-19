@@ -1554,7 +1554,7 @@ export const DashboardWallColorTab: React.FC = () => {
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
-                          <Minus size={17} />
+                          <Paintbrush size={17} />
                           Pincel reto
                         </button>
                         <button
@@ -1592,7 +1592,7 @@ export const DashboardWallColorTab: React.FC = () => {
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
-                          <Minus size={17} />
+                          <Eraser size={17} />
                           Borracha reta
                         </button>
                       </div>
