@@ -177,7 +177,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   disabled={isCheckingClientAccess}
                   className="bg-[#000747] text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-[#9A077B] transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isCheckingClientAccess ? 'Verificando...' : 'Contratar Agora'}
+                  {isCheckingClientAccess ? 'Verificando...' : 'Contratar Pintor'}
                 </button>
                 <button
                   onClick={() => setPage(Page.Register)}
