@@ -6,12 +6,10 @@ import { PainterCard } from '../components/PainterCard';
 import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
-import { PublicPainterMap } from '../components/PublicPainterMap';
 import { getCurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.png';
 import {
-  CheckCircle,
   ShieldCheck,
   ChevronDown,
   Star,
@@ -29,7 +27,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [imgError, setImgError] = useState(false);
   const [painters, setPainters] = useState<Painter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [visibleHomePainterCount, setVisibleHomePainterCount] = useState<number | null>(null);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
   const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
@@ -121,26 +118,14 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
         .filter(Boolean)
     )
   );
-  const uniqueSpecialties = Array.from(
-    new Set(
-      painters
-        .flatMap((painter) => painter.specialties ?? [])
-        .map((specialty) => specialty.trim())
-        .filter(Boolean)
-    )
-  );
-  const hasDirectoryData = totalPainters > 0;
   const totalPaintersLabel = formatMetricValue(totalPainters);
   const verifiedPaintersLabel = formatMetricValue(verifiedPainters);
   const topRatedPaintersLabel = formatMetricValue(topRatedPainters);
   const totalReviewsLabel = formatMetricValue(totalReviews);
   const uniqueLocationsLabel = formatMetricValue(uniqueLocations.length);
-  const uniqueSpecialtiesLabel = formatMetricValue(uniqueSpecialties.length);
   const socialProofLabel = totalReviews > 0 && averageRating > 0
     ? `${averageRating.toFixed(1)} de média em ${totalReviewsLabel} avaliações públicas`
     : `${totalPaintersLabel} perfis publicados na vitrine`;
-  const homeMapBadgeCount = visibleHomePainterCount ?? totalPainters;
-  const homeMapBadgeLabel = visibleHomePainterCount === null ? 'Perfis ativos' : 'Na área atual';
 
   return (
     <div className="overflow-x-hidden">
@@ -248,54 +233,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               <div className="absolute -top-16 -right-16 w-64 h-64 bg-[#9A077B]/5 rounded-full blur-[80px]"></div>
               <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#C93EA6]/10 rounded-full blur-[100px]"></div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SEÇÃO: VITRINE COM DADOS REAIS */}
-      <section className="py-32 bg-slate-900 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-
-            <div className="order-2 lg:order-1 relative">
-              <PublicPainterMap
-                painters={painters}
-                onOpenDirectory={() => setPage(Page.FindPainter)}
-                onOpenPainter={(painterId) => setPage(Page.PainterProfile, { painterId })}
-                onVisiblePaintersChange={(visiblePainters) => setVisibleHomePainterCount(visiblePainters.length)}
-                variant="home"
-              />
-
-              {/* Badge de Pintores na Area */}
-              <div className="absolute -top-10 -right-10 bg-[#9A077B] text-white p-8 rounded-[40px] shadow-3xl border border-white/20">
-                <p className="text-4xl font-black mb-1">{formatMetricValue(homeMapBadgeCount)}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{homeMapBadgeLabel}</p>
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2 space-y-8">
-              <h2 className="text-[#B21492] font-black uppercase tracking-[0.3em] text-xs">Vitrine Pública</h2>
-              <h3 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none">
-                {hasDirectoryData ? `${totalPaintersLabel} perfis reais` : 'A vitrine pública'} <br /> já publicados <span className="text-[#B21492] underline decoration-slate-700">na plataforma.</span>
-              </h3>
-              <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-md">
-                {hasDirectoryData
-                  ? `Hoje a busca pública reúne ${totalPaintersLabel} pintores, ${verifiedPaintersLabel} verificados, ${uniqueSpecialtiesLabel} especialidades cadastradas e presença em ${uniqueLocationsLabel} regiões da vitrine.`
-                  : 'Os perfis aprovados aparecem aqui com cidade, especialidades, portfólio e selos de confiança.'}
-              </p>
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center gap-4 text-white">
-                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Filtro por cidade, especialidade e palavras-chave</span>
-                </div>
-                <div className="flex items-center gap-4 text-white">
-                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-[#B21492]"><CheckCircle size={20} /></div>
-                  <span className="font-bold text-lg">Perfis com selos, portfólio e avaliações públicas</span>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
