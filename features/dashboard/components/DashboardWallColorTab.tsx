@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Image as ImageIcon, Layers, Minus, Paintbrush, RotateCcw, SlidersHorizontal, Sparkles, Trash2, Upload, X } from 'lucide-react';
-import cimentoQueimadoTexture from '../../../imagens/texturas/CIMENTO QUEIMADO COR ESCURA.png';
+import cimentoQueimadoTexture from '../../../imagens/texturas/CIMENTO QUEIMADO COR CLARA.jpg';
 import grafiatoTexture from '../../../imagens/texturas/GRAFIATO COR ESCURA.png';
 import projetadaTexture from '../../../imagens/texturas/PROJETADA COR ESCURA.png';
 import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
