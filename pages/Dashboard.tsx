@@ -1305,8 +1305,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
     try {
       const savedSettings = await updatePainterSettings(currentProfile.applicationId, settings);
-      let savedWorkPhotoPaths = currentProfile.workPhotoPaths;
-      let savedCertificationPaths = currentProfile.certificationPaths;
+      const currentWorkPhotoPaths = currentProfile.workPhotoPaths ?? [];
+      const currentCertificationPaths = currentProfile.certificationPaths ?? [];
+      let savedWorkPhotoPaths = currentWorkPhotoPaths;
+      let savedCertificationPaths = currentCertificationPaths;
 
       if (assets.workPhotos.length || assets.certifications.length) {
         if (!currentProfile.onboardingToken) {
@@ -1320,18 +1322,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
                 onboardingToken: currentProfile.onboardingToken,
                 files: assets.workPhotos,
                 field: 'workPhotoPaths',
-                currentPaths: currentProfile.workPhotoPaths
+                currentPaths: currentWorkPhotoPaths
               })
-            : Promise.resolve(currentProfile.workPhotoPaths),
+            : Promise.resolve(currentWorkPhotoPaths),
           assets.certifications.length
             ? uploadApplicationAssets({
                 applicationId: currentProfile.applicationId,
                 onboardingToken: currentProfile.onboardingToken,
                 files: assets.certifications,
                 field: 'certificationPaths',
-                currentPaths: currentProfile.certificationPaths
+                currentPaths: currentCertificationPaths
               })
-            : Promise.resolve(currentProfile.certificationPaths)
+            : Promise.resolve(currentCertificationPaths)
         ]);
 
         savedWorkPhotoPaths = workPhotosResult;

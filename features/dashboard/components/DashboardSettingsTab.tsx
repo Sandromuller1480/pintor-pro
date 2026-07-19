@@ -5,6 +5,7 @@ import {
   BellRing,
   Briefcase,
   CalendarDays,
+  Check,
   Clock3,
   Facebook,
   FileText,
@@ -154,7 +155,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
       dailySummaryEnabled: currentProfile.dailySummaryEnabled,
       instagramUrl: currentProfile.instagramUrl,
       facebookUrl: currentProfile.facebookUrl,
-      specialties: currentProfile.specialties
+      specialties: Array.isArray(currentProfile.specialties) ? currentProfile.specialties : []
     });
     setSelectedAssets({
       workPhotos: [],
@@ -206,7 +207,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     event: React.ChangeEvent<HTMLInputElement>,
     field: FileFieldKey
   ) => {
-    const files = Array.from(event.target.files ?? []);
+    const files = Array.from(event.currentTarget.files ?? []) as File[];
     event.target.value = '';
 
     if (!files.length) {
@@ -253,8 +254,10 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
     ? [currentProfile.city, currentProfile.uf].filter(Boolean).join(' - ')
     : 'Localização não informada';
   const scheduleSummary = buildBusinessHoursSummary(form);
-  const existingWorkPhotoCount = currentProfile ? getVisibleWorkPhotoCount(currentProfile.workPhotoPaths) : 0;
-  const existingCertificationCount = currentProfile?.certificationPaths.length ?? 0;
+  const currentWorkPhotoPaths = currentProfile?.workPhotoPaths ?? [];
+  const currentCertificationPaths = currentProfile?.certificationPaths ?? [];
+  const existingWorkPhotoCount = getVisibleWorkPhotoCount(currentWorkPhotoPaths);
+  const existingCertificationCount = currentCertificationPaths.length;
   const totalWorkPhotoCount = existingWorkPhotoCount + selectedAssets.workPhotos.length;
   const totalCertificationCount = existingCertificationCount + selectedAssets.certifications.length;
 
