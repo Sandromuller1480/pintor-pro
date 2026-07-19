@@ -146,10 +146,10 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ cla
 ];
 
 const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
-const planOptions = ['', 'bronze', 'silver', 'prata', 'pro', 'ouro'];
+const planOptions = ['', 'monthly', 'annual'];
 const subscriptionStatusOptions = ['', 'trialing', 'active', 'past_due', 'cancelled'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
-const planValueMap: Record<string, number> = { bronze: 0, silver: 49, prata: 49, pro: 97, ouro: 97 };
+const planValueMap: Record<string, number> = { monthly: 50, annual: 500 };
 
 const isOptionalReadError = (message: string) => (
   message.includes('does not exist')

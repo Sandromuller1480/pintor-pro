@@ -1,6 +1,6 @@
 ﻿import { supabase } from '../supabase';
 
-export type PaidPlanCode = 'silver' | 'pro';
+export type PaidPlanCode = 'monthly' | 'annual';
 
 type CreateCheckoutSessionParams = {
   planCode: PaidPlanCode;

@@ -8,17 +8,17 @@ interface PlansProps {
   setPage: (p: Page) => void;
 }
 
-type PlanCode = 'bronze' | PaidPlanCode;
-
 type Plan = {
-  code: PlanCode;
+  code: PaidPlanCode;
   name: string;
   price: string;
+  priceSuffix: string;
   desc: string;
   features: string[];
   cta: string;
   highlight: boolean;
-  isPaid: boolean;
+  badge?: string;
+  savings?: string;
 };
 
 type CheckoutNotice = {
@@ -26,48 +26,36 @@ type CheckoutNotice = {
   message: string;
 };
 
-function isPaidPlan(planCode: PlanCode): planCode is PaidPlanCode {
-  return planCode === 'silver' || planCode === 'pro';
-}
-
-export const Plans: React.FC<PlansProps> = ({ setPage }) => {
+export const Plans: React.FC<PlansProps> = () => {
   const plans: Plan[] = [
     {
-      code: "bronze",
-      name: "Bronze",
-      price: "Grátis",
-      desc: "Para quem está começando a digitalizar seu trabalho.",
-      features: ["Perfil básico", "Até 3 fotos no portfólio", "Recebimento de orçamentos", "Suporte via E-mail"],
-      cta: "Começar Agora",
-      highlight: false,
-      isPaid: false
+      code: "monthly",
+      name: "Plano Mensal",
+      price: "R$ 50,00",
+      priceSuffix: "/mes",
+      desc: "Assinatura mensal para pintores que querem aparecer na plataforma com flexibilidade.",
+      features: ["Perfil profissional ativo", "Portfólio de trabalhos", "Selo de verificação", "Destaque na busca pública", "Recebimento de contatos qualificados"],
+      cta: "Assinar Mensal",
+      highlight: false
     },
     {
-      code: "silver",
-      name: "Elite Silver",
-      price: "R$ 49/mês",
-      desc: "O melhor custo-benefício para pintores autônomos.",
-      features: ["Tudo do Bronze", "Selo de Verificação Básico", "Até 15 fotos no portfólio", "Destaque regional na busca", "Estatísticas de visitas"],
-      cta: "Assinar Silver",
-      highlight: false,
-      isPaid: true
-    },
-    {
-      code: "pro",
-      name: "PINTOR PRO",
-      price: "R$ 97/mês",
-      desc: "Para os melhores do Brasil que buscam projetos de luxo.",
-      features: ["Tudo do Silver", "Selo 'Top Avaliado' Ouro", "Portfólio Ilimitado", "Prioridade Máxima Nacional", "Suporte VIP via WhatsApp", "Acesso ao PINTOR PRO Academy"],
-      cta: "Seja um PRO",
+      code: "annual",
+      name: "Plano Anual",
+      price: "R$ 500,00",
+      priceSuffix: "/ano",
+      desc: "Assinatura anual para manter sua vitrine ativa o ano inteiro pagando menos.",
+      features: ["Tudo do plano mensal", "Economia de R$ 100,00 no ano", "Equivale a R$ 41,67 por mes", "Mais previsibilidade para sua presença online", "Prioridade na vitrine de pintores"],
+      cta: "Assinar Anual",
       highlight: true,
-      isPaid: true
+      badge: "Melhor economia",
+      savings: "Desconto de R$ 100,00"
     }
   ];
 
   const [billingName, setBillingName] = useState('');
   const [billingEmail, setBillingEmail] = useState('');
   const [checkoutNotice, setCheckoutNotice] = useState<CheckoutNotice | null>(null);
-  const [processingPlanCode, setProcessingPlanCode] = useState<PlanCode | null>(null);
+  const [processingPlanCode, setProcessingPlanCode] = useState<PaidPlanCode | null>(null);
 
   const hasValidBillingEmail = useMemo(() => {
     const normalized = billingEmail.trim().toLowerCase();
@@ -95,13 +83,6 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
   }, []);
 
   const handlePlanClick = async (plan: Plan) => {
-    if (!plan.isPaid) {
-      setPage(Page.Register);
-      return;
-    }
-
-    if (!isPaidPlan(plan.code)) return;
-
     if (!hasValidBillingEmail) {
       alert('Informe um e-mail valido para iniciar a assinatura.');
       return;
@@ -139,14 +120,14 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
             Planos de <span className="text-[#9A077B] underline decoration-[#EFC6E3]">Aceleração</span>
           </h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">
-            Escolha o nível de visibilidade que seu talento merece. Planos pensados para valorizar a mão de obra especializada.
+            Escolha a forma de pagamento da sua assinatura e mantenha sua vitrine ativa para receber contatos qualificados.
           </p>
         </div>
 
         <div className="bg-white border border-slate-100 shadow-sm rounded-[40px] p-8 mb-12">
           <h3 className="text-slate-900 font-black uppercase tracking-[0.2em] text-xs mb-3">Dados para cobrança</h3>
           <p className="text-sm text-slate-500 font-medium mb-6">
-            Para planos pagos, informe o e-mail que receberá comprovantes e comunicações da assinatura.
+            Informe o e-mail que receberá comprovantes e comunicações da assinatura.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
@@ -179,7 +160,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {plans.map((plan, idx) => (
             <div 
               key={idx} 
@@ -187,15 +168,20 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
             >
               {plan.highlight && (
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#9A077B] text-white px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg">
-                  Recomendado para Elite
+                  {plan.badge}
                 </div>
               )}
               <div className="mb-10">
                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-black text-slate-900">{plan.price}</span>
-                  {plan.price !== "Grátis" && <span className="text-slate-400 font-bold">/mês</span>}
+                  <span className="text-slate-400 font-bold">{plan.priceSuffix}</span>
                 </div>
+                {plan.savings && (
+                  <div className="mb-4 inline-flex rounded-full bg-[#FDF1FA] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#9A077B]">
+                    {plan.savings}
+                  </div>
+                )}
                 <p className="text-slate-500 text-sm font-medium leading-relaxed">{plan.desc}</p>
               </div>
 
@@ -210,7 +196,7 @@ export const Plans: React.FC<PlansProps> = ({ setPage }) => {
 
               <button 
                 onClick={() => handlePlanClick(plan)}
-                disabled={Boolean(processingPlanCode && processingPlanCode !== plan.code) || (plan.isPaid && !hasValidBillingEmail)}
+                disabled={Boolean(processingPlanCode && processingPlanCode !== plan.code) || !hasValidBillingEmail}
                 className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition disabled:opacity-50 disabled:cursor-not-allowed ${plan.highlight ? 'bg-[#9A077B] text-white hover:bg-[#7F0665] shadow-xl shadow-[#EFC6E3]' : 'bg-slate-900 text-white hover:bg-[#000747]'}`}
               >
                 {processingPlanCode === plan.code ? 'Redirecionando...' : plan.cta}

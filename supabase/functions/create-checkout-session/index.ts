@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type CheckoutPlanCode = 'silver' | 'pro';
+type CheckoutPlanCode = 'monthly' | 'annual';
 
 type CreateCheckoutSessionRequest = {
   planCode?: string;
@@ -33,8 +33,8 @@ const corsHeaders = {
 };
 
 const PLAN_PRICE_ENV_MAP: Record<CheckoutPlanCode, string> = {
-  silver: 'STRIPE_PRICE_SILVER_MONTHLY',
-  pro: 'STRIPE_PRICE_PRO_MONTHLY'
+  monthly: 'STRIPE_PRICE_MONTHLY',
+  annual: 'STRIPE_PRICE_ANNUAL'
 };
 
 function jsonResponse(status: number, body: unknown) {
@@ -48,7 +48,7 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function isCheckoutPlanCode(value: string): value is CheckoutPlanCode {
-  return value === 'silver' || value === 'pro';
+  return value === 'monthly' || value === 'annual';
 }
 
 function normalizeEmail(value: string) {
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
 
   if (!planCode || !isCheckoutPlanCode(planCode)) {
     return jsonResponse(400, {
-      error: 'planCode must be one of: silver, pro'
+      error: 'planCode must be one of: monthly, annual'
     });
   }
 

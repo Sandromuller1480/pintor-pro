@@ -84,6 +84,10 @@ function getPlanCodeFromPriceId(priceId: string | null, envMap: Record<string, s
   return null;
 }
 
+function isSupportedPlanCode(value: string | null | undefined) {
+  return value === 'monthly' || value === 'annual';
+}
+
 function timingSafeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
   let result = 0;
@@ -269,7 +273,7 @@ async function syncSubscriptionFromStripe(params: {
   const firstPriceId = subscription.items?.data?.[0]?.price?.id ?? null;
   const metadataPlanCode = normalizeEmail(subscription.metadata?.plan_code).replace(/[^a-z]/g, '');
   const mappedPlanCode = getPlanCodeFromPriceId(firstPriceId, params.planPriceMap);
-  const planCode = mappedPlanCode || (metadataPlanCode === 'silver' || metadataPlanCode === 'pro' ? metadataPlanCode : 'bronze');
+  const planCode = mappedPlanCode || (isSupportedPlanCode(metadataPlanCode) ? metadataPlanCode : 'monthly');
 
   const { error: customerError } = await params.supabase.from('billing_customers').upsert(
     {
@@ -346,7 +350,7 @@ async function handleCheckoutCompleted(params: {
   const updatePayload: Record<string, unknown> = {
     status: 'completed',
     provider_customer_id: customerId,
-    plan_code: planCode === 'silver' || planCode === 'pro' ? planCode : 'bronze'
+    plan_code: isSupportedPlanCode(planCode) ? planCode : 'monthly'
   };
 
   if (email) {
@@ -448,8 +452,8 @@ Deno.serve(async (req) => {
   }
 
   const planPriceMap = {
-    silver: Deno.env.get('STRIPE_PRICE_SILVER_MONTHLY') ?? '',
-    pro: Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') ?? ''
+    monthly: Deno.env.get('STRIPE_PRICE_MONTHLY') ?? '',
+    annual: Deno.env.get('STRIPE_PRICE_ANNUAL') ?? ''
   };
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
