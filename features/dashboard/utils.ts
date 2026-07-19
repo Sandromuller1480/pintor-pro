@@ -51,8 +51,10 @@ export const PAINTER_MEDIA_BUCKET = 'painters-media';
 export const LEGACY_PROFILE_BUCKET = 'application-work-photos';
 
 const PLAN_LABELS: Record<string, string> = {
+  monthly: 'Plano mensal',
+  annual: 'Plano anual',
   bronze: 'Bronze',
-  silver: 'Elite Silver',
+  silver: 'Elite Prata',
   pro: 'PINTOR PRO'
 };
 
@@ -63,7 +65,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const APPLICATION_STATUS_LABELS: Record<string, string> = {
-  pending: 'Em analise',
+  pending: 'Em análise',
   accepted: 'Ativo',
   rejected: 'Reprovado'
 };
@@ -83,7 +85,7 @@ export const getPlanLabel = (profile: CurrentPainterProfile | null) => {
 };
 
 export const getApplicationStatusLabel = (status: string | null | undefined) => {
-  if (!status) return 'Sem status';
+  if (!status) return 'Sem situação';
   return APPLICATION_STATUS_LABELS[status] ?? status;
 };
 

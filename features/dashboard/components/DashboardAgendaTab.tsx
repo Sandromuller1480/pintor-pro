@@ -460,7 +460,7 @@ export const DashboardAgendaTab: React.FC<DashboardAgendaTabProps> = ({
                         </label>
 
                         <label className="text-sm font-bold text-slate-600 md:col-span-2">
-                          <span className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-400">Status da visita</span>
+                          <span className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-slate-400">Situação da visita</span>
                           <select
                             value={draft.status}
                             onChange={(event) => setDraft((currentDraft) => currentDraft ? { ...currentDraft, status: event.target.value } : currentDraft)}

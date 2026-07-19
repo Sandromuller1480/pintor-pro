@@ -18,8 +18,10 @@ export const getPlanLabel = (currentPainter: Painter) => {
   const subscriptionPlan = currentPainter.subscriptionPlan?.toLowerCase();
   const categoryLevel = currentPainter.categoryLevel?.toLowerCase();
 
+  if (subscriptionPlan === 'annual') return 'Plano anual';
+  if (subscriptionPlan === 'monthly') return 'Plano mensal';
   if (subscriptionPlan === 'pro') return 'PINTOR PRO';
-  if (subscriptionPlan === 'silver') return 'Elite Silver';
+  if (subscriptionPlan === 'silver') return 'Elite Prata';
   if (subscriptionPlan === 'bronze') return 'Bronze';
   if (categoryLevel === 'ouro') return 'Categoria Ouro';
   if (categoryLevel === 'prata') return 'Categoria Prata';
@@ -40,15 +42,15 @@ export const formatReviewAge = (value: string) => {
   const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 
   if (diffDays === 0) return 'Hoje';
-  if (diffDays === 1) return 'Ha 1 dia';
-  if (diffDays < 30) return `Ha ${diffDays} dias`;
+  if (diffDays === 1) return 'Há 1 dia';
+  if (diffDays < 30) return `Há ${diffDays} dias`;
 
   const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths === 1) return 'Ha 1 mes';
-  if (diffMonths < 12) return `Ha ${diffMonths} meses`;
+  if (diffMonths === 1) return 'Há 1 mês';
+  if (diffMonths < 12) return `Há ${diffMonths} meses`;
 
   const diffYears = Math.floor(diffMonths / 12);
-  return diffYears === 1 ? 'Ha 1 ano' : `Ha ${diffYears} anos`;
+  return diffYears === 1 ? 'Há 1 ano' : `Há ${diffYears} anos`;
 };
 
 export const getReviewInitials = (clientName: string) => {

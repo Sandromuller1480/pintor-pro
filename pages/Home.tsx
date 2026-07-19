@@ -325,7 +325,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                   <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-white flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#9A077B] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[#EFC6E3]"><ShieldCheck size={22} /></div>
                     <div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status</div>
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Situação</div>
                       <div className="text-sm font-black text-slate-900 leading-none uppercase">Pintor Verificado</div>
                     </div>
                   </div>
@@ -453,7 +453,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" checked={onlyTopRated} onChange={(event) => setOnlyTopRated(event.target.checked)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
-                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Top Avaliado</span>
+                        <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Melhor avaliado</span>
                       </label>
                     </div>
                   </div>
@@ -462,7 +462,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Disponibilidade</h4>
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input type="checkbox" checked={onlyOnline} onChange={(event) => setOnlyOnline(event.target.checked)} className="w-4 h-4 min-w-4 min-h-4 shrink-0 rounded border-slate-300 text-[#9A077B] focus:ring-[#9A077B]" />
-                      <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Somente online</span>
+                      <span className="text-sm text-slate-600 group-hover:text-[#000747] transition">Somente on-line</span>
                     </label>
                   </div>
                 </div>
@@ -527,7 +527,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
             </div>
             <div className="space-y-4">
               <div className="text-5xl font-black text-[#B21492] tracking-tighter">{topRatedPainters > 0 ? topRatedPaintersLabel : uniqueLocationsLabel}</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{topRatedPainters > 0 ? 'Top Avaliados' : 'Regiões Ativas'}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{topRatedPainters > 0 ? 'Melhores avaliados' : 'Regiões Ativas'}</div>
             </div>
           </div>
         </div>

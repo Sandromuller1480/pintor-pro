@@ -481,7 +481,7 @@ export const DashboardWallColorTab: React.FC = () => {
 
   const loadImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setFeedback('Selecione uma imagem valida.');
+      setFeedback('Selecione uma imagem válida.');
       return;
     }
 

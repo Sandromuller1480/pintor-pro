@@ -110,12 +110,12 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   'application.visits_disabled': 'Agendamentos bloqueados',
   'application.visits_enabled': 'Agendamentos reativados',
   'subscription.plan_changed': 'Plano alterado',
-  'subscription.status_changed': 'Status da assinatura alterado',
+  'subscription.status_changed': 'Situação da assinatura alterada',
   'portfolio.approved': 'Obra aprovada',
   'portfolio.blocked': 'Obra bloqueada',
   'portfolio.hidden': 'Obra ocultada da vitrine',
   'portfolio.shown': 'Obra exibida na vitrine',
-  'portfolio.status_changed': 'Status de moderação alterado'
+  'portfolio.status_changed': 'Situação da moderação alterada'
 };
 
 export const getAdminAuditActionLabel = (actionType: string) => (

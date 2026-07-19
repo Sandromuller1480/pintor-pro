@@ -277,7 +277,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        throw new Error('Voce precisa estar logado para salvar uma obra.');
+        throw new Error('Você precisa estar logado para salvar uma obra.');
       }
 
       const obraId = initialObra?.id ?? createLocalUuid();
@@ -483,7 +483,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                   </InputGroup>
                 </div>
 
-                <InputGroup label="Status da Obra">
+                <InputGroup label="Situação da obra">
                   <div className="flex flex-wrap gap-4">
                     {['CONCLUIDO', 'EM ANDAMENTO'].map((currentStatus) => (
                       <label
@@ -499,7 +499,7 @@ export const ObraModal: React.FC<ObraModalProps> = ({
                           className="accent-[#9A077B]"
                           disabled={isSubmitting}
                         />
-                        <span className="text-sm font-bold text-slate-700">{currentStatus}</span>
+                        <span className="text-sm font-bold text-slate-700">{currentStatus === 'CONCLUIDO' ? 'Concluído' : 'Em andamento'}</span>
                       </label>
                     ))}
                   </div>

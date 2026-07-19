@@ -22,7 +22,7 @@ export const Login: React.FC<LoginProps> = ({ setPage }) => {
     }
 
     if (normalized.includes('invalid login credentials')) {
-      return 'E-mail ou senha invalidos.';
+      return 'E-mail ou senha inválidos.';
     }
 
     if (normalized.includes('too many requests')) {

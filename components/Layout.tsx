@@ -39,7 +39,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         setCurrentClientProfile(sessionContext.currentClientProfile);
         setCurrentAdminProfile(adminProfile);
       } catch (error) {
-        console.error('Erro ao carregar sessao do cabecalho:', error);
+        console.error('Erro ao carregar sessão do cabeçalho:', error);
 
         if (!isMounted) {
           return;
@@ -82,7 +82,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      console.error('Erro ao encerrar sessao do cliente:', error);
+      console.error('Erro ao encerrar sessão do cliente:', error);
       return;
     }
 
@@ -298,7 +298,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <div>
                 <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Profissionais</h4>
                 <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                  <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfolio</button></li>
+                  <li><button onClick={() => setPage(Page.Register)} className="hover:text-[#C93EA6] transition">Cadastrar Portfólio</button></li>
                   {shouldShowPlansEntry && (
                     <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
                   )}

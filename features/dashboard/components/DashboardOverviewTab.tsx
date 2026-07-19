@@ -67,7 +67,7 @@ export const DashboardOverviewTab: React.FC<DashboardOverviewTabProps> = ({
   const lastPortfolioEntry = portfolioItems[0];
   const canEditMedia = Boolean(currentProfile?.applicationId);
   const periodLabel = `${analyticsPeriodDays} dias`;
-  const periodContextLabel = `nos ultimos ${analyticsPeriodDays} dias`;
+  const periodContextLabel = `nos últimos ${analyticsPeriodDays} dias`;
   const previousPeriodContextLabel = `nos ${analyticsPeriodDays} dias anteriores`;
   const periodGrowthLabel = metrics.periodGrowthPercent > 0
     ? `+${metrics.periodGrowthPercent}%`

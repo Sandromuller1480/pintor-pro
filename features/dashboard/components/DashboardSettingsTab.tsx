@@ -409,12 +409,12 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                     </p>
                   </div>
                   <p className="mt-3 text-[11px] font-medium text-slate-400">
-                    No celular, voce pode selecionar em etapas. As novas selecoes serao somadas ao perfil.
+                    No celular, você pode selecionar em etapas. As novas seleções serão somadas ao perfil.
                   </p>
                   {renderSelectedFiles(selectedAssets.workPhotos, 'workPhotos')}
                 </div>
                 <p className="mt-2 text-xs font-medium text-slate-500">
-                  Existentes: {existingWorkPhotoCount}. Total apos salvar: {totalWorkPhotoCount}
+                  Existentes: {existingWorkPhotoCount}. Total após salvar: {totalWorkPhotoCount}
                 </p>
               </div>
 
@@ -446,12 +446,12 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
                     </p>
                   </div>
                   <p className="mt-3 text-[11px] font-medium text-slate-400">
-                    PDF ou JPG. Novos certificados serao somados aos que voce ja enviou.
+                    PDF ou JPG. Novos certificados serão somados aos que você já enviou.
                   </p>
                   {renderSelectedFiles(selectedAssets.certifications, 'certifications')}
                 </div>
                 <p className="mt-2 text-xs font-medium text-slate-500">
-                  Existentes: {existingCertificationCount}. Total apos salvar: {totalCertificationCount}
+                  Existentes: {existingCertificationCount}. Total após salvar: {totalCertificationCount}
                 </p>
               </div>
             </div>
@@ -666,7 +666,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
               {[
                 { label: 'Conta principal', value: currentProfile?.email || 'Não informada' },
                 { label: 'Plano atual', value: planLabel },
-                { label: 'Status do cadastro', value: statusLabel },
+                { label: 'Situação do cadastro', value: statusLabel },
                 { label: 'Cidade base', value: locationLabel }
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">

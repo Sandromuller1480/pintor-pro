@@ -801,7 +801,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 {selectedMarker.painter.isOnline && (
                   <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-emerald-700 ring-1 ring-emerald-200">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Online agora
+                    On-line agora
                   </span>
                 )}
               </div>
@@ -851,12 +851,12 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 {selectedMarker.painter.isOnline && (
                   <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-700 ring-1 ring-emerald-200">
                     <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Online agora
+                    On-line agora
                   </span>
                 )}
                 {selectedMarker.painter.isOnline === false && (
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-slate-600 ring-1 ring-slate-300">
-                    Pintor indisponivel
+                    Pintor indisponível
                   </span>
                 )}
               </div>
@@ -871,7 +871,7 @@ export const PublicPainterMap: React.FC<PublicPainterMapProps> = ({
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {selectedMarker.painter.topRated && (
                     <span className="rounded-full bg-[#9A077B] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
-                      Top Avaliado
+                      Melhor avaliado
                     </span>
                   )}
                   {selectedMarker.painter.reviewsCount > 0 && selectedMarker.painter.rating > 0 && (

@@ -23,7 +23,7 @@ export const PainterCard: React.FC<PainterCardProps> = ({ painter, onClick }) =>
           )}
           {painter.topRated && (
             <span className="bg-[#9A077B] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center shadow-sm">
-              <Star className="w-3 h-3 mr-1" /> Top Avaliado
+              <Star className="w-3 h-3 mr-1" /> Melhor avaliado
             </span>
           )}
         </div>
@@ -33,7 +33,7 @@ export const PainterCard: React.FC<PainterCardProps> = ({ painter, onClick }) =>
         <div className="flex justify-between items-start mb-4">
           <div className="relative">
             <img src={painter.avatar} alt={painter.name} className="w-16 h-16 rounded-xl object-cover border-4 border-white shadow-md -mt-14" />
-            <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white" title="Online agora"></div>
+            <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white" title="On-line agora"></div>
           </div>
           {hasReviews && (
             <div className="flex items-center bg-[#FDF3FA] px-2 py-1 rounded-md">

@@ -719,7 +719,7 @@ export const uploadApplicationAssets = async ({
       const { error: removeError } = await supabase.storage.from(bucket).remove(uploadedPaths);
 
       if (removeError) {
-        console.error('Erro ao remover anexos apos falha no salvamento:', removeError);
+        console.error('Erro ao remover anexos após falha no salvamento:', removeError);
       }
     }
 

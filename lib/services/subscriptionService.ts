@@ -29,7 +29,7 @@ export const subscriptionService = {
   ): Promise<CreateCheckoutSessionResponse> {
     const email = normalizeEmail(params.email);
     if (!isValidEmail(email)) {
-      throw new Error('Informe um e-mail valido para continuar.');
+      throw new Error('Informe um e-mail válido para continuar.');
     }
 
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {

@@ -1079,7 +1079,7 @@ export const OrcamentoModal: React.FC<OrcamentoModalProps> = ({
                   ))}
                 </div>
               </InputGroup>
-              <InputGroup label="Imóvel esta">
+              <InputGroup label="Imóvel está">
                 <div className="flex flex-wrap gap-4 mt-2">
                   {PROPERTY_STATUS_OPTIONS.map((item) => (
                     <label key={item} className="flex items-center space-x-2 cursor-pointer">

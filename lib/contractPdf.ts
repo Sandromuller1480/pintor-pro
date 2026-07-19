@@ -242,7 +242,7 @@ export const generateContractPdf = async (
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(...MUTED_TEXT);
-    doc.text('Modelo base de contrato da Pintor Pro. Recomenda-se revisao juridica antes da assinatura.', PAGE_MARGIN + 76, footerY + 4);
+    doc.text('Modelo base de contrato da Pintor Pro. Recomenda-se revisão jurídica antes da assinatura.', PAGE_MARGIN + 76, footerY + 4);
   };
 
   const ensureSpace = async (requiredHeight: number) => {

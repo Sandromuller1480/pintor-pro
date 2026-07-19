@@ -976,7 +976,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           try {
             await updatePainterPresence(currentProfile.applicationId, true);
           } catch (presenceRollbackError) {
-            console.error('Erro ao restaurar presenca online apos falha no logout:', presenceRollbackError);
+            console.error('Erro ao restaurar presença on-line após falha no logout:', presenceRollbackError);
           }
         }
         throw error;
@@ -984,7 +984,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
 
       setPage(Page.Home);
     } catch (error) {
-      console.error('Erro ao encerrar sessao:', error);
+      console.error('Erro ao encerrar sessão:', error);
       alert('Não foi possível sair da conta agora. Tente novamente.');
       setIsSignOut(false);
     }
@@ -1385,7 +1385,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       try {
         await supabase.auth.signOut({ scope: 'local' });
       } catch (signOutError) {
-        console.error('Erro ao limpar sessao local apos excluir conta do pintor:', signOutError);
+        console.error('Erro ao limpar sessão local após excluir conta do pintor:', signOutError);
       }
 
       setCurrentProfile(null);
@@ -1439,7 +1439,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     if (!file.type.startsWith('image/')) {
       setMediaFeedback({
         type: 'error',
-        message: 'Selecione uma imagem valida para atualizar o perfil.'
+        message: 'Selecione uma imagem válida para atualizar o perfil.'
       });
       return;
     }
@@ -1475,7 +1475,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       }
 
       if (!user) {
-        throw new Error('Sua sessao expirou. Entre novamente para atualizar as imagens.');
+        throw new Error('Sua sessão expirou. Entre novamente para atualizar as imagens.');
       }
 
       const uploadResult = await uploadPainterMedia({

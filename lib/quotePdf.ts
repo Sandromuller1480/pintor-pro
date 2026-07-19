@@ -381,7 +381,7 @@ export const generateQuotePdf = async (
   await addField('Cidade / Estado', payload.propertyCityState || '');
   await addField('Tipo de imóvel', payload.propertyType || '');
   await addField('Situação', payload.propertySituation || '');
-  await addField('Status', payload.propertyStatus || '');
+  await addField('Situação', payload.propertyStatus || '');
 
   await addSectionTitle('3. Escopo do serviço');
   await addField('Tipo de serviço', payload.serviceType || '');

@@ -43,7 +43,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
           setView('painter');
         }
       } catch (error) {
-        console.error('Erro ao carregar sessao da pagina Como Funciona:', error);
+        console.error('Erro ao carregar sessão da página Como Funciona:', error);
 
         if (!isMounted) {
           return;

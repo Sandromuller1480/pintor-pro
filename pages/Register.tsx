@@ -330,7 +330,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 htmlFor="profile-photo-upload"
                 className="text-center cursor-pointer mt-2 text-[#9A077B] text-xs font-bold uppercase tracking-widest hover:text-[#7F0665]"
               >
-                Upload Foto
+                Enviar foto
               </label>
               {formData.profilePhoto && (
                 <button

@@ -151,7 +151,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
       const nextClientProfile = await getCurrentClientProfile();
       setCurrentClientProfile(nextClientProfile);
     } catch (error) {
-      console.error('Erro ao verificar sessao atual do cliente:', error);
+      console.error('Erro ao verificar sessão atual do cliente:', error);
       setCurrentClientProfile(null);
     }
   };
@@ -459,7 +459,7 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
 
       setIsClientLoginModalOpen(true);
     } catch (error) {
-      console.error('Erro ao validar sessao do cliente para acao protegida:', error);
+      console.error('Erro ao validar sessão do cliente para ação protegida:', error);
 
       if (continueAfterLogin) {
         setPendingClientAction(action);
@@ -1017,12 +1017,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                     {painter.isOnline === true && (
                       <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur-md">
                         <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
-                        Online agora
+                        On-line agora
                       </span>
                     )}
                     {painter.isOnline === false && (
                       <span className="inline-flex items-center rounded-full border border-slate-300/25 bg-slate-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-100 backdrop-blur-md">
-                        Indisponivel
+                        Indisponível
                       </span>
                     )}
                   </div>
@@ -1068,12 +1068,12 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                   {painter.isOnline === true && (
                     <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur-md">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
-                      Online agora
+                      On-line agora
                     </span>
                   )}
                   {painter.isOnline === false && (
                     <span className="inline-flex items-center rounded-full border border-slate-300/25 bg-slate-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-100 backdrop-blur-md">
-                      Indisponivel
+                      Indisponível
                     </span>
                   )}
                 </div>

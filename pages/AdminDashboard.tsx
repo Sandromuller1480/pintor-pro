@@ -166,7 +166,7 @@ const getStatusLabel = (status?: string | null) => {
     case 'pending': return 'Pendente';
     case 'rejected': return 'Reprovado';
     case 'active': return 'Ativo';
-    case 'trialing': return 'Trial';
+    case 'trialing': return 'Período de teste';
     case 'past_due': return 'Atrasado';
     case 'cancelled': return 'Cancelado';
     case 'open': return 'Aberto';
@@ -197,7 +197,7 @@ const getStatusClass = (status?: string | null) => {
 const getPortfolioStatusLabel = (status?: string | null) => {
   switch ((status || '').toLowerCase()) {
     case 'blocked': return 'Bloqueado';
-    case 'pending_review': return 'Em revisao';
+    case 'pending_review': return 'Em revisão';
     default: return 'Aprovado';
   }
 };
@@ -225,9 +225,9 @@ const formatRelative = (value?: string | null) => {
   if (!value) return 'Sem atividade';
   const diffMinutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
   if (diffMinutes < 1) return 'Agora mesmo';
-  if (diffMinutes < 60) return `Ha ${diffMinutes} min`;
-  if (diffMinutes < 1440) return `Ha ${Math.floor(diffMinutes / 60)} h`;
-  return `Ha ${Math.floor(diffMinutes / 1440)} dia(s)`;
+  if (diffMinutes < 60) return `Há ${diffMinutes} min`;
+  if (diffMinutes < 1440) return `Há ${Math.floor(diffMinutes / 60)} h`;
+  return `Há ${Math.floor(diffMinutes / 1440)} dia(s)`;
 };
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', {
@@ -242,6 +242,28 @@ const getApplicationLocation = (application: AdminApplication) => application.ci
   : application.city || application.uf || 'Localização não informada';
 
 const buildAuditWarningMessage = (successMessage: string) => `${successMessage} Porém, a auditoria não conseguiu registrar o evento.`;
+
+const getAdminRoleLabel = (role?: string | null) => {
+  switch ((role || '').toLowerCase()) {
+    case 'owner': return 'Proprietário';
+    case 'admin': return 'Administrador';
+    case 'manager': return 'Gerente';
+    default: return role || 'Proprietário';
+  }
+};
+
+const getPlanLabel = (plan?: string | null) => {
+  switch ((plan || '').toLowerCase()) {
+    case 'monthly': return 'Plano mensal';
+    case 'annual': return 'Plano anual';
+    case 'bronze': return 'Bronze';
+    case 'silver':
+    case 'prata': return 'Prata';
+    case 'pro':
+    case 'ouro': return 'Ouro';
+    default: return plan || 'Sem plano';
+  }
+};
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -557,7 +579,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status</p><p className="mt-2 text-lg font-black text-[#000747]">{getStatusLabel(selectedApplication.status)}</p></div>
+              <div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação</p><p className="mt-2 text-lg font-black text-[#000747]">{getStatusLabel(selectedApplication.status)}</p></div>
               <div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Categoria</p><p className="mt-2 text-lg font-black text-[#000747]">{selectedApplication.category_level || 'Sem categoria'}</p></div>
               <div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><p className="mt-2 text-lg font-black text-[#000747]">{selectedApplication.subscription_plan || 'Sem plano'}</p></div>
               <div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Criado em</p><p className="mt-2 text-lg font-black text-[#000747]">{formatDate(selectedApplication.created_at)}</p></div>
@@ -616,7 +638,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
             <div className="mt-8 rounded-[28px] bg-[#000747] px-5 py-5 text-white">
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/65">Painel do Dono</p>
               <p className="mt-3 text-2xl font-black tracking-tight">{adminProfile?.fullName || 'Administrador'}</p>
-              <p className="mt-2 text-sm font-medium text-white/75">{adminProfile?.role || 'owner'}</p>
+              <p className="mt-2 text-sm font-medium text-white/75">{getAdminRoleLabel(adminProfile?.role)}</p>
             </div>
             <nav className="mt-8 space-y-2">
               {tabs.map(({ id, label, icon: Icon }) => (
@@ -639,7 +661,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
         <main className="px-5 py-6 lg:px-10">
           <div className="mx-auto max-w-7xl">
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Controle total da plataforma</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-[#000747] sm:text-5xl">Dashboard Admin</h1>
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-[#000747] sm:text-5xl">Painel Administrativo</h1>
             <p className="mt-4 max-w-3xl text-base font-medium text-slate-500">Gerencie aplicações, pintores, assinaturas, operação e moderação de conteúdo em um único painel.</p>
 
             {feedback && <div className={`mt-6 rounded-[24px] px-5 py-4 text-sm font-black ${feedback.type === 'success' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'border border-rose-200 bg-rose-50 text-rose-700'}`}>{feedback.message}</div>}
@@ -658,7 +680,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                       {[
                         { label: 'Aplicações Pendentes', value: metrics.pendingApplications, helper: `${metrics.totalApplications} cadastros no total`, icon: ClipboardList },
-                        { label: 'Pintores Aprovados', value: metrics.acceptedPainters, helper: `${metrics.onlinePainters} online agora`, icon: ShieldCheck },
+                        { label: 'Pintores Aprovados', value: metrics.acceptedPainters, helper: `${metrics.onlinePainters} on-line agora`, icon: ShieldCheck },
                         { label: 'Contatos da Plataforma', value: metrics.totalContacts, helper: `${metrics.openChats} chats abertos e ${metrics.pendingVisits} visitas pendentes`, icon: MessageSquareText },
                         { label: 'MRR Estimado', value: formatCurrency(metrics.estimatedMrr), helper: `${metrics.activeSubscriptions} assinaturas ativas`, icon: BadgeDollarSign }
                       ].map(({ label, value, helper, icon: Icon }) => (
@@ -685,7 +707,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
 
                       <div className="space-y-6">
                         <div className="rounded-[32px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Pulso do negócio</p><div className="mt-5 rounded-[24px] bg-[#000747] p-5 text-white"><p className="text-sm font-bold uppercase tracking-[0.18em] text-white/70">Crescimento semanal</p><p className="mt-3 text-3xl font-black tracking-tight">{metrics.weeklyGrowthPercent}%</p><p className="mt-2 text-sm font-medium text-white/75">{metrics.applicationsThisWeek} novas aplicações nos últimos 7 dias.</p></div></div>
-                        <div className="rounded-[32px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Leitura executiva</p><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Ticket médio</p><p className="mt-2 text-2xl font-black text-[#000747]">{formatCurrency(metrics.ticketMedio)}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Inadimplentes</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.overdueSubscriptions}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Clientes ativos</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.activeClients}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Views em 30 dias</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.profileViewsLast30Days}</p></div></div></div>
+                        <div className="rounded-[32px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Leitura executiva</p><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Ticket médio</p><p className="mt-2 text-2xl font-black text-[#000747]">{formatCurrency(metrics.ticketMedio)}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Inadimplentes</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.overdueSubscriptions}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Clientes ativos</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.activeClients}</p></div><div className="rounded-[24px] bg-slate-50 px-5 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Visualizações em 30 dias</p><p className="mt-2 text-2xl font-black text-[#000747]">{metrics.profileViewsLast30Days}</p></div></div></div>
                       </div>
                     </div>
                   </>
@@ -701,7 +723,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                         <div className="mt-6 grid gap-4 xl:grid-cols-[1.1fr,1.1fr,0.8fr]">
                           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Categoria operacional</p><select value={item.category_level ?? ''} onChange={(event) => void updateApplication(item.id, { category_level: event.target.value || null }, 'Categoria atualizada.', `category:${item.id}`, 'application.category_changed')} disabled={busyKey === `category:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{categoryOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem categoria'}</option>)}</select></div>
                           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Ações de credenciamento</p><div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setSelectedApplication(item)} className="rounded-2xl border border-[#9A077B]/20 bg-white px-4 py-3 text-sm font-black text-[#9A077B] transition hover:border-[#9A077B] hover:bg-[#FDF1FA]">Revisar cadastro</button><button type="button" disabled={busyKey === `approve:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'accepted' }, 'Aplicação aprovada com sucesso.', `approve:${item.id}`, 'application.approved')} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button><button type="button" disabled={busyKey === `pending:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'pending' }, 'Aplicação voltou para pendência.', `pending:${item.id}`, 'application.pending')} className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white transition hover:bg-amber-600 disabled:opacity-60">Pendente</button><button type="button" disabled={busyKey === `reject:${item.id}`} onClick={() => void updateApplication(item.id, { status: 'rejected' }, 'Aplicação marcada como reprovada.', `reject:${item.id}`, 'application.rejected')} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Reprovar</button></div></div>
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Presença atual</p><div className="mt-3 flex items-center justify-between gap-3"><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>{item.is_online ? 'Online' : 'Offline'}</span><span className="text-xs font-bold text-slate-500">{formatRelative(item.last_seen_at)}</span></div><button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: item.id })} className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#9A077B] transition hover:text-[#000747]"><Eye className="h-4 w-4" />Abrir perfil público</button></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Presença atual</p><div className="mt-3 flex items-center justify-between gap-3"><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>{item.is_online ? 'On-line' : 'Off-line'}</span><span className="text-xs font-bold text-slate-500">{formatRelative(item.last_seen_at)}</span></div><button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: item.id })} className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#9A077B] transition hover:text-[#000747]"><Eye className="h-4 w-4" />Abrir perfil público</button></div>
                         </div>
                       </div>
                     ))}
@@ -713,7 +735,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     {acceptedPainters.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>{item.is_online ? 'Online agora' : 'Offline'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{getApplicationLocation(item)}</p><p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Última atividade: {formatRelative(item.last_seen_at)}</p></div>
+                          <div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>{item.is_online ? 'On-line agora' : 'Off-line'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{getApplicationLocation(item)}</p><p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Última atividade: {formatRelative(item.last_seen_at)}</p></div>
                           <button type="button" onClick={() => setPage(Page.PainterProfile, { painterId: item.id })} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-[#000747] transition hover:border-[#9A077B] hover:text-[#9A077B]"><Eye className="h-4 w-4" />Ver perfil</button>
                         </div>
                         <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -730,16 +752,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                   <div className="space-y-5">
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">MRR estimado</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{formatCurrency(metrics.estimatedMrr)}</p><p className="mt-2 text-sm font-medium text-slate-500">Leitura executiva por plano ativo.</p></div>
-                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Ticket medio</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{formatCurrency(metrics.ticketMedio)}</p><p className="mt-2 text-sm font-medium text-slate-500">Media por assinante ativo ou em trial.</p></div>
-                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Inadimplentes</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{metrics.overdueSubscriptions}</p><p className="mt-2 text-sm font-medium text-slate-500">Assinaturas com risco de churn.</p></div>
-                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Trials</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{metrics.trialSubscriptions}</p><p className="mt-2 text-sm font-medium text-slate-500">Contas em fase inicial de conversao.</p></div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Ticket médio</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{formatCurrency(metrics.ticketMedio)}</p><p className="mt-2 text-sm font-medium text-slate-500">Média por assinante ativo ou em período de teste.</p></div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Inadimplentes</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{metrics.overdueSubscriptions}</p><p className="mt-2 text-sm font-medium text-slate-500">Assinaturas com risco de cancelamento.</p></div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Testes</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{metrics.trialSubscriptions}</p><p className="mt-2 text-sm font-medium text-slate-500">Contas em fase inicial de conversão.</p></div>
                     </div>
                     {subscribedPainters.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
                         <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.subscription_status)}`}>{getStatusLabel(item.subscription_status)}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
                         <div className="mt-6 grid gap-4 md:grid-cols-2">
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><select value={item.subscription_plan ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_plan: event.target.value || null }, 'Plano atualizado.', `plan:${item.id}`, 'subscription.plan_changed')} disabled={busyKey === `plan:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{planOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'sem plano'}</option>)}</select></div>
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status da assinatura</p><select value={item.subscription_status ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_status: event.target.value || null }, 'Status da assinatura atualizado.', `subscription:${item.id}`, 'subscription.status_changed')} disabled={busyKey === `subscription:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{subscriptionStatusOptions.map((option) => <option key={option || 'empty'} value={option}>{option || 'não informado'}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><select value={item.subscription_plan ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_plan: event.target.value || null }, 'Plano atualizado.', `plan:${item.id}`, 'subscription.plan_changed')} disabled={busyKey === `plan:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{planOptions.map((option) => <option key={option || 'empty'} value={option}>{getPlanLabel(option)}</option>)}</select></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p><select value={item.subscription_status ?? ''} onChange={(event) => void updateApplication(item.id, { subscription_status: event.target.value || null }, 'Situação da assinatura atualizada.', `subscription:${item.id}`, 'subscription.status_changed')} disabled={busyKey === `subscription:${item.id}`} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-[#000747] outline-none focus:border-[#9A077B]">{subscriptionStatusOptions.map((option) => <option key={option || 'empty'} value={option}>{option ? getStatusLabel(option) : 'Não informado'}</option>)}</select></div>
                         </div>
                       </div>
                     ))}
@@ -751,7 +773,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     <div className="grid gap-5 md:grid-cols-3">
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Obras públicas</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{moderatedPortfolioItems.filter((item) => item.is_publicly_visible !== false).length}</p></div>
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Bloqueadas</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{moderatedPortfolioItems.filter((item) => item.admin_review_status === 'blocked').length}</p></div>
-                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Em revisao</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{moderatedPortfolioItems.filter((item) => item.admin_review_status === 'pending_review').length}</p></div>
+                      <div className="rounded-[28px] border border-slate-200 bg-white p-6"><p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Em revisão</p><p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{moderatedPortfolioItems.filter((item) => item.admin_review_status === 'pending_review').length}</p></div>
                     </div>
                     {moderatedPortfolioItems.length === 0 ? <div className="rounded-[32px] border border-dashed border-slate-300 bg-white px-6 py-14 text-center"><p className="text-lg font-black text-[#000747]">Nenhuma obra encontrada para moderação</p><p className="mt-2 text-sm font-medium text-slate-500">Se você já tiver portfólio cadastrado, rode o SQL add_portfolio_admin_moderation.sql no Supabase.</p></div> : moderatedPortfolioItems.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
@@ -759,7 +781,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-100">{item.previewUrl ? <img src={item.previewUrl} alt={item.titulo} className="h-56 w-full object-cover" /> : <div className="flex h-56 items-center justify-center text-slate-400"><ImageOff className="h-10 w-10" /></div>}</div>
                           <div>
                             <div className="flex flex-wrap items-start justify-between gap-4">
-                              <div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{item.titulo}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getPortfolioStatusClass(item.admin_review_status)}`}>{getPortfolioStatusLabel(item.admin_review_status)}</span><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_publicly_visible === false ? 'bg-slate-200 text-slate-600 border border-slate-300' : 'bg-[#EEF3FF] text-[#000747] border border-[#cdd7ff]'}`}>{item.is_publicly_visible === false ? 'Oculta' : 'Publica'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.painterName}</p><p className="mt-2 text-sm font-semibold text-slate-400">{item.local}</p></div>
+                              <div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{item.titulo}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getPortfolioStatusClass(item.admin_review_status)}`}>{getPortfolioStatusLabel(item.admin_review_status)}</span><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${item.is_publicly_visible === false ? 'bg-slate-200 text-slate-600 border border-slate-300' : 'bg-[#EEF3FF] text-[#000747] border border-[#cdd7ff]'}`}>{item.is_publicly_visible === false ? 'Oculta' : 'Pública'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.painterName}</p><p className="mt-2 text-sm font-semibold text-slate-400">{item.local}</p></div>
                               <div className="flex flex-wrap gap-2">
                                 <button type="button" disabled={busyKey === `obra-approved:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'approved' }, 'Obra aprovada para exibição pública.', `obra-approved:${item.id}`, 'portfolio.approved')} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60">Aprovar</button>
                                 <button type="button" disabled={busyKey === `obra-blocked:${item.id}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: 'blocked', is_publicly_visible: false }, 'Obra bloqueada da vitrine pública.', `obra-blocked:${item.id}`, 'portfolio.blocked')} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60">Bloquear</button>
@@ -769,10 +791,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                             <div className="mt-5 grid gap-4 md:grid-cols-4">
                               <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Tipo</p><p className="mt-2 text-sm font-black text-[#000747]">{item.tipo_imovel}</p></div>
                               <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Pintura</p><p className="mt-2 text-sm font-black text-[#000747]">{item.tipo_pintura}</p></div>
-                              <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Midias</p><p className="mt-2 text-sm font-black text-[#000747]">{item.mediaCount} arquivo(s)</p></div>
+                              <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mídias</p><p className="mt-2 text-sm font-black text-[#000747]">{item.mediaCount} arquivo(s)</p></div>
                               <div className="rounded-[24px] bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Revisado em</p><p className="mt-2 text-sm font-black text-[#000747]">{formatDate(item.admin_reviewed_at || item.created_at)}</p></div>
                             </div>
-                            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status de moderação</p><div className="mt-3 flex flex-wrap gap-2">{portfolioReviewStatusOptions.map((status) => <button key={status} type="button" disabled={busyKey === `obra-status:${item.id}:${status}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: status }, `Status da obra atualizado para ${getPortfolioStatusLabel(status)}.`, `obra-status:${item.id}:${status}`, 'portfolio.status_changed')} className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${item.admin_review_status === status ? 'bg-[#000747] text-white' : 'bg-white text-slate-600 hover:text-[#9A077B]'}`}>{getPortfolioStatusLabel(status)}</button>)}</div></div>
+                            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da moderação</p><div className="mt-3 flex flex-wrap gap-2">{portfolioReviewStatusOptions.map((status) => <button key={status} type="button" disabled={busyKey === `obra-status:${item.id}:${status}`} onClick={() => void updatePortfolioModeration(item.id, { admin_review_status: status }, `Situação da obra atualizada para ${getPortfolioStatusLabel(status)}.`, `obra-status:${item.id}:${status}`, 'portfolio.status_changed')} className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${item.admin_review_status === status ? 'bg-[#000747] text-white' : 'bg-white text-slate-600 hover:text-[#9A077B]'}`}>{getPortfolioStatusLabel(status)}</button>)}</div></div>
                           </div>
                         </div>
                       </div>
@@ -786,7 +808,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Eventos carregados</p>
                         <p className="mt-3 text-4xl font-black tracking-tight text-[#000747]">{auditLogs.length}</p>
-                        <p className="mt-2 text-sm font-medium text-slate-500">Leitura rapida dos ultimos eventos administrativos.</p>
+                        <p className="mt-2 text-sm font-medium text-slate-500">Leitura rápida dos últimos eventos administrativos.</p>
                       </div>
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6">
                         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Última ação</p>
@@ -794,7 +816,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                         <p className="mt-2 text-sm font-medium text-slate-500">{latestAuditLog ? formatDateTime(latestAuditLog.created_at) : 'A tabela ainda não recebeu eventos.'}</p>
                       </div>
                       <div className="rounded-[28px] border border-slate-200 bg-white p-6">
-                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Ultimo operador</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Último operador</p>
                         <p className="mt-3 text-xl font-black tracking-tight text-[#000747]">{latestAuditLog?.admin_name || 'Sem operador'}</p>
                         <p className="mt-2 text-sm font-medium text-slate-500">{latestAuditLog?.admin_email || 'Nenhum evento registrado ainda.'}</p>
                       </div>
@@ -842,7 +864,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                               <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
                                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Campos alterados</p>
                                 {changes.length === 0 ? (
-                                  <p className="mt-3 text-sm font-medium text-slate-500">Sem diff disponivel para este evento.</p>
+                                  <p className="mt-3 text-sm font-medium text-slate-500">Sem diferença disponível para este evento.</p>
                                 ) : (
                                   <div className="mt-3 flex flex-wrap gap-2">
                                     {changes.map((change) => (
@@ -867,7 +889,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                 {activeTab === 'operations' && (
                   <div className="grid gap-6 xl:grid-cols-3">
                     <div className="rounded-[32px] border border-slate-200 bg-white p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Chats</p><h2 className="mt-2 text-2xl font-black tracking-tight text-[#000747]">Conversas recentes</h2></div><span className="rounded-full bg-[#FDF1FA] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#9A077B]">{metrics.openChats} abertos</span></div><div className="mt-5 space-y-4">{recentChats.map((item) => <div key={item.id} className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-[#000747]">{item.client_name}</p><p className="mt-1 text-xs font-medium text-slate-500">{painterByApplicationId[item.application_id] || 'Pintor não identificado'}</p></div><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span></div><p className="mt-3 text-sm font-medium text-slate-500">{item.last_message_preview || 'Sem prévia de mensagem.'}</p><p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{formatDateTime(item.last_message_at)}</p></div>)}</div></div>
-                    <div className="rounded-[32px] border border-slate-200 bg-white p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Visitas</p><h2 className="mt-2 text-2xl font-black tracking-tight text-[#000747]">Agenda operacional</h2></div><span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">{metrics.pendingVisits} pendentes</span></div><div className="mt-5 space-y-4">{recentVisits.map((item) => <div key={item.id} className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-[#000747]">{item.client_name}</p><p className="mt-1 text-xs font-medium text-slate-500">{painterByApplicationId[item.application_id] || 'Pintor não identificado'}</p></div><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span></div><p className="mt-3 text-sm font-medium text-slate-500">{item.location}</p><p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{formatDate(item.preferred_date)} as {item.preferred_time}</p></div>)}</div></div>
+                    <div className="rounded-[32px] border border-slate-200 bg-white p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Visitas</p><h2 className="mt-2 text-2xl font-black tracking-tight text-[#000747]">Agenda operacional</h2></div><span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">{metrics.pendingVisits} pendentes</span></div><div className="mt-5 space-y-4">{recentVisits.map((item) => <div key={item.id} className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-[#000747]">{item.client_name}</p><p className="mt-1 text-xs font-medium text-slate-500">{painterByApplicationId[item.application_id] || 'Pintor não identificado'}</p></div><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span></div><p className="mt-3 text-sm font-medium text-slate-500">{item.location}</p><p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{formatDate(item.preferred_date)} às {item.preferred_time}</p></div>)}</div></div>
                     <div className="rounded-[32px] border border-slate-200 bg-white p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Orçamentos</p><h2 className="mt-2 text-2xl font-black tracking-tight text-[#000747]">Negócios recentes</h2></div><span className="rounded-full bg-[#EEF3FF] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#000747]">{recentQuotes.length} recentes</span></div><div className="mt-5 space-y-4">{recentQuotes.map((item) => <div key={item.id} className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-black text-[#000747]">{item.cliente_nome}</p><p className="mt-1 text-xs font-medium text-slate-500">{painterByUserId[item.pintor_id ?? ''] || 'Pintor não identificado'}</p></div><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span></div><p className="mt-3 text-sm font-medium text-slate-500">{item.imovel_cidade_estado || 'Cidade não informada'}</p><p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{formatDateTime(item.created_at)}</p></div>)}</div></div>
                   </div>
                 )}

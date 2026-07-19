@@ -32,7 +32,7 @@ export const Plans: React.FC<PlansProps> = () => {
       code: "monthly",
       name: "Plano Mensal",
       price: "R$ 50,00",
-      priceSuffix: "/mes",
+      priceSuffix: "/mês",
       desc: "Assinatura mensal para pintores que querem aparecer na plataforma com flexibilidade.",
       features: ["Perfil profissional ativo", "Portfólio de trabalhos", "Selo de verificação", "Destaque na busca pública", "Recebimento de contatos qualificados"],
       cta: "Assinar Mensal",
@@ -44,7 +44,7 @@ export const Plans: React.FC<PlansProps> = () => {
       price: "R$ 500,00",
       priceSuffix: "/ano",
       desc: "Assinatura anual para manter sua vitrine ativa o ano inteiro pagando menos.",
-      features: ["Tudo do plano mensal", "Economia de R$ 100,00 no ano", "Equivale a R$ 41,67 por mes", "Mais previsibilidade para sua presença online", "Prioridade na vitrine de pintores"],
+      features: ["Tudo do plano mensal", "Economia de R$ 100,00 no ano", "Equivale a R$ 41,67 por mês", "Mais previsibilidade para sua presença online", "Prioridade na vitrine de pintores"],
       cta: "Assinar Anual",
       highlight: true,
       badge: "Melhor economia",
@@ -76,7 +76,7 @@ export const Plans: React.FC<PlansProps> = () => {
     } else if (checkoutStatus === 'canceled') {
       setCheckoutNotice({
         kind: 'warning',
-        message: 'Checkout cancelado. Voce pode tentar novamente quando quiser.'
+        message: 'Checkout cancelado. Você pode tentar novamente quando quiser.'
       });
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -84,7 +84,7 @@ export const Plans: React.FC<PlansProps> = () => {
 
   const handlePlanClick = async (plan: Plan) => {
     if (!hasValidBillingEmail) {
-      alert('Informe um e-mail valido para iniciar a assinatura.');
+      alert('Informe um e-mail válido para iniciar a assinatura.');
       return;
     }
 

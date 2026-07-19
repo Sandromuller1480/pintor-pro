@@ -202,7 +202,7 @@ export const clientSignupService = {
       const signOutResult = await supabase.auth.signOut();
 
       if (signOutResult.error) {
-        console.error('Erro ao encerrar sessao do cliente apos cadastro:', signOutResult.error);
+        console.error('Erro ao encerrar sessão do cliente após cadastro:', signOutResult.error);
       }
     }
 
@@ -242,7 +242,7 @@ export const clientSignupService = {
       }
 
       if (normalizedMessage.includes('invalid login credentials')) {
-        throw new Error('E-mail ou senha invalidos.');
+        throw new Error('E-mail ou senha inválidos.');
       }
 
       if (normalizedMessage.includes('too many requests')) {
@@ -258,7 +258,7 @@ export const clientSignupService = {
       const signOutResult = await supabase.auth.signOut();
 
       if (signOutResult.error) {
-        console.error('Erro ao encerrar sessão não-cliente apos login:', signOutResult.error);
+        console.error('Erro ao encerrar sessão não-cliente após login:', signOutResult.error);
       }
 
       throw new Error('Esta conta não possui cadastro de cliente. Crie seu cadastro de cliente para continuar.');
