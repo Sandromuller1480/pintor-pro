@@ -1375,15 +1375,6 @@ export const DashboardWallColorTab: React.FC = () => {
             <div className="flex items-center justify-center gap-3 border-t border-slate-200 bg-white px-5 py-3">
               <button
                 type="button"
-                onClick={saveImage}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
-                aria-label="Salvar"
-                title="Salvar"
-              >
-                <Download size={20} />
-              </button>
-              <button
-                type="button"
                 onClick={openToolsModal}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
                 aria-label="Ferramentas"
@@ -1399,6 +1390,15 @@ export const DashboardWallColorTab: React.FC = () => {
                 title="Paredes"
               >
                 <Layers size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={saveImage}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
+                aria-label="Salvar"
+                title="Salvar"
+              >
+                <Download size={20} />
               </button>
               <button
                 type="button"
