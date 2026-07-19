@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight, ClipboardList, Download, Eraser, Imag
 import cimentoQueimadoTexture from '../../../imagens/texturas/CIMENTO QUEIMADO COR CLARA.jpg';
 import grafiatoTexture from '../../../imagens/texturas/GRAFIATO COR CLARA.jpg';
 import projetadaTexture from '../../../imagens/texturas/PROJETADA COR CLARA.jpg';
-import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.png';
+import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE ANJO.jpg';
 
 type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve' | 'smart-select';
 type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
