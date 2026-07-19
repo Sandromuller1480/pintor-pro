@@ -15,6 +15,7 @@ import {
   Loader2,
   LogOut,
   MessageSquareText,
+  QrCode,
   RefreshCw,
   ShieldCheck,
   X,
@@ -149,6 +150,22 @@ const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
 const planOptions = ['', 'monthly', 'annual'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
 const planValueMap: Record<string, number> = { monthly: 50, annual: 500 };
+const subscriptionPaymentQrCodes = [
+  {
+    planCode: 'monthly',
+    title: 'Plano mensal',
+    price: 'R$ 50,00/mês',
+    qrImageUrl: '',
+    paymentLink: ''
+  },
+  {
+    planCode: 'annual',
+    title: 'Plano anual',
+    price: 'R$ 500,00/ano',
+    qrImageUrl: '',
+    paymentLink: ''
+  }
+] as const;
 
 const isOptionalReadError = (message: string) => (
   message.includes('does not exist')
@@ -775,6 +792,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                                 <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>
                               </div>
                             </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">QR Codes dos planos</p>
+                          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                            {subscriptionPaymentQrCodes.map((planQrCode) => (
+                              <div key={planQrCode.planCode} className="rounded-[22px] border border-slate-200 bg-white p-4">
+                                <div className="flex flex-col gap-4 sm:flex-row">
+                                  <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+                                    {planQrCode.qrImageUrl ? (
+                                      <img src={planQrCode.qrImageUrl} alt={`QR Code do ${planQrCode.title}`} className="h-full w-full rounded-2xl object-contain p-2" />
+                                    ) : (
+                                      <div className="text-center">
+                                        <QrCode className="mx-auto h-8 w-8" />
+                                        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em]">QR Code</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-[#000747]">{planQrCode.title}</p>
+                                    <p className="mt-1 text-sm font-bold text-[#9A077B]">{planQrCode.price}</p>
+                                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Link do QR Code</p>
+                                      {planQrCode.paymentLink ? (
+                                        <a href={planQrCode.paymentLink} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm font-bold text-[#9A077B] hover:text-[#000747]">
+                                          {planQrCode.paymentLink}
+                                        </a>
+                                      ) : (
+                                        <p className="mt-2 text-sm font-bold text-slate-400">Aguardando link do QR Code</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
