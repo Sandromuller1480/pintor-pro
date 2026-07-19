@@ -1311,7 +1311,15 @@ export const DashboardWallColorTab: React.FC = () => {
             >
               <canvas
                 ref={visibleCanvasRef}
-                className={`block h-auto w-full touch-none ${hasImage ? (!toolMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-none') : 'min-h-[24rem]'}`}
+                className={`block h-auto w-full touch-none ${
+                  hasImage
+                    ? !toolMode
+                      ? 'cursor-grab active:cursor-grabbing'
+                      : toolMode === 'smart-select'
+                        ? 'cursor-crosshair'
+                        : 'cursor-none'
+                    : 'min-h-[24rem]'
+                }`}
                 style={{
                   transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
                   transformOrigin: 'top left'
