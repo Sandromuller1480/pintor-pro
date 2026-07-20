@@ -7,6 +7,9 @@ ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS gender TEXT;
 
 ALTER TABLE public.applications
+ADD COLUMN IF NOT EXISTS subscription_payment_name TEXT;
+
+ALTER TABLE public.applications
 ADD COLUMN IF NOT EXISTS cep TEXT;
 
 ALTER TABLE public.applications

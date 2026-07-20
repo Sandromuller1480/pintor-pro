@@ -31,6 +31,7 @@ type SubmissionFeedback = Pick<ApplicationSubmissionResult, 'processingResult' |
 
 type ApplicationFormData = {
   fullName: string;
+  subscriptionPaymentName: string;
   gender: '' | 'feminino' | 'masculino';
   cep: string;
   street: string;
@@ -51,6 +52,7 @@ type ApplicationFormData = {
 
 const INITIAL_FORM_DATA: ApplicationFormData = {
   fullName: '',
+  subscriptionPaymentName: '',
   gender: '',
   cep: '',
   street: '',
@@ -108,6 +110,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
   const handleSubmit = async () => {
     if (
       !formData.fullName ||
+      !formData.subscriptionPaymentName ||
       !formData.cep ||
       !formData.street ||
       !formData.neighborhood ||
@@ -160,6 +163,7 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
         ...formData,
         profilePhoto: formData.profilePhoto as File,
         cep: formData.cep.replace(/\D/g, '').slice(0, 8),
+        subscriptionPaymentName: formData.subscriptionPaymentName.trim(),
         street: formData.street.trim(),
         neighborhood: formData.neighborhood.trim(),
         addressNumber: formData.addressNumber.trim(),
@@ -354,6 +358,19 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                   className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                   value={formData.fullName}
                   onChange={(event) => setFormData({ ...formData, fullName: event.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                  Nome para pagamento da assinatura *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Roberto Silva"
+                  className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                  value={formData.subscriptionPaymentName}
+                  onChange={(event) => setFormData({ ...formData, subscriptionPaymentName: event.target.value })}
                   required
                 />
               </div>

@@ -40,6 +40,7 @@ function createUuid() {
 
 export type ApplicationFormSubmission = {
     fullName: string,
+    subscriptionPaymentName: string,
     gender?: '' | 'feminino' | 'masculino',
     cep: string,
     street: string,
@@ -305,6 +306,7 @@ export const paintersService = {
     async submitApplication(formData: ApplicationFormSubmission): Promise<ApplicationSubmissionResult> {
         const normalizedEmail = formData.email.trim().toLowerCase();
         const normalizedFullName = formData.fullName.trim();
+        const normalizedSubscriptionPaymentName = formData.subscriptionPaymentName.trim();
         const normalizedGender = formData.gender?.trim() || null;
         const normalizedCep = formData.cep.replace(/\D/g, '').slice(0, 8);
         const normalizedStreet = formData.street.trim();
@@ -351,6 +353,7 @@ export const paintersService = {
                     auth_user_id: authUserId,
                     onboarding_token: onboardingToken,
                     full_name: normalizedFullName,
+                    subscription_payment_name: normalizedSubscriptionPaymentName,
                     gender: normalizedGender,
                     cep: normalizedCep,
                     street: normalizedStreet,
