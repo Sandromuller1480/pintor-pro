@@ -363,19 +363,6 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
               </div>
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                  Nome para pagamento da assinatura *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Roberto Silva"
-                  className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
-                  value={formData.subscriptionPaymentName}
-                  onChange={(event) => setFormData({ ...formData, subscriptionPaymentName: event.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
                   Sexo (Pessoa Fisica)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -397,6 +384,20 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              Nome para pagamento da assinatura *
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Roberto Silva"
+              className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+              value={formData.subscriptionPaymentName}
+              onChange={(event) => setFormData({ ...formData, subscriptionPaymentName: event.target.value })}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
