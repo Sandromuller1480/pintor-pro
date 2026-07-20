@@ -3,6 +3,7 @@ export type DashboardTab = 'inicio' | 'portfolio' | 'orcamentos' | 'assinatura' 
 export type CurrentPainterProfile = {
   applicationId: string;
   fullName: string;
+  subscriptionPaymentName: string;
   email: string;
   street: string;
   neighborhood: string;

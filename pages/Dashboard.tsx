@@ -1193,6 +1193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     }
 
     const normalizedFullName = formData.fullName.trim();
+    const normalizedSubscriptionPaymentName = formData.subscriptionPaymentName.trim();
     const normalizedStreet = formData.street.trim();
     const normalizedNeighborhood = formData.neighborhood.trim();
     const normalizedAddressNumber = formData.addressNumber.trim();
@@ -1247,6 +1248,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       .from('applications')
       .update({
         full_name: normalizedFullName,
+        subscription_payment_name: normalizedSubscriptionPaymentName,
         street: normalizedStreet,
         neighborhood: normalizedNeighborhood,
         address_number: normalizedAddressNumber,
@@ -1258,7 +1260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         specialties: normalizedSpecialties
       })
       .eq('id', currentProfile.applicationId)
-      .select('full_name, street, neighborhood, address_number, city, uf, whatsapp, experience_time, specialties')
+      .select('full_name, subscription_payment_name, street, neighborhood, address_number, city, uf, whatsapp, experience_time, specialties')
       .single();
 
     if (error) {
@@ -1274,6 +1276,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       return {
         ...profile,
         fullName: data.full_name || profile.fullName,
+        subscriptionPaymentName: data.subscription_payment_name || '',
         street: data.street || '',
         neighborhood: data.neighborhood || '',
         addressNumber: data.address_number || '',

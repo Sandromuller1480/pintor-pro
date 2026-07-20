@@ -4,6 +4,7 @@ import { SPECIALTY_OPTIONS } from '../lib/painterProfileOptions';
 
 export type EditProfileFormData = {
   fullName: string;
+  subscriptionPaymentName: string;
   street: string;
   neighborhood: string;
   addressNumber: string;
@@ -27,6 +28,7 @@ interface EditProfileModalProps {
 
 const INITIAL_FORM_DATA: EditProfileFormData = {
   fullName: '',
+  subscriptionPaymentName: '',
   street: '',
   neighborhood: '',
   addressNumber: '',
@@ -54,6 +56,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     setFormData({
       fullName: profile.fullName || '',
+      subscriptionPaymentName: profile.subscriptionPaymentName || '',
       street: profile.street || '',
       neighborhood: profile.neighborhood || '',
       addressNumber: profile.addressNumber || '',
@@ -109,6 +112,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     event.preventDefault();
 
     const normalizedFullName = formData.fullName.trim();
+    const normalizedSubscriptionPaymentName = formData.subscriptionPaymentName.trim();
     const normalizedStreet = formData.street.trim();
     const normalizedNeighborhood = formData.neighborhood.trim();
     const normalizedAddressNumber = formData.addressNumber.trim();
@@ -117,6 +121,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     if (!normalizedFullName) {
       setErrorMessage('Informe o nome do profissional ou empresa.');
+      return;
+    }
+
+    if (!normalizedSubscriptionPaymentName) {
+      setErrorMessage('Informe o nome para pagamento da assinatura.');
       return;
     }
 
@@ -151,6 +160,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     try {
       await onSave({
         fullName: normalizedFullName,
+        subscriptionPaymentName: normalizedSubscriptionPaymentName,
         street: normalizedStreet,
         neighborhood: normalizedNeighborhood,
         addressNumber: normalizedAddressNumber,
@@ -214,6 +224,20 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 onChange={(event) => setFormData((current) => ({ ...current, fullName: event.target.value }))}
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
                 placeholder="Ex: Roberto Silva Pinturas"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Nome para pagamento da assinatura
+              </label>
+              <input
+                type="text"
+                value={formData.subscriptionPaymentName}
+                onChange={(event) => setFormData((current) => ({ ...current, subscriptionPaymentName: event.target.value }))}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#9A077B] transition"
+                placeholder="Ex: Roberto Silva"
                 required
               />
             </div>
