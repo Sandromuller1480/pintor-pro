@@ -1,4 +1,4 @@
-export type DashboardTab = 'inicio' | 'portfolio' | 'orcamentos' | 'financeiro' | 'equipe' | 'agenda' | 'colorir-parede' | 'config';
+export type DashboardTab = 'inicio' | 'portfolio' | 'orcamentos' | 'assinatura' | 'financeiro' | 'equipe' | 'agenda' | 'colorir-parede' | 'config';
 
 export type CurrentPainterProfile = {
   applicationId: string;

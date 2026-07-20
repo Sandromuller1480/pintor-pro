@@ -45,6 +45,7 @@ import { DashboardPortfolioTab } from '../features/dashboard/components/Dashboar
 import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQuotesTab';
 import { DashboardSettingsTab } from '../features/dashboard/components/DashboardSettingsTab';
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
+import { DashboardSubscriptionTab } from '../features/dashboard/components/DashboardSubscriptionTab';
 import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
 import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
 import { DashboardWallColorTab } from '../features/dashboard/components/DashboardWallColorTab';
@@ -1683,6 +1684,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
           onDelete={(entry) => void handleFinancialDelete(entry)}
         />
       );
+      break;
+    case 'assinatura':
+      content = <DashboardSubscriptionTab currentProfile={currentProfile} />;
       break;
     case 'equipe':
       content = (

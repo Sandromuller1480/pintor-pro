@@ -15,7 +15,6 @@ import {
   Loader2,
   LogOut,
   MessageSquareText,
-  QrCode,
   RefreshCw,
   ShieldCheck,
   X,
@@ -149,23 +148,6 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ cla
 const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
 const planValueMap: Record<string, number> = { monthly: 50, annual: 500 };
-const subscriptionPaymentQrCodes = [
-  {
-    planCode: 'monthly',
-    title: 'Plano mensal',
-    price: 'R$ 50,00/mês',
-    qrImageUrl: '',
-    paymentLink: ''
-  },
-  {
-    planCode: 'annual',
-    title: 'Plano anual',
-    price: 'R$ 500,00/ano',
-    qrImageUrl: '',
-    paymentLink: ''
-  }
-] as const;
-
 const isOptionalReadError = (message: string) => (
   message.includes('does not exist')
   || message.includes('relation')
@@ -278,13 +260,6 @@ const getPlanLabel = (plan?: string | null) => {
     case 'ouro': return 'Ouro';
     default: return plan || 'Sem plano';
   }
-};
-
-const getSubscriptionAccessState = (status?: string | null) => {
-  const normalizedStatus = (status || '').toLowerCase();
-  if (normalizedStatus === 'active' || normalizedStatus === 'trialing') return 'active';
-  if (normalizedStatus === 'past_due') return 'expired';
-  return 'blocked';
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
@@ -780,57 +755,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     </div>
                     {subscribedPainters.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getSubscriptionAccessState(item.subscription_status) === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{getSubscriptionAccessState(item.subscription_status) === 'active' ? 'Ativo' : getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'Vencido' : 'Bloqueado'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
-                        <div className="mt-6 grid gap-4">
-                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p>
-                            <div className="mt-3 grid gap-3 md:grid-cols-3">
-                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'active' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-                                <p className="text-sm font-black uppercase tracking-[0.16em]">Ativo</p>
-                              </div>
-                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-                                <p className="text-sm font-black uppercase tracking-[0.16em]">Vencido</p>
-                              </div>
-                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'blocked' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-                                <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">QR Codes dos planos</p>
-                          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                            {subscriptionPaymentQrCodes.map((planQrCode) => (
-                              <div key={planQrCode.planCode} className="rounded-[22px] border border-slate-200 bg-white p-4">
-                                <div className="flex flex-col gap-4 sm:flex-row">
-                                  <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
-                                    {planQrCode.qrImageUrl ? (
-                                      <img src={planQrCode.qrImageUrl} alt={`QR Code do ${planQrCode.title}`} className="h-full w-full rounded-2xl object-contain p-2" />
-                                    ) : (
-                                      <div className="text-center">
-                                        <QrCode className="mx-auto h-8 w-8" />
-                                        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em]">QR Code</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-[#000747]">{planQrCode.title}</p>
-                                    <p className="mt-1 text-sm font-bold text-[#9A077B]">{planQrCode.price}</p>
-                                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Link do QR Code</p>
-                                      {planQrCode.paymentLink ? (
-                                        <a href={planQrCode.paymentLink} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm font-bold text-[#9A077B] hover:text-[#000747]">
-                                          {planQrCode.paymentLink}
-                                        </a>
-                                      ) : (
-                                        <p className="mt-2 text-sm font-bold text-slate-400">Aguardando link do QR Code</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getStatusClass(item.subscription_status)}`}>{getStatusLabel(item.subscription_status)}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
+                        <div className="mt-6 grid gap-4 md:grid-cols-2">
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plano</p><p className="mt-3 text-lg font-black text-[#000747]">{getPlanLabel(item.subscription_plan)}</p></div>
+                          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação</p><p className="mt-3 text-lg font-black text-[#000747]">{getStatusLabel(item.subscription_status)}</p></div>
                         </div>
                       </div>
                     ))}
