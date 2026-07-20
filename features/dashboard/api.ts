@@ -541,7 +541,7 @@ export const fetchCurrentPainterProfile = async ({
   return {
     applicationId: application.id,
     fullName: application.full_name || email.split('@')[0],
-    subscriptionPaymentName: application.subscription_payment_name || '',
+    subscriptionPaymentName: application.subscription_payment_name || application.full_name || email.split('@')[0],
     email: application.email || email,
     street: application.street || '',
     neighborhood: application.neighborhood || '',

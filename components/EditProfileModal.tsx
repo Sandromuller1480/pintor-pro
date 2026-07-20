@@ -56,7 +56,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     setFormData({
       fullName: profile.fullName || '',
-      subscriptionPaymentName: profile.subscriptionPaymentName || '',
+      subscriptionPaymentName: profile.subscriptionPaymentName || profile.fullName || '',
       street: profile.street || '',
       neighborhood: profile.neighborhood || '',
       addressNumber: profile.addressNumber || '',
@@ -230,7 +230,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
             <div className="md:col-span-2">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                Nome para pagamento da assinatura
+                Nome para pagamento da assinatura *
               </label>
               <input
                 type="text"

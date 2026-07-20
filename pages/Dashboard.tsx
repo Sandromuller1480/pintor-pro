@@ -1835,6 +1835,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         onSaved={handleObraSaved}
       />
       <EditProfileModal
+        key={`${currentProfile?.applicationId ?? 'sem-cadastro'}-${isEditProfileModalOpen ? 'aberto' : 'fechado'}`}
         isOpen={isEditProfileModalOpen}
         profile={currentProfile}
         onClose={() => setIsEditProfileModalOpen(false)}
