@@ -280,9 +280,11 @@ const getPlanLabel = (plan?: string | null) => {
   }
 };
 
-const isSubscriptionAccessActive = (status?: string | null) => {
+const getSubscriptionAccessState = (status?: string | null) => {
   const normalizedStatus = (status || '').toLowerCase();
-  return normalizedStatus === 'active' || normalizedStatus === 'trialing';
+  if (normalizedStatus === 'active' || normalizedStatus === 'trialing') return 'active';
+  if (normalizedStatus === 'past_due') return 'expired';
+  return 'blocked';
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
@@ -778,15 +780,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setPage }) => {
                     </div>
                     {subscribedPainters.map((item) => (
                       <div key={item.id} className="rounded-[32px] border border-slate-200 bg-white p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${isSubscriptionAccessActive(item.subscription_status) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{isSubscriptionAccessActive(item.subscription_status) ? 'Ativo' : 'Bloqueado'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
+                        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-3"><h3 className="text-2xl font-black tracking-tight text-[#000747]">{getApplicationName(item)}</h3><span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${getSubscriptionAccessState(item.subscription_status) === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{getSubscriptionAccessState(item.subscription_status) === 'active' ? 'Ativo' : getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'Vencido' : 'Bloqueado'}</span></div><p className="mt-2 text-sm font-medium text-slate-500">{item.email || 'Sem e-mail informado'}</p></div><div className="rounded-[22px] bg-[#000747] px-4 py-3 text-white"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Receita estimada</p><p className="mt-2 text-xl font-black uppercase">{formatCurrency(planValueMap[(item.subscription_plan || '').toLowerCase()] || 0)}</p></div></div>
                         <div className="mt-6 grid gap-4">
                           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
                             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p>
-                            <div className="mt-3 grid grid-cols-2 gap-3">
-                              <div className={`rounded-2xl border px-4 py-4 ${isSubscriptionAccessActive(item.subscription_status) ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-400'}`}>
+                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'active' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-400'}`}>
                                 <p className="text-sm font-black uppercase tracking-[0.16em]">Ativo</p>
                               </div>
-                              <div className={`rounded-2xl border px-4 py-4 ${isSubscriptionAccessActive(item.subscription_status) ? 'border-slate-200 bg-white text-slate-400' : 'border-rose-300 bg-rose-50 text-rose-700'}`}>
+                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'expired' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-400'}`}>
+                                <p className="text-sm font-black uppercase tracking-[0.16em]">Vencido</p>
+                              </div>
+                              <div className={`rounded-2xl border px-4 py-4 ${getSubscriptionAccessState(item.subscription_status) === 'blocked' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-400'}`}>
                                 <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>
                               </div>
                             </div>
