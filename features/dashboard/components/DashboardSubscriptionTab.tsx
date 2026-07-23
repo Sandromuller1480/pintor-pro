@@ -1,7 +1,9 @@
 import React from 'react';
-import { CreditCard, QrCode } from 'lucide-react';
+import { Copy, CreditCard, QrCode } from 'lucide-react';
 import { CurrentPainterProfile } from '../types';
 import { getPlanLabel } from '../utils';
+import monthlyPlanQrCodeImage from '../../../imagens/QR CODE PLANO MENSAL R$50,00.png';
+import annualPlanQrCodeImage from '../../../imagens/QR CODE PLANO ANUAL R$500,00.png';
 
 interface DashboardSubscriptionTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -12,15 +14,15 @@ const subscriptionPaymentQrCodes = [
     planCode: 'monthly',
     title: 'Plano mensal',
     price: 'R$ 50,00/mês',
-    qrImageUrl: '',
-    paymentLink: ''
+    qrImageUrl: monthlyPlanQrCodeImage,
+    paymentLink: '00020101021126360014br.gov.bcb.pix011467836144000153520400005303986540550.005802BR592567.836.144 SANDRO LUIZ MU6009SAO PAULO622905251KY24Y87F8TPEW3APWJZ6EJX263045D07'
   },
   {
     planCode: 'annual',
     title: 'Plano anual',
     price: 'R$ 500,00/ano',
-    qrImageUrl: '',
-    paymentLink: ''
+    qrImageUrl: annualPlanQrCodeImage,
+    paymentLink: '00020101021126360014br.gov.bcb.pix0114678361440001535204000053039865406500.005802BR592567.836.144 SANDRO LUIZ MU6009SAO PAULO622905251KY24ZTAJSJWRNTHQ98GZYKV163040198'
   }
 ] as const;
 
@@ -97,9 +99,20 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
                   <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Link do QR Code</p>
                     {planQrCode.paymentLink ? (
-                      <a href={planQrCode.paymentLink} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm font-bold text-[#9A077B] hover:text-[#000747]">
-                        {planQrCode.paymentLink}
-                      </a>
+                      <div className="mt-2 flex items-start gap-3">
+                        <p className="min-w-0 flex-1 break-all text-sm font-bold leading-relaxed text-[#9A077B]">
+                          {planQrCode.paymentLink}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard?.writeText(planQrCode.paymentLink)}
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-[#9A077B] hover:text-[#9A077B]"
+                          title="Copiar link do QR Code"
+                          aria-label={`Copiar link do ${planQrCode.title}`}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
                     ) : (
                       <p className="mt-2 text-sm font-bold text-slate-400">Aguardando link do QR Code</p>
                     )}
