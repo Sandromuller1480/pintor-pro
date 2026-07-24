@@ -5,6 +5,7 @@ import { getSessionRoleContext, type SessionRole } from '../lib/authSession';
 import { type CurrentClientProfile } from '../lib/services/clientSignupService';
 import { supabase } from '../lib/supabase';
 import { Page } from '../types';
+import { CookieConsentBanner } from './legal/CookieConsentBanner';
 import { ClientLoginModal } from './ClientLoginModal';
 import { ClientSignupModal } from './ClientSignupModal';
 import { Logo } from './Logo';
@@ -140,6 +141,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               >
                 Como Funciona
               </button>
+              <button
+                onClick={() => setPage(Page.Help)}
+                className={`text-sm font-bold uppercase tracking-wider transition ${currentPage === Page.Help ? 'text-[#9A077B]' : 'text-slate-600 hover:text-[#000747]'}`}
+              >
+                Ajuda
+              </button>
               {shouldShowPlansEntry && (
                 <button
                   onClick={() => setPage(Page.Plans)}
@@ -216,6 +223,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             >
               Como Funciona
             </button>
+            <button
+              onClick={() => {
+                setPage(Page.Help);
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
+            >
+              Ajuda
+            </button>
             {shouldShowPlansEntry && (
               <button
                 onClick={() => {
@@ -267,6 +283,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
         onClose={() => setIsClientSignupModalOpen(false)}
         onSuccess={() => setIsClientSignupModalOpen(false)}
       />
+      <CookieConsentBanner />
 
       <footer className="bg-[#0f172a] text-white pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -289,6 +306,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 {sessionRole !== 'painter' && (
                   <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
                 )}
+                <li><button onClick={() => setPage(Page.Help)} className="hover:text-[#C93EA6] transition">Central de Ajuda</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Categorias de Pintura</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Galeria de Inspiração</button></li>
               </ul>
@@ -312,18 +330,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Institucional</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
                 <li><button className="hover:text-[#C93EA6] transition">Sobre a Marca</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">Trabalhe Conosco</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">Politica de Qualidade</button></li>
-                <li><button className="hover:text-[#C93EA6] transition text-[#C93EA6]">Atendimento 24h</button></li>
+                <li><button onClick={() => setPage(Page.Terms)} className="hover:text-[#C93EA6] transition">Termos de Uso</button></li>
+                <li><button onClick={() => setPage(Page.Privacy)} className="hover:text-[#C93EA6] transition">Politica de Privacidade</button></li>
+                <li><button onClick={() => setPage(Page.Cookies)} className="hover:text-[#C93EA6] transition">Politica de Cookies</button></li>
+                <li><button onClick={() => setPage(Page.PrivacyRequest)} className="hover:text-[#C93EA6] transition text-[#C93EA6]">Solicitacao de privacidade</button></li>
               </ul>
             </div>
           </div>
 
           <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
-            <p>© 2025 PINTOR PRO - O PADRAO OURO DA PINTURA NACIONAL.</p>
+            <p>© {new Date().getFullYear()} Pintor Pro. Todos os direitos reservados.</p>
             <div className="flex gap-8">
-              <a href="#" className="hover:text-white transition">Termos de Uso</a>
-              <a href="#" className="hover:text-white transition">Privacidade</a>
+              <button onClick={() => setPage(Page.Terms)} className="hover:text-white transition">Termos de Uso</button>
+              <button onClick={() => setPage(Page.Privacy)} className="hover:text-white transition">Privacidade</button>
+              <button onClick={() => setPage(Page.Help)} className="hover:text-white transition">Contato</button>
             </div>
           </div>
         </div>

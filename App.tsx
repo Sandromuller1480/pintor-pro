@@ -12,6 +12,11 @@ const RegisterPage = lazy(() => import('./pages/Register').then((module) => ({ d
 const HowItWorksPage = lazy(() => import('./pages/HowItWorks').then((module) => ({ default: module.HowItWorks })));
 const PlansPage = lazy(() => import('./pages/Plans').then((module) => ({ default: module.Plans })));
 const AboutPage = lazy(() => import('./pages/About').then((module) => ({ default: module.About })));
+const HelpCenterPage = lazy(() => import('./pages/HelpCenter').then((module) => ({ default: module.HelpCenter })));
+const TermsOfUsePage = lazy(() => import('./pages/TermsOfUse').then((module) => ({ default: module.TermsOfUse })));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicy').then((module) => ({ default: module.PrivacyPolicy })));
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicy').then((module) => ({ default: module.CookiePolicy })));
+const PrivacyRequestPage = lazy(() => import('./pages/PrivacyRequest').then((module) => ({ default: module.PrivacyRequest })));
 const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })));
 const DashboardPage = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
@@ -202,6 +207,16 @@ const App: React.FC = () => {
         return <PlansPage setPage={navigateToPage} />;
       case Page.About:
         return <AboutPage />;
+      case Page.Help:
+        return <HelpCenterPage setPage={navigateToPage} />;
+      case Page.Terms:
+        return <TermsOfUsePage />;
+      case Page.Privacy:
+        return <PrivacyPolicyPage />;
+      case Page.Cookies:
+        return <CookiePolicyPage />;
+      case Page.PrivacyRequest:
+        return <PrivacyRequestPage />;
       case Page.Login:
         return <LoginPage setPage={navigateToPage} />;
       case Page.Dashboard:

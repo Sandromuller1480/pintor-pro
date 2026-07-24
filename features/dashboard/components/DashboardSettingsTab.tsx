@@ -695,6 +695,43 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
             </ul>
           </div>
 
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-[#FDF3FA] p-3 text-[#9A077B]">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-[#000747]">Privacidade e conta</h3>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+                  Consulte documentos legais, gerencie preferencias e solicite dados da sua conta.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-3">
+              {[
+                { label: 'Visualizar Termos de Uso', href: '/termos-de-uso', icon: FileText },
+                { label: 'Visualizar Politica de Privacidade', href: '/politica-de-privacidade', icon: ShieldCheck },
+                { label: 'Gerenciar cookies', href: '/politica-de-cookies', icon: Globe2 },
+                { label: 'Solicitar meus dados', href: '/privacidade/solicitacao', icon: Mail }
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 transition hover:border-[#9A077B] hover:bg-[#FDF3FA] hover:text-[#9A077B]"
+                >
+                  <item.icon size={16} />
+                  {item.label}
+                </a>
+              ))}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Documentos aceitos</p>
+                <p className="mt-2 text-sm font-bold text-slate-600">
+                  O historico de aceite sera exibido aqui depois que a migration juridica estiver aplicada e o fluxo de aceite estiver ativo.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-[32px] border border-red-200 bg-red-50/80 p-8 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-red-100 p-3 text-red-600">

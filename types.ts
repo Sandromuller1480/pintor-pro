@@ -76,6 +76,11 @@ export enum Page {
   HowItWorks = 'how-it-works',
   Plans = 'plans',
   About = 'about',
+  Help = 'help',
+  Terms = 'terms',
+  Privacy = 'privacy',
+  Cookies = 'cookies',
+  PrivacyRequest = 'privacy-request',
   Login = 'login',
   Dashboard = 'dashboard',
   Admin = 'admin'
