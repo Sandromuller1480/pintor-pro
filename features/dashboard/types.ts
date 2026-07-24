@@ -24,6 +24,7 @@ export type CurrentPainterProfile = {
   categoryLevel: string | null;
   subscriptionPlan: string | null;
   subscriptionStatus: string | null;
+  subscriptionEndsAt: string | null;
   allowChat: boolean;
   allowVisitRequests: boolean;
   pauseLeadIntake: boolean;

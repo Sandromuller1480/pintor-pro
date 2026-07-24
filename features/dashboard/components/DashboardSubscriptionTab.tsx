@@ -4,6 +4,8 @@ import { CurrentPainterProfile } from '../types';
 import { getPlanLabel } from '../utils';
 import monthlyPlanQrCodeImage from '../../../imagens/QR CODE PLANO MENSAL R$50,00.png';
 import annualPlanQrCodeImage from '../../../imagens/QR CODE PLANO ANUAL R$500,00.png';
+import { PINTOR_PRO_LEGAL_CONFIG } from '../../../lib/legalConfig';
+import { formatSubscriptionGraceEndDate, getSubscriptionAccessState } from '../../../lib/subscriptionAccess';
 
 interface DashboardSubscriptionTabProps {
   currentProfile: CurrentPainterProfile | null;
@@ -26,22 +28,17 @@ const subscriptionPaymentQrCodes = [
   }
 ] as const;
 
-const getSubscriptionAccessState = (status?: string | null) => {
-  const normalizedStatus = (status || '').toLowerCase();
-  if (normalizedStatus === 'active' || normalizedStatus === 'trialing') return 'active';
-  if (normalizedStatus === 'past_due') return 'expired';
-  return 'blocked';
-};
-
 const maskPaymentCode = (paymentLink: string) => {
   if (paymentLink.length <= 24) return paymentLink;
   return `${paymentLink.slice(0, 12)}••••••••••••••••••••${paymentLink.slice(-8)}`;
 };
 
 export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> = ({ currentProfile }) => {
-  const subscriptionState = getSubscriptionAccessState(currentProfile?.subscriptionStatus);
+  const subscriptionState = getSubscriptionAccessState(currentProfile?.subscriptionStatus, currentProfile?.subscriptionEndsAt);
+  const graceEndDate = formatSubscriptionGraceEndDate(currentProfile?.subscriptionEndsAt);
   const subscriptionLabel =
-    subscriptionState === 'active' ? 'Ativo' : subscriptionState === 'expired' ? 'Vencido' : 'Bloqueado';
+    subscriptionState === 'active' ? 'Ativo' : subscriptionState === 'grace_period' ? 'Em carência' : 'Bloqueado';
+  const isBlocked = subscriptionState === 'blocked';
 
   return (
     <div className="animate-in fade-in duration-500 space-y-6">
@@ -49,9 +46,13 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Assinatura do pintor</p>
-            <h2 className="mt-3 text-3xl font-black text-[#000747]">Pagamento da assinatura</h2>
+            <h2 className="mt-3 text-3xl font-black text-[#000747]">
+              {isBlocked ? 'Seu período de acesso terminou' : 'Pagamento da assinatura'}
+            </h2>
             <p className="mt-2 max-w-2xl font-medium text-slate-500">
-              Acompanhe a situação da sua assinatura e use o QR Code do plano desejado para manter sua vitrine ativa.
+              {isBlocked
+                ? `Seu teste gratuito de 30 dias e o período adicional de ${PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias foram encerrados. Para continuar utilizando todas as ferramentas profissionais da Pintor Pro, escolha um plano e ative sua assinatura.`
+                : 'Acompanhe a situação da sua assinatura e use o QR Code do plano desejado para manter sua vitrine ativa.'}
             </p>
           </div>
           <div className="rounded-[22px] bg-[#000747] px-5 py-4 text-white">
@@ -66,6 +67,17 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p>
             <p className="mt-2 text-sm font-bold text-slate-500">Situação atual: {subscriptionLabel}</p>
+            {subscriptionState === 'grace_period' && (
+              <p className="mt-2 text-sm font-bold text-amber-700">
+                Você está no período de carência de {PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias
+                {graceEndDate ? `, com acesso liberado até ${graceEndDate}` : ''}.
+              </p>
+            )}
+            {isBlocked && (
+              <p className="mt-2 text-sm font-bold text-rose-700">
+                O dashboard está parcialmente bloqueado. Você pode acessar somente esta área de pagamento até a regularização.
+              </p>
+            )}
           </div>
           <CreditCard className="h-7 w-7 text-[#9A077B]" />
         </div>
@@ -73,8 +85,8 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
           <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'active' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-400'}`}>
             <p className="text-sm font-black uppercase tracking-[0.16em]">Ativo</p>
           </div>
-          <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'expired' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-            <p className="text-sm font-black uppercase tracking-[0.16em]">Vencido</p>
+          <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'grace_period' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-400'}`}>
+            <p className="text-sm font-black uppercase tracking-[0.16em]">Carência</p>
           </div>
           <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'blocked' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-400'}`}>
             <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>

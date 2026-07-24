@@ -11,6 +11,7 @@ import {
 } from '../lib/locationGeocoding';
 import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
+import { isSubscriptionAccessBlocked } from '../lib/subscriptionAccess';
 import {
   buildVisitErrorMessage,
   createFinancialEntry,
@@ -80,6 +81,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [authUserId, setAuthUserId] = useState('');
   const [userName, setUserName] = useState('Pintor');
   const [currentProfile, setCurrentProfile] = useState<CurrentPainterProfile | null>(null);
+  const isDashboardSubscriptionBlocked = currentProfile
+    ? isSubscriptionAccessBlocked(currentProfile.subscriptionStatus, currentProfile.subscriptionEndsAt)
+    : false;
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     portfolioCount: 0,
     quoteCount: 0,
@@ -626,10 +630,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   };
 
   const handleTabChange = (tab: DashboardTab) => {
-    setActiveTab(tab);
+    setActiveTab(isDashboardSubscriptionBlocked ? 'assinatura' : tab);
     setIsChatInboxOpen(false);
     setIsMobileSidebarOpen(false);
   };
+
+  useEffect(() => {
+    if (isDashboardSubscriptionBlocked && activeTab !== 'assinatura') {
+      setActiveTab('assinatura');
+      setIsChatInboxOpen(false);
+    }
+  }, [activeTab, isDashboardSubscriptionBlocked]);
 
   useEffect(() => {
     if (!isChatInboxOpen) {
@@ -999,7 +1010,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       ));
     });
     setPortfolioError('');
-    setActiveTab('portfolio');
+    handleTabChange('portfolio');
   };
 
   const handleOrcamentoSaved = (orcamento: SavedOrcamento) => {
@@ -1010,7 +1021,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       ));
     });
     setQuotesError('');
-    setActiveTab('orcamentos');
+    handleTabChange('orcamentos');
   };
 
   const handleQuoteViewPdf = async (quote: SavedOrcamento) => {
@@ -1757,6 +1768,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         activeTab={activeTab}
         currentProfile={currentProfile}
         pendingVisitCount={pendingVisitCount}
+        isSubscriptionBlocked={isDashboardSubscriptionBlocked}
         isSigningOut={isSignOut}
         isMobileOpen={isMobileSidebarOpen}
         onTabChange={handleTabChange}
@@ -1768,7 +1780,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         {content}
       </main>
 
-      {activeTab !== 'colorir-parede' && portalTarget && currentProfile?.applicationId && createPortal(
+      {!isDashboardSubscriptionBlocked && activeTab !== 'colorir-parede' && portalTarget && currentProfile?.applicationId && createPortal(
         <>
           <DashboardChatInbox
             isOpen={isChatInboxOpen}

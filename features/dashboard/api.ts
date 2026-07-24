@@ -562,6 +562,7 @@ export const fetchCurrentPainterProfile = async ({
     categoryLevel: application.category_level || null,
     subscriptionPlan: application.subscription_plan || null,
     subscriptionStatus: application.subscription_status || null,
+    subscriptionEndsAt: application.subscription_ends_at || null,
     allowChat: application.allow_chat ?? true,
     allowVisitRequests: application.allow_visit_requests ?? true,
     pauseLeadIntake: application.pause_lead_intake ?? false,

@@ -22,6 +22,7 @@ interface DashboardSidebarProps {
   activeTab: DashboardTab;
   currentProfile: CurrentPainterProfile | null;
   pendingVisitCount: number;
+  isSubscriptionBlocked: boolean;
   isSigningOut: boolean;
   isMobileOpen: boolean;
   onTabChange: (tab: DashboardTab) => void;
@@ -50,6 +51,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   activeTab,
   currentProfile,
   pendingVisitCount,
+  isSubscriptionBlocked,
   isSigningOut,
   isMobileOpen,
   onTabChange,
@@ -77,17 +79,22 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       {NAV_ITEMS.map((item) => {
         const isActive = activeTab === item.id;
         const showAgendaAlert = item.id === 'agenda' && pendingVisitCount > 0;
+        const isLocked = isSubscriptionBlocked && item.id !== 'assinatura';
 
         return (
           <button
             key={item.id}
             type="button"
             onClick={() => handleTabClick(item.id)}
+            disabled={isLocked}
             className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition ${
               isActive
                 ? 'bg-[#9A077B]/10 text-[#9A077B]'
+                : isLocked
+                  ? 'cursor-not-allowed text-slate-300'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
+            title={isLocked ? 'Regularize a assinatura para liberar esta área.' : undefined}
           >
             <span className="flex items-center justify-between gap-3">
               <span className="flex items-center space-x-3">
