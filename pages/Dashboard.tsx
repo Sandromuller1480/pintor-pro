@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, MessageSquare } from 'lucide-react';
-import { EditProfileModal, type EditProfileFormData } from '../components/EditProfileModal';
-import { ObraModal, type SavedObra } from '../components/ObraModal';
-import { OrcamentoModal, type SavedOrcamento } from '../components/OrcamentoModal';
-import { generateContractPdf } from '../lib/contractPdf';
+import type { EditProfileFormData } from '../components/EditProfileModal';
+import type { SavedObra } from '../components/ObraModal';
+import type { SavedOrcamento } from '../components/OrcamentoModal';
 import {
   buildBrazilianAddressGeocodingQuery,
   geocodeBrazilianLocation
 } from '../lib/locationGeocoding';
-import { generateQuotePdf } from '../lib/quotePdf';
 import { supabase } from '../lib/supabase';
 import { isSubscriptionAccessBlocked } from '../lib/subscriptionAccess';
 import {
@@ -39,17 +37,8 @@ import {
   updatePainterPresence,
   uploadPainterMedia
 } from '../features/dashboard/api';
-import { DashboardAgendaTab } from '../features/dashboard/components/DashboardAgendaTab';
 import { DashboardChatInbox } from '../features/dashboard/components/DashboardChatInbox';
-import { DashboardOverviewTab } from '../features/dashboard/components/DashboardOverviewTab';
-import { DashboardPortfolioTab } from '../features/dashboard/components/DashboardPortfolioTab';
-import { DashboardQuotesTab } from '../features/dashboard/components/DashboardQuotesTab';
-import { DashboardSettingsTab } from '../features/dashboard/components/DashboardSettingsTab';
 import { DashboardSidebar } from '../features/dashboard/components/DashboardSidebar';
-import { DashboardSubscriptionTab } from '../features/dashboard/components/DashboardSubscriptionTab';
-import { DashboardFinancialTab } from '../features/dashboard/components/DashboardFinancialTab';
-import { DashboardTeamTab } from '../features/dashboard/components/DashboardTeamTab';
-import { DashboardWallColorTab } from '../features/dashboard/components/DashboardWallColorTab';
 
 import {
   AnalyticsPeriodDays,
@@ -75,6 +64,25 @@ import { NavigateToPage, Page } from '../types';
 interface DashboardProps {
   setPage: NavigateToPage;
 }
+
+const DashboardAgendaTab = lazy(() => import('../features/dashboard/components/DashboardAgendaTab').then((module) => ({ default: module.DashboardAgendaTab })));
+const DashboardOverviewTab = lazy(() => import('../features/dashboard/components/DashboardOverviewTab').then((module) => ({ default: module.DashboardOverviewTab })));
+const DashboardPortfolioTab = lazy(() => import('../features/dashboard/components/DashboardPortfolioTab').then((module) => ({ default: module.DashboardPortfolioTab })));
+const DashboardQuotesTab = lazy(() => import('../features/dashboard/components/DashboardQuotesTab').then((module) => ({ default: module.DashboardQuotesTab })));
+const DashboardSettingsTab = lazy(() => import('../features/dashboard/components/DashboardSettingsTab').then((module) => ({ default: module.DashboardSettingsTab })));
+const DashboardSubscriptionTab = lazy(() => import('../features/dashboard/components/DashboardSubscriptionTab').then((module) => ({ default: module.DashboardSubscriptionTab })));
+const DashboardFinancialTab = lazy(() => import('../features/dashboard/components/DashboardFinancialTab').then((module) => ({ default: module.DashboardFinancialTab })));
+const DashboardTeamTab = lazy(() => import('../features/dashboard/components/DashboardTeamTab').then((module) => ({ default: module.DashboardTeamTab })));
+const DashboardWallColorTab = lazy(() => import('../features/dashboard/components/DashboardWallColorTab').then((module) => ({ default: module.DashboardWallColorTab })));
+const EditProfileModal = lazy(() => import('../components/EditProfileModal').then((module) => ({ default: module.EditProfileModal })));
+const ObraModal = lazy(() => import('../components/ObraModal').then((module) => ({ default: module.ObraModal })));
+const OrcamentoModal = lazy(() => import('../components/OrcamentoModal').then((module) => ({ default: module.OrcamentoModal })));
+
+const DashboardTabLoadingState = () => (
+  <div className="py-16 text-center">
+    <p className="text-slate-500 font-black uppercase tracking-widest">Carregando seção...</p>
+  </div>
+);
 
 export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('inicio');
@@ -1029,6 +1037,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     const painterDisplayLocation = [currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ');
 
     try {
+      const { generateQuotePdf } = await import('../lib/quotePdf');
+
       await generateQuotePdf(
         {
           quoteId: quote.id,
@@ -1092,6 +1102,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
     const painterDisplayLocation = [currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ');
 
     try {
+      const { generateContractPdf } = await import('../lib/contractPdf');
+
       await generateContractPdf(
         {
           createdAt: quote.created_at,
@@ -1777,7 +1789,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         onLogout={() => void handleLogout()}
       />
       <main className="relative w-full max-w-7xl flex-1 px-4 pb-10 pt-24 sm:px-6 sm:pb-12 lg:ml-64 lg:px-10 lg:pt-10">
-        {content}
+        <Suspense fallback={<DashboardTabLoadingState />}>
+          {content}
+        </Suspense>
       </main>
 
       {!isDashboardSubscriptionBlocked && activeTab !== 'colorir-parede' && portalTarget && currentProfile?.applicationId && createPortal(
@@ -1829,30 +1843,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
         portalTarget
       )}
 
-      <OrcamentoModal
-        isOpen={isOrcamentoModalOpen}
-        onClose={() => {
-          setIsOrcamentoModalOpen(false);
-          setEditingQuote(null);
-        }}
-        onSaved={handleOrcamentoSaved}
-        painterName={currentProfile?.fullName || userName}
-        painterLocation={[currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ')}
-        painterProfilePhotoUrl={currentProfile?.profilePhotoUrl ?? null}
-        initialQuote={editingQuote}
-      />
-      <ObraModal
-        isOpen={isObraModalOpen}
-        onClose={() => setIsObraModalOpen(false)}
-        onSaved={handleObraSaved}
-      />
-      <EditProfileModal
-        key={`${currentProfile?.applicationId ?? 'sem-cadastro'}-${isEditProfileModalOpen ? 'aberto' : 'fechado'}`}
-        isOpen={isEditProfileModalOpen}
-        profile={currentProfile}
-        onClose={() => setIsEditProfileModalOpen(false)}
-        onSave={handleProfileUpdated}
-      />
+      <Suspense fallback={null}>
+        {isOrcamentoModalOpen && (
+          <OrcamentoModal
+            isOpen={isOrcamentoModalOpen}
+            onClose={() => {
+              setIsOrcamentoModalOpen(false);
+              setEditingQuote(null);
+            }}
+            onSaved={handleOrcamentoSaved}
+            painterName={currentProfile?.fullName || userName}
+            painterLocation={[currentProfile?.city, currentProfile?.uf].filter(Boolean).join(' - ')}
+            painterProfilePhotoUrl={currentProfile?.profilePhotoUrl ?? null}
+            initialQuote={editingQuote}
+          />
+        )}
+        {isObraModalOpen && (
+          <ObraModal
+            isOpen={isObraModalOpen}
+            onClose={() => setIsObraModalOpen(false)}
+            onSaved={handleObraSaved}
+          />
+        )}
+        {isEditProfileModalOpen && (
+          <EditProfileModal
+            key={`${currentProfile?.applicationId ?? 'sem-cadastro'}-${isEditProfileModalOpen ? 'aberto' : 'fechado'}`}
+            isOpen={isEditProfileModalOpen}
+            profile={currentProfile}
+            onClose={() => setIsEditProfileModalOpen(false)}
+            onSave={handleProfileUpdated}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

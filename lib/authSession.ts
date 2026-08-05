@@ -1,4 +1,5 @@
 import type { User } from '@supabase/supabase-js';
+import { pickBestPainterApplication } from './painterApplication';
 import { getCurrentClientProfile, isAnonymousSessionUser, type CurrentClientProfile } from './services/clientSignupService';
 import { supabase } from './supabase';
 
@@ -19,29 +20,6 @@ const isClientMetadataUser = (user: User | null) => {
     && user.user_metadata.user_type.trim().toLowerCase() === 'client';
 };
 
-const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
-  if (!applications.length) {
-    return null;
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const byUserId = userId
-    ? applications.filter((application) => application.auth_user_id === userId)
-    : [];
-  const byEmail = applications.filter((application) => (
-    typeof application.email === 'string' && application.email.trim().toLowerCase() === normalizedEmail
-  ));
-
-  const pickAccepted = (items: any[]) => items.find((application) => application.status === 'accepted') ?? null;
-
-  return pickAccepted(byUserId)
-    ?? byUserId[0]
-    ?? pickAccepted(byEmail)
-    ?? byEmail[0]
-    ?? applications[0]
-    ?? null;
-};
-
 export const getPainterApplicationId = async (email: string, userId?: string) => {
   if (!email && !userId) {
     return null;
@@ -60,7 +38,7 @@ export const getPainterApplicationId = async (email: string, userId?: string) =>
     throw error;
   }
 
-  const application = pickBestPainterApplication((data ?? []) as any[], email, userId);
+  const application = pickBestPainterApplication(data ?? [], email, userId);
   return application?.id ?? null;
 };
 

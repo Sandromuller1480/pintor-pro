@@ -80,17 +80,17 @@ npm run typecheck
 
 Veja `supabase/functions/.env.example`.
 
-Principais secrets:
+Principais secrets das Edge Functions:
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_SILVER_MONTHLY`
-- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_MONTHLY`
+- `STRIPE_PRICE_ANNUAL`
 - `APP_BASE_URL`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
+
+No painel do Supabase, nao crie secrets com prefixo `SUPABASE_`. Em Edge Functions hospedadas, `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` sao fornecidos automaticamente pelo Supabase.
 
 ## Fluxos Principais
 

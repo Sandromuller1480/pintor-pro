@@ -9,6 +9,7 @@ import {
   sanitizeWorkingTime
 } from '../../lib/painterAvailability';
 import { normalizePortfolioStageMedia } from '../../lib/portfolioStages';
+import { pickBestPainterApplication } from '../../lib/painterApplication';
 import { supabase } from '../../lib/supabase';
 import {
   buildPainterMediaPath,
@@ -478,29 +479,6 @@ const isMissingProfileSharesTableError = (error: { message?: string } | null) =>
     && (message.includes('does not exist') || message.includes('schema cache') || message.includes('could not find the table'));
 };
 
-const pickBestPainterApplication = (applications: any[], email: string, userId?: string) => {
-  if (!applications.length) {
-    return null;
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const byUserId = userId
-    ? applications.filter((application) => application.auth_user_id === userId)
-    : [];
-  const byEmail = applications.filter((application) => (
-    typeof application.email === 'string' && application.email.trim().toLowerCase() === normalizedEmail
-  ));
-
-  const pickAccepted = (items: any[]) => items.find((application) => application.status === 'accepted') ?? null;
-
-  return pickAccepted(byUserId)
-    ?? byUserId[0]
-    ?? pickAccepted(byEmail)
-    ?? byEmail[0]
-    ?? applications[0]
-    ?? null;
-};
-
 export const fetchCurrentPainterProfile = async ({
   email,
   userId
@@ -520,7 +498,7 @@ export const fetchCurrentPainterProfile = async ({
     throw error;
   }
 
-  const application = pickBestPainterApplication((data ?? []) as any[], email, userId);
+  const application = pickBestPainterApplication(data ?? [], email, userId);
 
   if (!application) {
     return null;

@@ -37,15 +37,14 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
 - Edge Functions:
-  - `SUPABASE_URL`
-  - `SUPABASE_SERVICE_ROLE_KEY`
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
-  - `STRIPE_PRICE_SILVER_MONTHLY`
-  - `STRIPE_PRICE_PRO_MONTHLY`
+  - `STRIPE_PRICE_MONTHLY`
+  - `STRIPE_PRICE_ANNUAL`
   - `APP_BASE_URL`
   - `RESEND_API_KEY`
   - `RESEND_FROM_EMAIL`
+  - Nao criar secrets com prefixo `SUPABASE_` no painel: `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` sao variaveis reservadas/injetadas pelo Supabase nas Edge Functions hospedadas.
 
 ## 3. Fluxos manuais obrigatorios
 
