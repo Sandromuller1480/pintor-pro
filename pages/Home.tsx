@@ -9,7 +9,7 @@ import { Logo } from '../components/Logo';
 import { PublicPainterMap } from '../components/PublicPainterMap';
 import { getCurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
-import mascostesImage from '../imagens/CASAL DE PINTORES.png';
+import mascostesImage from '../imagens/CASAL DE PINTORES.jpg';
 import {
   MapPin,
   ShieldCheck,
