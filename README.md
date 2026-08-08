@@ -7,7 +7,7 @@ Marketplace vertical para captacao e gestao de pintores profissionais, com vitri
 - React 19 + TypeScript + Vite
 - Supabase Auth, Database, Storage e Realtime
 - Supabase Edge Functions para checkout, webhook e analise automatica
-- Tailwind via CDN no shell HTML atual
+- Tailwind CSS via PostCSS e build local do Vite
 
 ## Estrutura
 
@@ -62,6 +62,7 @@ Importante:
 
 - Este repositorio nao inclui a criacao inicial da tabela `public.applications`
 - Os scripts incrementais assumem que `public.applications` ja existe
+- Para um ambiente novo, restaure primeiro um baseline do banco de producao ou crie/versione o schema base de `public.applications` antes dos scripts incrementais
 
 ### 4. Rodar o projeto
 
@@ -69,9 +70,10 @@ Importante:
 npm run dev
 ```
 
-### 5. Validar build
+### 5. Validar o projeto
 
 ```bash
+npm test
 npm run build
 npm run typecheck
 ```
@@ -116,6 +118,6 @@ No painel do Supabase, nao crie secrets com prefixo `SUPABASE_`. Em Edge Functio
 
 ## Observacoes
 
-- O projeto ainda usa Tailwind via CDN em `index.html`. A base foi limpa, mas ainda nao foi migrada para uma pipeline local de Tailwind.
-- Nao existe suite de testes automatizados no repositorio neste momento.
+- O Tailwind ja esta configurado localmente em `index.css`, `tailwind.config.js` e `postcss.config.js`.
+- A suite automatizada atual cobre `lib/painterApplication.test.ts`; amplie a cobertura conforme os fluxos forem estabilizados.
 - O checklist final de subida da plataforma esta em `docs/plataforma-go-live-checklist.md`.

@@ -8,6 +8,14 @@ Este repositorio nao versiona a criacao inicial da tabela `public.applications`.
 Os scripts `add_*.sql`, `create_public_painter_directory.sql` e `supabase_schema.sql`
 assumem que essa tabela ja existe no banco.
 
+Para criar um ambiente novo do zero, use um destes caminhos antes dos scripts abaixo:
+
+1. Restaurar um baseline confiavel da base atual de producao/homologacao que ja contenha `public.applications`.
+2. Versionar um `applications_schema.sql` completo antes dos incrementais.
+
+Nao tente aplicar os scripts incrementais em uma base sem `public.applications`: varias tabelas,
+views, policies e funcoes dependem dela.
+
 ## Ordem recomendada para ambiente novo
 
 ### Schemas base

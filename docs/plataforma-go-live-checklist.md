@@ -5,6 +5,8 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 ## 1. Banco e SQL
 
 - Confirmar que a tabela `public.applications` ja existe na base.
+- Em ambiente novo, restaurar um baseline confiavel ou versionar o schema completo de `public.applications`
+  antes de aplicar os scripts incrementais.
 - Aplicar os schemas base:
   - `supabase/sql/clientes_schema.sql`
   - `supabase/sql/portfolio_schema.sql`
@@ -75,6 +77,7 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 
 - Rodar `npm run typecheck`.
 - Rodar `npm run build`.
+- Rodar `npm test`.
 - Validar responsividade minima em desktop e mobile.
 - Conferir politicas RLS das tabelas e do storage.
 - Conferir se a view `public.painter_directory_public` retorna:
@@ -85,8 +88,7 @@ Checklist pragmatico para fechar a subida da PINTOR PRO com menos risco operacio
 
 ## 5. Riscos ainda conhecidos
 
-- O projeto ainda usa Tailwind via CDN no `index.html`.
-- Ainda nao existe suite de testes automatizados.
+- A suite automatizada ainda e pequena e cobre principalmente selecao de cadastro de pintor.
 - O build de producao ja esta passando sem o aviso anterior de chunk grande apos o lazy loading por pagina,
   mas ainda vale monitorar crescimento de bundle nos proximos ciclos.
 - O credenciamento do pintor ainda depende de suporte publico controlado na tabela `applications`

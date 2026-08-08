@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Eye, FileText, Pencil, Plus, ScrollText, Trash2 } from 'lucide-react';
 import { SavedOrcamento } from '../../../components/OrcamentoModal';
-import { buildQuotePdfFileName } from '../../../lib/quotePdf';
+import { buildQuotePdfFileName } from '../../../lib/quotePdfFileName';
 import { formatShortDate, QUOTE_STATUS_LABELS, QUOTE_STATUS_STYLES } from '../utils';
 
 interface DashboardQuotesTabProps {

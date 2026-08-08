@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import pintorProLogoUrl from '../imagens/Logo colorido PP.png';
+import { buildQuotePdfFileName } from './quotePdfFileName';
 
 type QuotePdfAmbiente = {
   nome: string;
@@ -120,18 +121,6 @@ const formatCurrencyDisplay = (value: string | number | null | undefined) => (
 );
 
 const hasCurrencyValue = (value: string | number | null | undefined) => parseCurrencyValue(value) > 0;
-
-const sanitizeFileName = (value: string) => value
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-zA-Z0-9-_ ]+/g, '')
-  .trim()
-  .replace(/\s+/g, '-')
-  .toLowerCase();
-
-export const buildQuotePdfFileName = (painterName: string, createdAt: string) => (
-  `orcamento-${sanitizeFileName(painterName || 'pintor')}-${formatDisplayDate(createdAt).replace(/\//g, '-')}.pdf`
-);
 
 const blobToDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
