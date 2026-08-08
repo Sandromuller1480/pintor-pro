@@ -7,7 +7,7 @@ import cabeloDeAnjoTexture from '../../../imagens/texturas/TEXTURA COM CABELO DE
 
 type ToolMode = 'brush' | 'eraser' | 'eraser-line' | 'line' | 'curve' | 'smart-select';
 type ShapeToolMode = Extract<ToolMode, 'eraser-line' | 'line' | 'curve'>;
-type EditorModal = 'tools' | 'walls' | 'delete-photo' | null;
+type EditorModal = 'tools' | 'walls' | 'adjustments' | 'delete-photo' | null;
 type ToolSection = 'tools' | 'color' | 'texture' | 'adjustments';
 type PaintLayer = 'paint' | 'texture';
 type TextureId = 'cimento-queimado' | 'grafiato' | 'projetada' | 'cabelo-de-anjo';
@@ -1292,6 +1292,99 @@ export const DashboardWallColorTab: React.FC = () => {
     );
   };
 
+  const renderAdjustmentControls = () => (
+    <>
+      <label className="block">
+        <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+          <span>Pincel</span>
+          <span>{brushSize}px</span>
+        </span>
+        <input
+          type="range"
+          min="8"
+          max="120"
+          value={brushSize}
+          onChange={(event) => setBrushSize(Number(event.target.value))}
+          className="w-full accent-[#9A077B]"
+        />
+      </label>
+      {toolMode === 'smart-select' && (
+        <label className="block">
+          <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+            <span>Abrangencia</span>
+            <span>{smartSelectionTolerance}%</span>
+          </span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={smartSelectionTolerance}
+            onChange={(event) => setSmartSelectionTolerance(Number(event.target.value))}
+            className="w-full accent-[#9A077B]"
+          />
+        </label>
+      )}
+      {toolMode === 'curve' && (
+        <label className="block">
+          <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+            <span>Curvatura</span>
+            <span>{curveBend > 0 ? `+${curveBend}` : curveBend}</span>
+          </span>
+          <input
+            type="range"
+            min="-100"
+            max="100"
+            value={curveBend}
+            onChange={(event) => setCurveBend(Number(event.target.value))}
+            className="w-full accent-[#9A077B]"
+          />
+        </label>
+      )}
+      <label className="block">
+        <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+          <span>Intensidade</span>
+          <span>{strength}%</span>
+        </span>
+        <input
+          type="range"
+          min="15"
+          max="100"
+          value={strength}
+          onChange={(event) => updateStrength(Number(event.target.value))}
+          className="w-full accent-[#9A077B]"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+          <span>Blend mode</span>
+          <span>{blendMode}%</span>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={blendMode}
+          onChange={(event) => updateBlendMode(Number(event.target.value))}
+          className="w-full accent-[#9A077B]"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
+          <span>Opacidade</span>
+          <span>{opacity}%</span>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={opacity}
+          onChange={(event) => updateOpacity(Number(event.target.value))}
+          className="w-full accent-[#9A077B]"
+        />
+      </label>
+    </>
+  );
+
   return (
     <section className="space-y-6">
       <input
@@ -1393,7 +1486,7 @@ export const DashboardWallColorTab: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => openToolsModal('adjustments')}
+                onClick={() => setActiveModal('adjustments')}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
                 aria-label="Ajustes"
                 title="Ajustes"
@@ -1857,102 +1950,16 @@ export const DashboardWallColorTab: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
 
-                <div className="space-y-4">
-                  {renderToolSectionHeader('adjustments', 'Ajustes', SlidersHorizontal)}
-                  {expandedToolSections.adjustments && (
-                    <>
-                      <label className="block">
-                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                      <span>Pincel</span>
-                      <span>{brushSize}px</span>
-                    </span>
-                    <input
-                      type="range"
-                      min="8"
-                      max="120"
-                      value={brushSize}
-                      onChange={(event) => setBrushSize(Number(event.target.value))}
-                      className="w-full accent-[#9A077B]"
-                    />
-                  </label>
-                  {toolMode === 'smart-select' && (
-                    <label className="block">
-                      <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                        <span>Abrangencia</span>
-                        <span>{smartSelectionTolerance}%</span>
-                      </span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={smartSelectionTolerance}
-                        onChange={(event) => setSmartSelectionTolerance(Number(event.target.value))}
-                        className="w-full accent-[#9A077B]"
-                      />
-                    </label>
-                  )}
-                  {toolMode === 'curve' && (
-                    <label className="block">
-                      <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                        <span>Curvatura</span>
-                        <span>{curveBend > 0 ? `+${curveBend}` : curveBend}</span>
-                      </span>
-                      <input
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={curveBend}
-                        onChange={(event) => setCurveBend(Number(event.target.value))}
-                        className="w-full accent-[#9A077B]"
-                      />
-                    </label>
-                  )}
-                  <label className="block">
-                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                      <span>Intensidade</span>
-                      <span>{strength}%</span>
-                    </span>
-                    <input
-                      type="range"
-                      min="15"
-                      max="100"
-                      value={strength}
-                      onChange={(event) => updateStrength(Number(event.target.value))}
-                      className="w-full accent-[#9A077B]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                      <span>Blend mode</span>
-                      <span>{blendMode}%</span>
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={blendMode}
-                      onChange={(event) => updateBlendMode(Number(event.target.value))}
-                      className="w-full accent-[#9A077B]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-slate-500">
-                      <span>Opacidade</span>
-                      <span>{opacity}%</span>
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={opacity}
-                      onChange={(event) => updateOpacity(Number(event.target.value))}
-                      className="w-full accent-[#9A077B]"
-                    />
-                  </label>
-                  </>
-                  )}
-                </div>
+            {activeModal === 'adjustments' && (
+              <div className="max-h-[min(78vh,38rem)] space-y-4 overflow-y-auto pr-10">
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                  <SlidersHorizontal size={16} />
+                  Ajustes
+                </p>
+                {renderAdjustmentControls()}
               </div>
             )}
 
