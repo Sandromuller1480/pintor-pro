@@ -1254,12 +1254,12 @@ export const DashboardWallColorTab: React.FC = () => {
     link.click();
   };
 
-  const openToolsModal = () => {
+  const openToolsModal = (initialSection?: ToolSection) => {
     setExpandedToolSections({
-      tools: false,
-      color: false,
-      texture: false,
-      adjustments: false
+      tools: initialSection === 'tools',
+      color: initialSection === 'color',
+      texture: initialSection === 'texture',
+      adjustments: initialSection === 'adjustments'
     });
     setActiveModal('tools');
   };
@@ -1375,7 +1375,7 @@ export const DashboardWallColorTab: React.FC = () => {
             <div className="flex items-center justify-center gap-3 border-t border-slate-200 bg-white px-5 py-3">
               <button
                 type="button"
-                onClick={openToolsModal}
+                onClick={() => openToolsModal()}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
                 aria-label="Ferramentas"
                 title="Ferramentas"
@@ -1390,6 +1390,15 @@ export const DashboardWallColorTab: React.FC = () => {
                 title="Paredes"
               >
                 <Layers size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => openToolsModal('adjustments')}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-[#9A077B]"
+                aria-label="Ajustes"
+                title="Ajustes"
+              >
+                <SlidersHorizontal size={20} />
               </button>
               <button
                 type="button"
