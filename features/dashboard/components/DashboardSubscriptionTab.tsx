@@ -1,44 +1,74 @@
-import React from 'react';
-import { CreditCard, QrCode } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, Loader2 } from 'lucide-react';
 import { CurrentPainterProfile } from '../types';
 import { getPlanLabel } from '../utils';
-import monthlyPlanQrCodeImage from '../../../imagens/QR CODE PLANO MENSAL R$50,00.png';
-import annualPlanQrCodeImage from '../../../imagens/QR CODE PLANO ANUAL R$500,00.png';
 import { PINTOR_PRO_LEGAL_CONFIG } from '../../../lib/legalConfig';
+import { PaidPlanCode, subscriptionService } from '../../../lib/services/subscriptionService';
 import { formatSubscriptionGraceEndDate, getSubscriptionAccessState } from '../../../lib/subscriptionAccess';
 
 interface DashboardSubscriptionTabProps {
   currentProfile: CurrentPainterProfile | null;
 }
 
-const subscriptionPaymentQrCodes = [
+const subscriptionCheckoutPlans: Array<{
+  planCode: PaidPlanCode;
+  title: string;
+  price: string;
+  description: string;
+  cta: string;
+  highlight?: boolean;
+}> = [
   {
     planCode: 'monthly',
     title: 'Plano mensal',
-    price: 'R$ 50,00/mês',
-    qrImageUrl: monthlyPlanQrCodeImage,
-    paymentLink: '00020101021126360014br.gov.bcb.pix011467836144000153520400005303986540550.005802BR592567.836.144 SANDRO LUIZ MU6009SAO PAULO622905251KY24Y87F8TPEW3APWJZ6EJX263045D07'
+    price: 'R$ 50,00/mes',
+    description: 'Assinatura mensal com cobranca recorrente via Stripe.',
+    cta: 'Assinar mensal'
   },
   {
     planCode: 'annual',
     title: 'Plano anual',
     price: 'R$ 500,00/ano',
-    qrImageUrl: annualPlanQrCodeImage,
-    paymentLink: '00020101021126360014br.gov.bcb.pix0114678361440001535204000053039865406500.005802BR592567.836.144 SANDRO LUIZ MU6009SAO PAULO622905251KY24ZTAJSJWRNTHQ98GZYKV163040198'
+    description: 'Economia de R$ 100,00 no ano, com cobranca recorrente via Stripe.',
+    cta: 'Assinar anual',
+    highlight: true
   }
-] as const;
-
-const maskPaymentCode = (paymentLink: string) => {
-  if (paymentLink.length <= 24) return paymentLink;
-  return `${paymentLink.slice(0, 12)}••••••••••••••••••••${paymentLink.slice(-8)}`;
-};
+];
 
 export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> = ({ currentProfile }) => {
+  const [processingPlanCode, setProcessingPlanCode] = useState<PaidPlanCode | null>(null);
+  const [checkoutError, setCheckoutError] = useState('');
   const subscriptionState = getSubscriptionAccessState(currentProfile?.subscriptionStatus, currentProfile?.subscriptionEndsAt);
   const graceEndDate = formatSubscriptionGraceEndDate(currentProfile?.subscriptionEndsAt);
   const subscriptionLabel =
-    subscriptionState === 'active' ? 'Ativo' : subscriptionState === 'grace_period' ? 'Em carência' : 'Bloqueado';
+    subscriptionState === 'active' ? 'Ativo' : subscriptionState === 'grace_period' ? 'Em carencia' : 'Bloqueado';
   const isBlocked = subscriptionState === 'blocked';
+  const hasCheckoutProfileData = Boolean(currentProfile?.email && currentProfile.applicationId);
+
+  const handleCheckout = async (planCode: PaidPlanCode) => {
+    if (!currentProfile?.email || !currentProfile.applicationId) {
+      setCheckoutError('Nao encontramos os dados do seu cadastro para iniciar o checkout.');
+      return;
+    }
+
+    try {
+      setProcessingPlanCode(planCode);
+      setCheckoutError('');
+
+      const result = await subscriptionService.createCheckoutSession({
+        planCode,
+        email: currentProfile.email,
+        fullName: currentProfile.subscriptionPaymentName || currentProfile.fullName,
+        applicationId: currentProfile.applicationId
+      });
+
+      window.location.assign(result.checkoutUrl);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'Nao foi possivel iniciar o checkout agora.');
+    } finally {
+      setProcessingPlanCode(null);
+    }
+  };
 
   return (
     <div className="animate-in fade-in duration-500 space-y-6">
@@ -47,12 +77,12 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#9A077B]">Assinatura do pintor</p>
             <h2 className="mt-3 text-3xl font-black text-[#000747]">
-              {isBlocked ? 'Seu período de acesso terminou' : 'Pagamento da assinatura'}
+              {isBlocked ? 'Seu periodo de acesso terminou' : 'Pagamento da assinatura'}
             </h2>
             <p className="mt-2 max-w-2xl font-medium text-slate-500">
               {isBlocked
-                ? `Seu teste gratuito de 30 dias e o período adicional de ${PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias foram encerrados. Para continuar utilizando todas as ferramentas profissionais da Pintor Pro, escolha um plano e ative sua assinatura.`
-                : 'Acompanhe a situação da sua assinatura e use o QR Code do plano desejado para manter sua vitrine ativa.'}
+                ? `Seu teste gratuito de 30 dias e o periodo adicional de ${PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias foram encerrados. Para continuar utilizando todas as ferramentas profissionais da Pintor Pro, escolha um plano e ative sua assinatura.`
+                : 'Acompanhe a situacao da sua assinatura e escolha o plano desejado para manter sua vitrine ativa.'}
             </p>
           </div>
           <div className="rounded-[22px] bg-[#000747] px-5 py-4 text-white">
@@ -65,17 +95,17 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
       <div className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situação da assinatura</p>
-            <p className="mt-2 text-sm font-bold text-slate-500">Situação atual: {subscriptionLabel}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Situacao da assinatura</p>
+            <p className="mt-2 text-sm font-bold text-slate-500">Situacao atual: {subscriptionLabel}</p>
             {subscriptionState === 'grace_period' && (
               <p className="mt-2 text-sm font-bold text-amber-700">
-                Você está no período de carência de {PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias
-                {graceEndDate ? `, com acesso liberado até ${graceEndDate}` : ''}.
+                Voce esta no periodo de carencia de {PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays} dias
+                {graceEndDate ? `, com acesso liberado ate ${graceEndDate}` : ''}.
               </p>
             )}
             {isBlocked && (
               <p className="mt-2 text-sm font-bold text-rose-700">
-                O dashboard está parcialmente bloqueado. Você pode acessar somente esta área de pagamento até a regularização.
+                O dashboard esta parcialmente bloqueado. Voce pode acessar somente esta area de pagamento ate a regularizacao.
               </p>
             )}
           </div>
@@ -86,7 +116,7 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
             <p className="text-sm font-black uppercase tracking-[0.16em]">Ativo</p>
           </div>
           <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'grace_period' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-            <p className="text-sm font-black uppercase tracking-[0.16em]">Carência</p>
+            <p className="text-sm font-black uppercase tracking-[0.16em]">Carencia</p>
           </div>
           <div className={`rounded-2xl border px-5 py-5 ${subscriptionState === 'blocked' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-400'}`}>
             <p className="text-sm font-black uppercase tracking-[0.16em]">Bloqueado</p>
@@ -95,49 +125,50 @@ export const DashboardSubscriptionTab: React.FC<DashboardSubscriptionTabProps> =
       </div>
 
       <div className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-sm">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">QR Codes dos planos</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Checkout dos planos</p>
+        {checkoutError && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+            {checkoutError}
+          </div>
+        )}
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          {subscriptionPaymentQrCodes.map((planQrCode) => (
-            <div key={planQrCode.planCode} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-              <div className="flex flex-col gap-5 sm:flex-row">
-                <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-slate-400">
-                  {planQrCode.qrImageUrl ? (
-                    <img src={planQrCode.qrImageUrl} alt={`QR Code do ${planQrCode.title}`} className="h-full w-full rounded-2xl object-contain p-2" />
-                  ) : (
-                    <div className="text-center">
-                      <QrCode className="mx-auto h-9 w-9" />
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em]">QR Code</p>
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-black uppercase tracking-[0.16em] text-[#000747]">{planQrCode.title}</p>
-                  <p className="mt-1 text-sm font-bold text-[#9A077B]">{planQrCode.price}</p>
-                  <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Link do QR Code</p>
-                    {planQrCode.paymentLink ? (
-                      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <p className="min-w-0 flex-1 truncate text-sm font-bold leading-relaxed text-[#9A077B]">
-                          {maskPaymentCode(planQrCode.paymentLink)}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => navigator.clipboard?.writeText(planQrCode.paymentLink)}
-                          className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[#9A077B] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-[#9A077B] transition hover:bg-[#9A077B] hover:text-white"
-                          title="Copiar link do QR Code"
-                          aria-label={`Copiar link do ${planQrCode.title}`}
-                        >
-                          Copiar código
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm font-bold text-slate-400">Aguardando link do QR Code</p>
-                    )}
-                  </div>
+          {subscriptionCheckoutPlans.map((plan) => {
+            const isProcessing = processingPlanCode === plan.planCode;
+
+            return (
+              <div
+                key={plan.planCode}
+                className={`rounded-[24px] border p-6 ${
+                  plan.highlight
+                    ? 'border-[#9A077B] bg-[#FDF3FA]'
+                    : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <div className="flex h-full flex-col">
+                  <p className="text-base font-black uppercase tracking-[0.16em] text-[#000747]">{plan.title}</p>
+                  <p className="mt-2 text-2xl font-black text-[#9A077B]">{plan.price}</p>
+                  <p className="mt-3 flex-1 text-sm font-medium leading-relaxed text-slate-500">{plan.description}</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleCheckout(plan.planCode)}
+                    disabled={!hasCheckoutProfileData || Boolean(processingPlanCode)}
+                    className={`mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl text-[11px] font-black uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      plan.highlight
+                        ? 'bg-[#9A077B] text-white hover:bg-[#7F0665] shadow-lg shadow-[#EFC6E3]'
+                        : 'bg-[#000747] text-white hover:bg-[#020b72]'
+                    }`}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 size={16} className="mr-2 animate-spin" />
+                        Redirecionando
+                      </>
+                    ) : plan.cta}
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
