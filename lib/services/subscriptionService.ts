@@ -23,6 +23,25 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function buildCheckoutErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes('failed to send a request to the edge function')
+    || normalizedMessage.includes('failed to fetch')
+    || normalizedMessage.includes('fetch failed')
+  ) {
+    return 'A Edge Function create-checkout-session nao esta publicada ou nao esta acessivel no Supabase. Publique a funcao e confira os secrets do Stripe.';
+  }
+
+  if (normalizedMessage.includes('non-2xx status code')) {
+    return 'A Edge Function respondeu com erro. Confira os logs da funcao create-checkout-session no Supabase.';
+  }
+
+  return `Nao foi possivel iniciar o checkout: ${message}`;
+}
+
 export const subscriptionService = {
   async createCheckoutSession(
     params: CreateCheckoutSessionParams
@@ -42,7 +61,7 @@ export const subscriptionService = {
     });
 
     if (error) {
-      throw new Error(`Não foi possível iniciar o checkout: ${error.message}`);
+      throw new Error(buildCheckoutErrorMessage(error));
     }
 
     if (!data?.checkoutUrl || !data?.sessionId) {
