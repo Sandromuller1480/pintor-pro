@@ -2,6 +2,7 @@
 -- Rode este script no SQL Editor do Supabase depois que public.applications ja existir.
 -- Os Price IDs do Stripe ficam nos secrets das Edge Functions:
 -- STRIPE_PRICE_MONTHLY e STRIPE_PRICE_ANNUAL.
+-- O plano trial e gratuito e nao passa pelo Stripe.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -18,8 +19,8 @@ $$;
 CREATE TABLE IF NOT EXISTS public.subscription_plans (
   code TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
-  billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('monthly', 'annual')),
-  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('trial', 'monthly', 'annual')),
+  amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
   currency TEXT NOT NULL DEFAULT 'BRL',
   active BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -32,7 +33,14 @@ DROP CONSTRAINT IF EXISTS subscription_plans_billing_cycle_check;
 
 ALTER TABLE public.subscription_plans
 ADD CONSTRAINT subscription_plans_billing_cycle_check
-CHECK (billing_cycle IN ('monthly', 'annual'));
+CHECK (billing_cycle IN ('trial', 'monthly', 'annual'));
+
+ALTER TABLE public.subscription_plans
+DROP CONSTRAINT IF EXISTS subscription_plans_amount_cents_check;
+
+ALTER TABLE public.subscription_plans
+ADD CONSTRAINT subscription_plans_amount_cents_check
+CHECK (amount_cents >= 0);
 
 DROP TRIGGER IF EXISTS set_subscription_plans_updated_at ON public.subscription_plans;
 CREATE TRIGGER set_subscription_plans_updated_at
@@ -49,6 +57,7 @@ INSERT INTO public.subscription_plans (
   active,
   sort_order
 ) VALUES
+  ('trial', 'Teste gratuito 30 dias', 'trial', 0, 'BRL', TRUE, 0),
   ('monthly', 'Plano mensal', 'monthly', 5000, 'BRL', TRUE, 10),
   ('annual', 'Plano anual', 'annual', 50000, 'BRL', TRUE, 20)
 ON CONFLICT (code) DO UPDATE SET
@@ -186,6 +195,77 @@ ON public.applications (stripe_customer_id);
 
 CREATE INDEX IF NOT EXISTS idx_applications_stripe_subscription_id
 ON public.applications (stripe_subscription_id);
+
+CREATE OR REPLACE FUNCTION public.start_painter_trial(p_application_id UUID)
+RETURNS TABLE (
+  subscription_plan TEXT,
+  subscription_status TEXT,
+  subscription_ends_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_application RECORD;
+  v_now TIMESTAMPTZ := NOW();
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Usuario autenticado obrigatorio.';
+  END IF;
+
+  SELECT
+    id,
+    email,
+    auth_user_id,
+    subscription_plan,
+    subscription_status,
+    subscription_ends_at
+  INTO v_application
+  FROM public.applications
+  WHERE id = p_application_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Cadastro nao encontrado.';
+  END IF;
+
+  IF COALESCE(v_application.auth_user_id::TEXT, '') <> auth.uid()::TEXT
+    AND LOWER(COALESCE(v_application.email, '')) <> LOWER(COALESCE(auth.email(), '')) THEN
+    RAISE EXCEPTION 'Sem permissao para ativar o teste deste cadastro.';
+  END IF;
+
+  IF LOWER(COALESCE(v_application.subscription_plan, '')) = 'trial'
+    OR LOWER(COALESCE(v_application.subscription_status, '')) = 'trialing' THEN
+    RAISE EXCEPTION 'Teste gratuito ja utilizado neste cadastro.';
+  END IF;
+
+  IF LOWER(COALESCE(v_application.subscription_status, '')) = 'active'
+    AND (v_application.subscription_ends_at IS NULL OR v_application.subscription_ends_at > v_now) THEN
+    RAISE EXCEPTION 'Este cadastro ja possui assinatura ativa.';
+  END IF;
+
+  UPDATE public.applications
+  SET
+    subscription_plan = 'trial',
+    subscription_status = 'trialing',
+    subscription_started_at = v_now,
+    subscription_ends_at = v_now + INTERVAL '30 days'
+  WHERE id = p_application_id
+  RETURNING
+    applications.subscription_plan,
+    applications.subscription_status,
+    applications.subscription_ends_at
+  INTO
+    subscription_plan,
+    subscription_status,
+    subscription_ends_at;
+
+  RETURN NEXT;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.start_painter_trial(UUID) TO authenticated;
 
 ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billing_customers ENABLE ROW LEVEL SECURITY;

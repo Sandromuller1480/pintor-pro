@@ -15,6 +15,18 @@ type CreateCheckoutSessionResponse = {
   customerId: string;
 };
 
+export type TrialSubscriptionUpdate = {
+  subscriptionPlan: string | null;
+  subscriptionStatus: string | null;
+  subscriptionEndsAt: string | null;
+};
+
+type StartPainterTrialResponse = {
+  subscription_plan: string | null;
+  subscription_status: string | null;
+  subscription_ends_at: string | null;
+};
+
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
@@ -69,6 +81,34 @@ export const subscriptionService = {
     }
 
     return data as CreateCheckoutSessionResponse;
+  },
+
+  async startPainterTrial(applicationId: string): Promise<TrialSubscriptionUpdate> {
+    const normalizedApplicationId = applicationId.trim();
+    if (!normalizedApplicationId) {
+      throw new Error('Nao encontramos os dados do seu cadastro para ativar o teste gratuito.');
+    }
+
+    const { data, error } = await supabase.rpc('start_painter_trial', {
+      p_application_id: normalizedApplicationId
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Nao foi possivel ativar o teste gratuito agora.');
+    }
+
+    const payload = Array.isArray(data) ? data[0] : data;
+    if (!payload) {
+      throw new Error('O Supabase nao retornou os dados do teste gratuito.');
+    }
+
+    const trialUpdate = payload as StartPainterTrialResponse;
+
+    return {
+      subscriptionPlan: trialUpdate.subscription_plan,
+      subscriptionStatus: trialUpdate.subscription_status,
+      subscriptionEndsAt: trialUpdate.subscription_ends_at
+    };
   }
 };
 

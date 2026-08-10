@@ -10,31 +10,52 @@ const parseDateTime = (value?: string | null) => {
   return Number.isNaN(timestamp) ? null : timestamp;
 };
 
+const formatDate = (timestamp: number) => (
+  new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(new Date(timestamp))
+);
+
 export const getSubscriptionAccessState = (
   status?: string | null,
   subscriptionEndsAt?: string | null,
   now = new Date()
 ): SubscriptionAccessState => {
   const normalizedStatus = (status || '').toLowerCase();
-
-  if (normalizedStatus === 'active' || normalizedStatus === 'trialing') {
-    return 'active';
-  }
-
+  const nowMs = now.getTime();
   const endsAtMs = parseDateTime(subscriptionEndsAt);
   const graceEndsAtMs = endsAtMs === null
     ? null
     : endsAtMs + PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays * DAY_IN_MS;
 
-  if (normalizedStatus === 'past_due' && (graceEndsAtMs === null || now.getTime() <= graceEndsAtMs)) {
+  if (normalizedStatus === 'active' || normalizedStatus === 'trialing') {
+    if (endsAtMs === null || nowMs <= endsAtMs) {
+      return 'active';
+    }
+
+    if (graceEndsAtMs !== null && nowMs <= graceEndsAtMs) {
+      return 'grace_period';
+    }
+
+    return 'blocked';
+  }
+
+  if (normalizedStatus === 'past_due' && (graceEndsAtMs === null || nowMs <= graceEndsAtMs)) {
     return 'grace_period';
   }
 
-  if (endsAtMs !== null && now.getTime() <= graceEndsAtMs!) {
+  if (graceEndsAtMs !== null && nowMs <= graceEndsAtMs) {
     return 'grace_period';
   }
 
   return 'blocked';
+};
+
+export const getTrialEndDateLabel = (subscriptionEndsAt?: string | null) => {
+  const endsAtMs = parseDateTime(subscriptionEndsAt);
+  return endsAtMs === null ? '' : formatDate(endsAtMs);
 };
 
 export const isSubscriptionAccessBlocked = (status?: string | null, subscriptionEndsAt?: string | null) => (
@@ -43,11 +64,7 @@ export const isSubscriptionAccessBlocked = (status?: string | null, subscription
 
 export const formatSubscriptionGraceEndDate = (subscriptionEndsAt?: string | null) => {
   const endsAtMs = parseDateTime(subscriptionEndsAt);
-  if (endsAtMs === null) return '';
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(new Date(endsAtMs + PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays * DAY_IN_MS));
+  return endsAtMs === null
+    ? ''
+    : formatDate(endsAtMs + PINTOR_PRO_LEGAL_CONFIG.subscriptionGracePeriodDays * DAY_IN_MS);
 };

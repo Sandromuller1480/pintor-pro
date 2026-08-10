@@ -51,6 +51,7 @@ export const PAINTER_MEDIA_BUCKET = 'painters-media';
 export const LEGACY_PROFILE_BUCKET = 'application-work-photos';
 
 const PLAN_LABELS: Record<string, string> = {
+  trial: 'Teste gratuito',
   monthly: 'Plano mensal',
   annual: 'Plano anual',
   bronze: 'Bronze',

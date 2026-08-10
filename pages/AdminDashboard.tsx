@@ -147,7 +147,7 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ cla
 
 const categoryOptions = ['', 'bronze', 'prata', 'ouro'];
 const portfolioReviewStatusOptions = ['approved', 'pending_review', 'blocked'] as const;
-const planValueMap: Record<string, number> = { monthly: 50, annual: 500 };
+const planValueMap: Record<string, number> = { trial: 0, monthly: 50, annual: 500 };
 const isOptionalReadError = (message: string) => (
   message.includes('does not exist')
   || message.includes('relation')
@@ -251,6 +251,7 @@ const getAdminRoleLabel = (role?: string | null) => {
 
 const getPlanLabel = (plan?: string | null) => {
   switch ((plan || '').toLowerCase()) {
+    case 'trial': return 'Teste gratuito';
     case 'monthly': return 'Plano mensal';
     case 'annual': return 'Plano anual';
     case 'bronze': return 'Bronze';
