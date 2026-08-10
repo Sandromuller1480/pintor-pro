@@ -1712,23 +1712,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setPage }) => {
       );
       break;
     case 'assinatura':
-      content = (
-        <DashboardSubscriptionTab
-          currentProfile={currentProfile}
-          onSubscriptionChanged={(updates) => {
-            setCurrentProfile((profile) => (
-              profile
-                ? {
-                    ...profile,
-                    subscriptionPlan: updates.subscriptionPlan,
-                    subscriptionStatus: updates.subscriptionStatus,
-                    subscriptionEndsAt: updates.subscriptionEndsAt
-                  }
-                : profile
-            ));
-          }}
-        />
-      );
+      content = <DashboardSubscriptionTab currentProfile={currentProfile} />;
       break;
     case 'equipe':
       content = (

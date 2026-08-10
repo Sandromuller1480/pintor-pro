@@ -2,7 +2,7 @@
 -- Rode este script no SQL Editor do Supabase depois que public.applications ja existir.
 -- Os Price IDs do Stripe ficam nos secrets das Edge Functions:
 -- STRIPE_PRICE_MONTHLY e STRIPE_PRICE_ANNUAL.
--- O plano trial e gratuito e nao passa pelo Stripe.
+-- O plano trial e gratuito, nao passa pelo Stripe e e ativado automaticamente no cadastro do pintor.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -196,76 +196,27 @@ ON public.applications (stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_applications_stripe_subscription_id
 ON public.applications (stripe_subscription_id);
 
-CREATE OR REPLACE FUNCTION public.start_painter_trial(p_application_id UUID)
-RETURNS TABLE (
-  subscription_plan TEXT,
-  subscription_status TEXT,
-  subscription_ends_at TIMESTAMPTZ
-)
+DROP FUNCTION IF EXISTS public.start_painter_trial(UUID);
+
+CREATE OR REPLACE FUNCTION public.apply_painter_trial_defaults()
+RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_application RECORD;
-  v_now TIMESTAMPTZ := NOW();
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Usuario autenticado obrigatorio.';
-  END IF;
-
-  SELECT
-    id,
-    email,
-    auth_user_id,
-    subscription_plan,
-    subscription_status,
-    subscription_ends_at
-  INTO v_application
-  FROM public.applications
-  WHERE id = p_application_id
-  FOR UPDATE;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Cadastro nao encontrado.';
-  END IF;
-
-  IF COALESCE(v_application.auth_user_id::TEXT, '') <> auth.uid()::TEXT
-    AND LOWER(COALESCE(v_application.email, '')) <> LOWER(COALESCE(auth.email(), '')) THEN
-    RAISE EXCEPTION 'Sem permissao para ativar o teste deste cadastro.';
-  END IF;
-
-  IF LOWER(COALESCE(v_application.subscription_plan, '')) = 'trial'
-    OR LOWER(COALESCE(v_application.subscription_status, '')) = 'trialing' THEN
-    RAISE EXCEPTION 'Teste gratuito ja utilizado neste cadastro.';
-  END IF;
-
-  IF LOWER(COALESCE(v_application.subscription_status, '')) = 'active'
-    AND (v_application.subscription_ends_at IS NULL OR v_application.subscription_ends_at > v_now) THEN
-    RAISE EXCEPTION 'Este cadastro ja possui assinatura ativa.';
-  END IF;
-
-  UPDATE public.applications
-  SET
-    subscription_plan = 'trial',
-    subscription_status = 'trialing',
-    subscription_started_at = v_now,
-    subscription_ends_at = v_now + INTERVAL '30 days'
-  WHERE id = p_application_id
-  RETURNING
-    applications.subscription_plan,
-    applications.subscription_status,
-    applications.subscription_ends_at
-  INTO
-    subscription_plan,
-    subscription_status,
-    subscription_ends_at;
-
-  RETURN NEXT;
+  NEW.subscription_plan = COALESCE(NEW.subscription_plan, 'trial');
+  NEW.subscription_status = COALESCE(NEW.subscription_status, 'trialing');
+  NEW.subscription_started_at = COALESCE(NEW.subscription_started_at, NOW());
+  NEW.subscription_ends_at = COALESCE(NEW.subscription_ends_at, NEW.subscription_started_at + INTERVAL '30 days');
+  RETURN NEW;
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.start_painter_trial(UUID) TO authenticated;
+DROP TRIGGER IF EXISTS apply_painter_trial_defaults_before_insert ON public.applications;
+CREATE TRIGGER apply_painter_trial_defaults_before_insert
+BEFORE INSERT ON public.applications
+FOR EACH ROW
+EXECUTE FUNCTION public.apply_painter_trial_defaults();
 
 ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billing_customers ENABLE ROW LEVEL SECURITY;

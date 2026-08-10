@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
+import { Gift } from 'lucide-react';
 import { ProfilePhotoCropModal } from '../components/ProfilePhotoCropModal';
 import {
   paintersService,
@@ -294,6 +295,22 @@ export const Register: React.FC<RegisterProps> = ({ setPage }) => {
       <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100 text-left relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#9A077B]/5 rounded-full -translate-y-10 translate-x-10"></div>
         <div className="space-y-6 relative z-10">
+          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-sm">
+                <Gift size={22} />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                  Teste gratuito incluido
+                </p>
+                <h2 className="mt-1 text-2xl font-black text-[#000747]">30 dias de acesso completo</h2>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">
+                  Ao concluir o cadastro, seu teste gratuito e ativado automaticamente para usar todas as funcoes e ferramentas da plataforma.
+                </p>
+              </div>
+            </div>
+          </div>
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
               Nome para pagamento da assinatura *

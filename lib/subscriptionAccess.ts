@@ -53,11 +53,6 @@ export const getSubscriptionAccessState = (
   return 'blocked';
 };
 
-export const getTrialEndDateLabel = (subscriptionEndsAt?: string | null) => {
-  const endsAtMs = parseDateTime(subscriptionEndsAt);
-  return endsAtMs === null ? '' : formatDate(endsAtMs);
-};
-
 export const isSubscriptionAccessBlocked = (status?: string | null, subscriptionEndsAt?: string | null) => (
   getSubscriptionAccessState(status, subscriptionEndsAt) === 'blocked'
 );

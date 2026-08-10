@@ -19,6 +19,7 @@ const PUBLIC_PAINTER_MEDIA_BUCKET = 'painters-media';
 const DEFAULT_PAINTER_AVATAR = 'https://i.pravatar.cc/200?u=pintor-pro';
 const DEFAULT_PAINTER_BANNER = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop';
 const LEGACY_PROFILE_PHOTO_EXPIRES_IN = 60 * 60;
+const TRIAL_PERIOD_DAYS = 30;
 
 const EXISTING_USER_ERROR_PATTERNS = [
     'already registered',
@@ -324,6 +325,8 @@ export const paintersService = {
         let authUserId: string | null = null;
         let shouldRestorePublicContextAfterSubmission = false;
         const onboardingToken = createUuid();
+        const trialStartedAt = new Date();
+        const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
         try {
             if (formData.password) {
@@ -367,6 +370,10 @@ export const paintersService = {
                     email: normalizedEmail,
                     experience_time: normalizedExperienceTime,
                     specialties: normalizedSpecialties,
+                    subscription_plan: 'trial',
+                    subscription_status: 'trialing',
+                    subscription_started_at: trialStartedAt.toISOString(),
+                    subscription_ends_at: trialEndsAt.toISOString(),
                     status: 'pending'
                 }])
                 .select()
