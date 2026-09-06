@@ -7,6 +7,7 @@ export const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
   [Page.Plans]: '/planos',
   [Page.About]: '/sobre',
   [Page.Help]: '/ajuda',
+  [Page.PaintingCategories]: '/categorias-de-pintura',
   [Page.Terms]: '/termos-de-uso',
   [Page.Privacy]: '/politica-de-privacidade',
   [Page.Cookies]: '/politica-de-cookies',
@@ -32,6 +33,7 @@ export const getInitialRoute = (): AppRoute => {
   if (parts[0] === 'planos') return { page: Page.Plans };
   if (parts[0] === 'sobre') return { page: Page.About };
   if (parts[0] === 'ajuda') return { page: Page.Help };
+  if (parts[0] === 'categorias-de-pintura') return { page: Page.PaintingCategories };
   if (parts[0] === 'termos-de-uso') return { page: Page.Terms };
   if (parts[0] === 'politica-de-privacidade') return { page: Page.Privacy };
   if (parts[0] === 'politica-de-cookies') return { page: Page.Cookies };

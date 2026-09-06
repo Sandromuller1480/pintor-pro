@@ -307,7 +307,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                   <li><button onClick={() => setPage(Page.HowItWorks)} className="hover:text-[#C93EA6] transition">Como funciona para Clientes</button></li>
                 )}
                 <li><button onClick={() => setPage(Page.Help)} className="hover:text-[#C93EA6] transition">Central de Ajuda</button></li>
-                <li><button className="hover:text-[#C93EA6] transition">Categorias de Pintura</button></li>
+                <li><button onClick={() => setPage(Page.PaintingCategories)} className="hover:text-[#C93EA6] transition">Categorias de Pintura</button></li>
                 <li><button className="hover:text-[#C93EA6] transition">Galeria de Inspiração</button></li>
               </ul>
             </div>

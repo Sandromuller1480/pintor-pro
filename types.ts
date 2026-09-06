@@ -77,6 +77,7 @@ export enum Page {
   Plans = 'plans',
   About = 'about',
   Help = 'help',
+  PaintingCategories = 'painting-categories',
   Terms = 'terms',
   Privacy = 'privacy',
   Cookies = 'cookies',
