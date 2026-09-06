@@ -310,10 +310,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 <li>
                   <a
                     href="/categorias-de-pintura"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setPage(Page.PaintingCategories);
-                    }}
                     className="hover:text-[#C93EA6] transition"
                   >
                     Categorias de Pintura
