@@ -78,6 +78,7 @@ export enum Page {
   About = 'about',
   Help = 'help',
   PaintingCategories = 'painting-categories',
+  InspirationGallery = 'inspiration-gallery',
   Terms = 'terms',
   Privacy = 'privacy',
   Cookies = 'cookies',

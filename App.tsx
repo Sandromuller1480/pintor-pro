@@ -14,6 +14,7 @@ const PlansPage = lazy(() => import('./pages/Plans').then((module) => ({ default
 const AboutPage = lazy(() => import('./pages/About').then((module) => ({ default: module.About })));
 const HelpCenterPage = lazy(() => import('./pages/HelpCenter').then((module) => ({ default: module.HelpCenter })));
 const PaintingCategoriesPage = lazy(() => import('./pages/PaintingCategories').then((module) => ({ default: module.PaintingCategories })));
+const InspirationGalleryPage = lazy(() => import('./pages/InspirationGallery').then((module) => ({ default: module.InspirationGallery })));
 const TermsOfUsePage = lazy(() => import('./pages/TermsOfUse').then((module) => ({ default: module.TermsOfUse })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicy').then((module) => ({ default: module.PrivacyPolicy })));
 const CookiePolicyPage = lazy(() => import('./pages/CookiePolicy').then((module) => ({ default: module.CookiePolicy })));
@@ -212,6 +213,8 @@ const App: React.FC = () => {
         return <HelpCenterPage setPage={navigateToPage} />;
       case Page.PaintingCategories:
         return <PaintingCategoriesPage setPage={navigateToPage} />;
+      case Page.InspirationGallery:
+        return <InspirationGalleryPage setPage={navigateToPage} />;
       case Page.Terms:
         return <TermsOfUsePage />;
       case Page.Privacy:
