@@ -15,7 +15,8 @@ export const ROUTE_PATHS: Record<Exclude<Page, Page.PainterProfile>, string> = {
   [Page.PrivacyRequest]: '/privacidade/solicitacao',
   [Page.Login]: '/login',
   [Page.Dashboard]: '/painel',
-  [Page.Admin]: '/admin'
+  [Page.Admin]: '/admin',
+  [Page.Academy]: '/academy'
 };
 
 export const getInitialRoute = (): AppRoute => {
@@ -43,6 +44,7 @@ export const getInitialRoute = (): AppRoute => {
   if (parts[0] === 'login') return { page: Page.Login };
   if (parts[0] === 'painel') return { page: Page.Dashboard };
   if (parts[0] === 'admin') return { page: Page.Admin };
+  if (parts[0] === 'academy' || parts[0] === 'pintor-pro-academy') return { page: Page.Academy };
   if (parts[0] === 'pintor' && parts[1]) {
     return { page: Page.PainterProfile, painterId: decodeURIComponent(parts[1]) };
   }
