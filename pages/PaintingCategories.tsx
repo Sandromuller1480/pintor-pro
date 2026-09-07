@@ -1293,3 +1293,5 @@ export const PaintingCategories: React.FC<PaintingCategoriesProps> = ({ setPage 
     </div>
   );
 };
+
+export default PaintingCategories;
