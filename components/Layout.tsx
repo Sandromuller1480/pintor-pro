@@ -361,7 +361,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                     <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
                   )}
                   <li><button onClick={() => setPage(Page.Academy)} className="hover:text-[#C93EA6] transition text-left cursor-pointer">PINTOR PRO Academy</button></li>
-                  <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
+                  <li><button onClick={() => setPage(Page.PartnerCenter)} className="hover:text-[#C93EA6] transition text-left cursor-pointer">Central do Parceiro</button></li>
                 </ul>
               </div>
             )}
@@ -369,7 +369,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
             <div>
               <h4 className="font-black mb-8 text-white uppercase text-xs tracking-[0.2em] border-l-4 border-[#9A077B] pl-4">Institucional</h4>
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
-                <li><button className="hover:text-[#C93EA6] transition">Sobre a Marca</button></li>
+                <li><button onClick={() => setPage(Page.About)} className="hover:text-[#C93EA6] transition text-left cursor-pointer">Sobre a Marca</button></li>
                 <li><button onClick={() => setPage(Page.Terms)} className="hover:text-[#C93EA6] transition">Termos de Uso</button></li>
                 <li><button onClick={() => setPage(Page.Privacy)} className="hover:text-[#C93EA6] transition">Politica de Privacidade</button></li>
                 <li><button onClick={() => setPage(Page.Cookies)} className="hover:text-[#C93EA6] transition">Politica de Cookies</button></li>
