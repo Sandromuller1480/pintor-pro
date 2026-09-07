@@ -228,9 +228,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                 setPage(Page.PaintingCategories);
                 setIsMenuOpen(false);
               }}
-              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight text-[#9A077B]"
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight"
             >
               Categorias de Pintura
+            </button>
+            <button
+              onClick={() => {
+                setPage(Page.InspirationGallery);
+                setIsMenuOpen(false);
+              }}
+              className="block w-full text-left text-lg font-bold p-2 uppercase tracking-tight text-[#9A077B]"
+            >
+              Galeria de Inspiração
             </button>
             <button
               onClick={() => {
@@ -328,7 +337,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                     Categorias de Pintura
                   </a>
                 </li>
-                <li><button className="hover:text-[#C93EA6] transition">Galeria de Inspiração</button></li>
+                <li>
+                  <a
+                    href="/galeria-de-inspiracao"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPage(Page.InspirationGallery);
+                    }}
+                    className="hover:text-[#C93EA6] transition text-left cursor-pointer inline-block"
+                  >
+                    Galeria de Inspiração
+                  </a>
+                </li>
               </ul>
             </div>
 
