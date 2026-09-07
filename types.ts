@@ -86,7 +86,8 @@ export enum Page {
   Login = 'login',
   Dashboard = 'dashboard',
   Admin = 'admin',
-  Academy = 'academy'
+  Academy = 'academy',
+  PartnerCenter = 'partner-center'
 }
 
 export type PageNavigationParams = {

@@ -23,6 +23,7 @@ const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default
 const DashboardPage = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const AcademyPage = lazy(() => import('./pages/Academy').then((module) => ({ default: module.Academy })));
+const PartnerCenterPage = lazy(() => import('./pages/PartnerCenter').then((module) => ({ default: module.PartnerCenter })));
 
 const getPageLoadingMessage = (page: Page) => {
   switch (page) {
@@ -232,6 +233,8 @@ const App: React.FC = () => {
         return <AdminDashboardPage setPage={navigateToPage} />;
       case Page.Academy:
         return <AcademyPage setPage={navigateToPage} />;
+      case Page.PartnerCenter:
+        return <PartnerCenterPage setPage={navigateToPage} />;
       default:
         return <HomePage setPage={navigateToPage} />;
     }
