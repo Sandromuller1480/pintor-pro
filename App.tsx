@@ -210,7 +210,7 @@ const App: React.FC = () => {
       case Page.Plans:
         return <PlansPage setPage={navigateToPage} />;
       case Page.About:
-        return <AboutPage />;
+        return <AboutPage setPage={navigateToPage} />;
       case Page.Help:
         return <HelpCenterPage setPage={navigateToPage} />;
       case Page.PaintingCategories:
