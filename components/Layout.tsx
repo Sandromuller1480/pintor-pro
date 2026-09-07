@@ -360,7 +360,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                   {shouldShowPlansEntry && (
                     <li><button onClick={() => setPage(Page.Plans)} className="hover:text-[#C93EA6] transition">Planos PRO</button></li>
                   )}
-                  <li><button className="hover:text-[#C93EA6] transition">PINTOR PRO Academy</button></li>
+                  <li><button onClick={() => setPage(Page.Academy)} className="hover:text-[#C93EA6] transition text-left cursor-pointer">PINTOR PRO Academy</button></li>
                   <li><button className="hover:text-[#C93EA6] transition">Central do Parceiro</button></li>
                 </ul>
               </div>

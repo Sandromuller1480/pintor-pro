@@ -85,7 +85,8 @@ export enum Page {
   PrivacyRequest = 'privacy-request',
   Login = 'login',
   Dashboard = 'dashboard',
-  Admin = 'admin'
+  Admin = 'admin',
+  Academy = 'academy'
 }
 
 export type PageNavigationParams = {

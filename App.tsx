@@ -22,6 +22,7 @@ const PrivacyRequestPage = lazy(() => import('./pages/PrivacyRequest').then((mod
 const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })));
 const DashboardPage = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const AcademyPage = lazy(() => import('./pages/Academy').then((module) => ({ default: module.Academy })));
 
 const getPageLoadingMessage = (page: Page) => {
   switch (page) {
@@ -229,6 +230,8 @@ const App: React.FC = () => {
         return <DashboardPage setPage={navigateToPage} />;
       case Page.Admin:
         return <AdminDashboardPage setPage={navigateToPage} />;
+      case Page.Academy:
+        return <AcademyPage setPage={navigateToPage} />;
       default:
         return <HomePage setPage={navigateToPage} />;
     }
