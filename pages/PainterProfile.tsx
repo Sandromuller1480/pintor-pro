@@ -1095,43 +1095,45 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
                 </div>
               </div>
             </div>
-            <div className="hidden lg:flex gap-3 mb-2">
-              <button
-                type="button"
-                onClick={() => void handleShareProfile()}
-                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
-                aria-label="Compartilhar perfil"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOpenSocialProfile('facebook')}
-                disabled={!painterFacebookUrl}
-                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
-                aria-label="Abrir Facebook do pintor"
-              >
-                <img src={facebookIcon} alt="Facebook" className="h-5 w-5 brightness-0 invert" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOpenSocialProfile('instagram')}
-                disabled={!painterInstagramUrl}
-                className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
-                aria-label="Abrir Instagram do pintor"
-              >
-                <img src={instagramIcon} alt="Instagram" className="h-5 w-5 brightness-0 invert" />
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleFavoriteAction()}
-                disabled={favoriteLoading}
-                className={`bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 transition hover:bg-white/20 ${isFavorite ? 'text-[#FF7AAF]' : 'text-white'}`}
-                aria-label={isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
-              >
-                {favoriteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />}
-              </button>
-            </div>
+            {currentClientProfile && (
+              <div className="hidden lg:flex gap-3 mb-2">
+                <button
+                  type="button"
+                  onClick={() => void handleShareProfile()}
+                  className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition"
+                  aria-label="Compartilhar perfil"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenSocialProfile('facebook')}
+                  disabled={!painterFacebookUrl}
+                  className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
+                  aria-label="Abrir Facebook do pintor"
+                >
+                  <img src={facebookIcon} alt="Facebook" className="h-5 w-5 brightness-0 invert" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenSocialProfile('instagram')}
+                  disabled={!painterInstagramUrl}
+                  className="bg-white/10 backdrop-blur-md text-white p-3 rounded-2xl border border-white/20 hover:bg-white/20 transition disabled:cursor-not-allowed disabled:opacity-45"
+                  aria-label="Abrir Instagram do pintor"
+                >
+                  <img src={instagramIcon} alt="Instagram" className="h-5 w-5 brightness-0 invert" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleFavoriteAction()}
+                  disabled={favoriteLoading}
+                  className={`bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 transition hover:bg-white/20 ${isFavorite ? 'text-[#FF7AAF]' : 'text-white'}`}
+                  aria-label={isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
+                >
+                  {favoriteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
