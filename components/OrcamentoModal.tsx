@@ -352,7 +352,7 @@ const buildQuoteWhatsappMessage = (
   const messageLines = [
     `Ola, ${formData.clienteNome.trim()}!`,
     `Seu orçamento foi preparado por ${painterName || 'seu pintor'} pela plataforma Pintor Pro.`,
-    'Este atendimento conta com a organização, garantia e segurança da Pintor Pro para proteger a negociação entre as partes.',
+    'Este atendimento foi organizado pela Pintor Pro. As condições do serviço devem ser combinadas diretamente entre cliente e pintor.',
     '',
     'Resumo do orçamento:',
     `Tipo de serviço: ${formData.pinturaTipoServico || 'A combinar'}`,

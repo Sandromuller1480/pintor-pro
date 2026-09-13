@@ -120,7 +120,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
           )}
 
           <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold flex items-center justify-center">
-            <Shield className="w-3 h-3 mr-1" /> Negociação Protegida PINTOR PRO
+            <Shield className="w-3 h-3 mr-1" /> Atendimento organizado pela PINTOR PRO
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             </div>
             <h4 className="font-black text-lg mb-4">Pagamento Direto</h4>
             <p className="text-slate-400 text-xs leading-relaxed mb-6">
-              A negociação fica protegida na plataforma, mas o pagamento é combinado diretamente entre cliente e pintor.
+              O Pintor Pro aproxima clientes e profissionais. Valores, prazos e formas de pagamento devem ser combinados diretamente entre as partes.
             </p>
             <button className="text-sm font-bold border-b border-[#C93EA6] text-[#C93EA6]">Saiba mais como funciona</button>
           </div>

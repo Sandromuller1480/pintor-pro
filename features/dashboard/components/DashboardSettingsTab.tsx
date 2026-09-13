@@ -710,7 +710,7 @@ export const DashboardSettingsTab: React.FC<DashboardSettingsTabProps> = ({
             <div className="mt-6 grid gap-3">
               {[
                 { label: 'Visualizar Termos de Uso', href: '/termos-de-uso', icon: FileText },
-                { label: 'Visualizar Politica de Privacidade', href: '/politica-de-privacidade', icon: ShieldCheck },
+                { label: 'Visualizar Política de Privacidade', href: '/politica-de-privacidade', icon: ShieldCheck },
                 { label: 'Gerenciar cookies', href: '/politica-de-cookies', icon: Globe2 },
                 { label: 'Solicitar meus dados', href: '/privacidade/solicitacao', icon: Mail }
               ].map((item) => (

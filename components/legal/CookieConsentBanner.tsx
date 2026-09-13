@@ -53,7 +53,7 @@ export const CookieConsentBanner: React.FC = () => {
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
           <button type="button" onClick={() => savePreferences('all')} className="rounded-xl bg-[#9A077B] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-white">Aceitar todos</button>
-          <button type="button" onClick={() => savePreferences('essential')} className="rounded-xl border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-slate-600">Rejeitar nao essenciais</button>
+          <button type="button" onClick={() => savePreferences('essential')} className="rounded-xl border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-slate-600">Rejeitar não essenciais</button>
           <button type="button" onClick={() => showPreferences ? savePreferences('custom') : setShowPreferences(true)} className="rounded-xl border border-[#9A077B]/30 px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#9A077B]">
             {showPreferences ? 'Salvar preferencias' : 'Personalizar'}
           </button>

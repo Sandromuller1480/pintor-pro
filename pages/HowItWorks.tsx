@@ -1,7 +1,7 @@
 ﻿
 import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
-import { Search, ShieldCheck, CreditCard, Award, Camera, CheckCircle2 } from 'lucide-react';
+import { Search, ShieldCheck, Handshake, Award, Camera, CheckCircle2 } from 'lucide-react';
 import { getSessionRoleContext, type SessionRole } from '../lib/authSession';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ setPage }) => {
     client: [
       { icon: <Search size={32} />, title: "Busca Inteligente", desc: "Filtre pintores por especialidade (ex: Laca, Airless, Cimento Queimado) e localização exata." },
       { icon: <ShieldCheck size={32} />, title: "Análise de Portfólio", desc: "Veja fotos reais de 'Antes e Depois' verificadas por nossa equipe. Leia depoimentos reais." },
-      { icon: <CreditCard size={32} />, title: "Negociação Protegida", desc: "A negociação acontece pela plataforma, mas o pagamento é tratado diretamente entre cliente e pintor." }
+      { icon: <Handshake size={32} />, title: "Contratação Direta", desc: "Compare perfis, solicite orçamento e combine as condições do serviço diretamente com o pintor." }
     ],
     painter: [
       { icon: <Award size={32} />, title: "Credenciamento", desc: "Envie seus melhores trabalhos e certificações. Nossa curadoria avaliará seu padrão técnico." },

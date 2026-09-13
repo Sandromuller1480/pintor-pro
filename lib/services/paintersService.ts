@@ -40,6 +40,7 @@ function createUuid() {
 }
 
 export type ApplicationFormSubmission = {
+    authUserId?: string | null,
     fullName: string,
     subscriptionPaymentName: string,
     gender?: '' | 'feminino' | 'masculino',
@@ -91,6 +92,20 @@ export type ApplicationSubmissionResult = {
     certification_paths: string[];
     processingResult: ApplicationProcessingResult | null;
     processingWarning: string | null;
+};
+
+export type PainterAccountSubmission = {
+    fullName: string;
+    whatsapp: string;
+    email: string;
+    city: string;
+    uf: string;
+    password: string;
+};
+
+export type PainterAccountCreationResult = {
+    authUserId: string;
+    hasSession: boolean;
 };
 
 function isAbsoluteUrl(value: string | null | undefined) {
@@ -248,6 +263,47 @@ async function enrichPainterRowWithMedia(item: any): Promise<Painter> {
 }
 
 export const paintersService = {
+    async createPainterAccount(formData: PainterAccountSubmission): Promise<PainterAccountCreationResult> {
+        const normalizedEmail = formData.email.trim().toLowerCase();
+        const normalizedFullName = formData.fullName.trim();
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: normalizedEmail,
+            password: formData.password,
+            options: {
+                data: {
+                    full_name: normalizedFullName,
+                    whatsapp: formData.whatsapp.trim(),
+                    city: formData.city.trim(),
+                    uf: formData.uf.trim().toUpperCase()
+                }
+            }
+        });
+
+        const authErrorMessage = authError?.message?.toLowerCase() ?? '';
+        const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
+
+        if (isExistingUserError) {
+            throw new Error('Já existe uma conta com esse e-mail. Entre no painel para continuar seu cadastro sem iniciar outro teste gratuito.');
+        }
+
+        if (authError) {
+            console.error('Erro de autenticação:', authError);
+            throw new Error(`Erro ao criar acesso: ${authError.message}`);
+        }
+
+        const authUserId = authData.user?.id ?? null;
+
+        if (!authUserId) {
+            throw new Error('Não foi possível identificar o usuário criado para este cadastro.');
+        }
+
+        return {
+            authUserId,
+            hasSession: Boolean(authData.session)
+        };
+    },
+
     async getAll() {
         const publicDirectoryResult = await supabase
             .from(PUBLIC_PAINTER_DIRECTORY_VIEW)
@@ -322,14 +378,14 @@ export const paintersService = {
         const normalizedSpecialties = formData.specialty
             .map((item) => item.trim())
             .filter(Boolean);
-        let authUserId: string | null = null;
+        let authUserId: string | null = formData.authUserId ?? null;
         let shouldRestorePublicContextAfterSubmission = false;
         const onboardingToken = createUuid();
         const trialStartedAt = new Date();
         const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
         try {
-            if (formData.password) {
+            if (formData.password && !authUserId) {
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: normalizedEmail,
                     password: formData.password,
@@ -344,7 +400,11 @@ export const paintersService = {
                 const authErrorMessage = authError?.message?.toLowerCase() ?? '';
                 const isExistingUserError = EXISTING_USER_ERROR_PATTERNS.some((pattern) => authErrorMessage.includes(pattern));
 
-                if (authError && !isExistingUserError) {
+                if (isExistingUserError) {
+                    throw new Error('Já existe uma conta com esse e-mail. Entre no painel para continuar seu cadastro sem iniciar outro teste gratuito.');
+                }
+
+                if (authError) {
                     console.error('Erro de autenticação:', authError);
                     throw new Error(`Erro ao criar acesso: ${authError.message}`);
                 }

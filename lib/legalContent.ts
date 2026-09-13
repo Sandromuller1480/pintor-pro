@@ -42,7 +42,7 @@ export const termsSections: LegalSection[] = [
     id: 'aceitacao',
     title: '2. Aceitacao dos termos',
     body: [
-      'Ao criar uma conta ou utilizar funcionalidades autenticadas, o usuario declara que leu e concordou com estes Termos de Uso e com a Politica de Privacidade.',
+      'Ao criar uma conta ou utilizar funcionalidades autenticadas, o usuário declara que leu e concordou com estes Termos de Uso e com a Política de Privacidade.',
       'O aceite deve ser realizado de forma ativa, sem caixas previamente marcadas.'
     ]
   },
@@ -140,8 +140,8 @@ export const privacySections: LegalSection[] = [
 
 export const cookieSections: LegalSection[] = [
   { id: 'o-que-sao', title: '1. O que sao cookies', body: ['Cookies sao pequenos arquivos ou identificadores usados para manter a sessao, lembrar preferencias, medir desempenho e melhorar a experiencia.'] },
-  { id: 'tipos', title: '2. Tipos utilizados', body: ['A Pintor Pro pode usar cookies essenciais, preferencias, desempenho e marketing. Cookies nao essenciais podem depender da escolha do usuario.'], bullets: ['Essenciais: login, seguranca e funcionamento basico.', 'Preferencias: escolhas de interface.', 'Desempenho: metricas agregadas e melhoria do produto.', 'Marketing: comunicacoes e campanhas, quando houver consentimento aplicavel.'] },
-  { id: 'controle', title: '3. Como controlar', body: ['O usuario pode aceitar todos, rejeitar nao essenciais ou ajustar preferencias no banner de cookies. A recusa de cookies nao essenciais nao impede o uso basico da plataforma.'] },
+  { id: 'tipos', title: '2. Tipos utilizados', body: ['A Pintor Pro pode usar cookies essenciais, preferências, desempenho e marketing. Cookies não essenciais podem depender da escolha do usuário.'], bullets: ['Essenciais: login, segurança e funcionamento básico.', 'Preferências: escolhas de interface.', 'Desempenho: métricas agregadas e melhoria do produto.', 'Marketing: comunicações e campanhas, quando houver consentimento aplicável.'] },
+  { id: 'controle', title: '3. Como controlar', body: ['O usuário pode aceitar todos, rejeitar não essenciais ou ajustar preferências no banner de cookies. A recusa de cookies não essenciais não impede o uso básico da plataforma.'] },
   { id: 'contato', title: '4. Contato', body: [`Duvidas sobre cookies podem ser enviadas para ${company.privacyEmail}.`] }
 ];
 

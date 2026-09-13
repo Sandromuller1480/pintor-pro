@@ -105,7 +105,7 @@ export const About: React.FC<AboutProps> = ({ setPage }) => {
                   A Virada de Chave PINTOR PRO:
                 </h4>
                 <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                  Decidimos construir um ecossistema exclusivo onde a qualidade técnica é auditada, o cliente tem garantia de pontualidade e obra limpa, e o verdadeiro profissional da pintura é reconhecido e valorizado como o artista e técnico que é.
+                  Decidimos construir um ecossistema exclusivo onde a qualidade técnica é analisada, o cliente consulta perfis mais completos, e o verdadeiro profissional da pintura é reconhecido e valorizado como o artista e técnico que é.
                 </p>
               </div>
             </div>
@@ -290,7 +290,7 @@ export const About: React.FC<AboutProps> = ({ setPage }) => {
                 {
                   criterion: 'Orçamentos e Segurança Jurídica',
                   common: 'Valores informais de boca, riscos de surpresas',
-                  pro: 'Modelos de contrato com escopo claro e garantia'
+                  pro: 'Modelos de contrato com escopo claro e responsabilidades definidas'
                 },
                 {
                   criterion: 'Apoio e Capacitação do Pintor',

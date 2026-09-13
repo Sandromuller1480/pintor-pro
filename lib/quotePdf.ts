@@ -355,7 +355,7 @@ export const generateQuotePdf = async (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...SLATE_TEXT);
-  doc.text('Atendimento organizado com a garantia e segurança da Pintor Pro.', PAGE_MARGIN, y);
+  doc.text('Atendimento organizado pela Pintor Pro, com contratação direta entre cliente e pintor.', PAGE_MARGIN, y);
   y += 26;
 
   await addSectionTitle('1. Dados do cliente');

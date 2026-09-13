@@ -137,8 +137,8 @@ const CATEGORIES: PaintingCategory[] = [
     detailedDescription: 'O nivelamento profissional transforma uma parede rústica em uma superfície plana e refinada com padrão "espelho". Exige domínio de desempenadeiras, lâminas de corte e lixadeiras com iluminação rasante para não deixar ondas, rebarbas ou marcas de lixa visíveis na luz solar.',
     icon: Layers3,
     specialties: [
-      'Massa Corrida (Aplicacao e lixamento)',
-      'Massa Acrilica (Aplicacao e lixamento)',
+      'Massa Corrida (Aplicação e lixamento)',
+      'Massa Acrílica (Aplicação e lixamento)',
       'Lixadeiras: Pequenas, medias e grande porte'
     ],
     bestFor: ['Paredes internas residenciais', 'Áreas molháveis (cozinhas e banheiros)', 'Fachadas externas (Massa Acrílica)', 'Salas com luz indireta/LED rasante'],
@@ -291,7 +291,7 @@ const CATEGORIES: PaintingCategory[] = [
     specialties: [
       'Airless',
       'Pistolas Industriais (Pinturas, Texturas e Efeitos)',
-      'Compressores de Pequenos, Medios e grande porte'
+      'Compressores de pequenos, médios e de grande porte'
     ],
     bestFor: ['Casas novas completas', 'Forros de gesso acartonado e ripados', 'Galpões comerciais e industriais', 'Grandes muros e estacionamentos'],
     steps: [
@@ -375,7 +375,7 @@ const CATEGORIES: PaintingCategory[] = [
     specialties: [
       'NR-35 (trabalho em altura)',
       'EPIs',
-      'Massa Acrilica (Aplicacao e lixamento)'
+      'Massa Acrílica (Aplicação e lixamento)'
     ],
     bestFor: ['Fachadas prediais', 'Sobrados e muros altos', 'Condomínios residenciais fechados', 'Galpões com pé direito duplo/triplo'],
     steps: [
@@ -833,7 +833,7 @@ export const PaintingCategories: React.FC<PaintingCategoriesProps> = ({ setPage 
                 Dúvida na contratação?
               </div>
               <p className="leading-relaxed text-slate-500">
-                Pintores verificados pela PINTOR PRO possuem comprovação técnica, portfólio real e garantia de execução.
+                Pintores verificados pela PINTOR PRO possuem comprovação técnica, portfólio real e informações profissionais para apoiar sua escolha.
               </p>
               <button
                 type="button"

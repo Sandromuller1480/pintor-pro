@@ -114,7 +114,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                     className="ml-10 hidden lg:inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black text-[#9A077B] transition hover:bg-[#FDF3FA]"
                     title="Sair da conta do cliente"
                   >
-                    <span>Ola {clientFirstName || 'Cliente'}</span>
+                    <span>Olá, {clientFirstName || 'Cliente'}</span>
                     <LogOut size={16} />
                   </button>
                 ) : (
@@ -196,7 +196,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
                   }}
                   className="inline-flex items-center gap-2 rounded-2xl bg-[#FDF3FA] px-4 py-3 text-sm font-black text-[#9A077B]"
                 >
-                  <span>Ola {clientFirstName || 'Cliente'}</span>
+                  <span>Olá, {clientFirstName || 'Cliente'}</span>
                   <LogOut size={16} />
                 </button>
               ) : (
@@ -371,8 +371,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage }
               <ul className="space-y-4 text-slate-400 text-sm font-medium">
                 <li><button onClick={() => setPage(Page.About)} className="hover:text-[#C93EA6] transition text-left cursor-pointer">Sobre a Marca</button></li>
                 <li><button onClick={() => setPage(Page.Terms)} className="hover:text-[#C93EA6] transition">Termos de Uso</button></li>
-                <li><button onClick={() => setPage(Page.Privacy)} className="hover:text-[#C93EA6] transition">Politica de Privacidade</button></li>
-                <li><button onClick={() => setPage(Page.Cookies)} className="hover:text-[#C93EA6] transition">Politica de Cookies</button></li>
+                <li><button onClick={() => setPage(Page.Privacy)} className="hover:text-[#C93EA6] transition">Política de Privacidade</button></li>
+                <li><button onClick={() => setPage(Page.Cookies)} className="hover:text-[#C93EA6] transition">Política de Cookies</button></li>
                 <li><button onClick={() => setPage(Page.PrivacyRequest)} className="hover:text-[#C93EA6] transition text-[#C93EA6]">Solicitacao de privacidade</button></li>
               </ul>
             </div>

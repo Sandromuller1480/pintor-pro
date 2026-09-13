@@ -23,7 +23,7 @@ export const SLOGANS = [
 export const HOW_IT_WORKS_CLIENTS = [
   { icon: <Search className="w-8 h-8 text-[#9A077B]" />, title: "Encontre Especialistas", desc: "Filtre pintores por localização, especialidade e portfólio real." },
   { icon: <Shield className="w-8 h-8 text-[#9A077B]" />, title: "Verifique Avaliações", desc: "Veja fotos de antes e depois e opiniões de clientes reais." },
-  { icon: <Calendar className="w-8 h-8 text-[#9A077B]" />, title: "Contrate com Segurança", desc: "Agende sua obra e pague com a garantia de entrega da plataforma." }
+  { icon: <Calendar className="w-8 h-8 text-[#9A077B]" />, title: "Escolha com confiança", desc: "Compare perfis, portfólios e avaliações para escolher o profissional ideal para sua obra." }
 ];
 
 export const HOW_IT_WORKS_PAINTERS = [
@@ -35,7 +35,7 @@ export const HOW_IT_WORKS_PAINTERS = [
 export const FAQ_DATA = [
   { q: "Como a PINTOR PRO garante a qualidade?", a: "Todos os profissionais passam por uma análise de portfólio e histórico antes de receberem o selo Verificado." },
   { q: "O serviço de busca é gratuito para clientes?", a: "Sim, clientes podem buscar, visualizar portfólios e solicitar orçamentos sem custo." },
-  { q: "Como funcionam os pagamentos?", a: "Oferecemos uma camada de proteção financeira onde o valor fica seguro até a conclusão da etapa acordada." }
+  { q: "Como funciona a contratação?", a: "O Pintor Pro conecta clientes e profissionais da pintura. O cliente pode consultar perfis, analisar portfólios e solicitar orçamentos. As condições do serviço devem ser combinadas diretamente entre o cliente e o pintor." }
 ];
 
 export const MOCK_PAINTERS: Painter[] = [

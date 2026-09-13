@@ -4,9 +4,9 @@ import { cookieSections } from '../lib/legalContent';
 
 export const CookiePolicy: React.FC = () => (
   <LegalPageLayout
-    eyebrow="Politica de Cookies"
-    title="Politica de Cookies da Pintor Pro"
-    description="Saiba como cookies essenciais e nao essenciais podem ser usados na plataforma e como controlar suas preferencias."
+    eyebrow="Política de Cookies"
+    title="Política de Cookies da Pintor Pro"
+    description="Saiba como cookies essenciais e não essenciais podem ser usados na plataforma e como controlar suas preferências."
     sections={cookieSections}
   />
 );

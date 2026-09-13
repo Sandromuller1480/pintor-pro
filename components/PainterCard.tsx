@@ -52,7 +52,7 @@ export const PainterCard: React.FC<PainterCardProps> = ({ painter, onClick }) =>
         <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
           <div className="flex items-center text-xs text-slate-400">
             <Zap className="w-3 h-3 mr-1 text-[#9A077B]" />
-            Responde em {painter.responseTime}
+            Tempo de resposta: {painter.responseTime}
           </div>
           <button 
             onClick={() => onClick(painter.id)}

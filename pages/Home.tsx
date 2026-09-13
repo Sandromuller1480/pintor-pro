@@ -24,6 +24,18 @@ interface HomeProps {
 
 const formatMetricValue = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
 
+const formatPaintersFoundLabel = (count: number) => {
+  if (count === 0) {
+    return 'Nenhum pintor encontrado';
+  }
+
+  if (count === 1) {
+    return '1 pintor encontrado';
+  }
+
+  return `${count} pintores encontrados`;
+};
+
 type LocationFocusRequest = {
   location: string;
   requestId: number;
@@ -268,7 +280,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
             <div className="space-y-8 animate-in">
               <div className="inline-flex items-center bg-gradient-to-r from-[#C93EA6] to-[#9A077B] text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-[#EFC6E3]">
-                <Paintbrush className="w-3 h-3 mr-2" /> Plataforma Líder no Brasil
+                <Paintbrush className="w-3 h-3 mr-2" /> PLATAFORMA ESPECIALIZADA EM PINTURA
               </div>
 
               <div className="relative">
@@ -282,7 +294,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               </div>
 
               <p className="text-xl text-slate-500 leading-relaxed max-w-lg font-medium border-l-4 border-slate-200 pl-6">
-                Conectamos os usuários aos pintores de elite que dominam as técnicas mais avançadas do mercado.
+                Conectamos clientes a pintores profissionais que dominam técnicas avançadas de pintura.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -480,7 +492,7 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
 
             <div className="flex-1">
               <div className="flex justify-between items-center mb-6">
-                <p className="text-slate-500 font-medium">{displayedPainters.length} pintores encontrados</p>
+                <p className="text-slate-500 font-medium">{formatPaintersFoundLabel(displayedPainters.length)}</p>
                 <div className="flex items-center gap-2 text-sm font-bold cursor-default text-slate-500">
                   <span>Ordenar por: <span className="text-[#9A077B]">Mais recentes</span></span>
                   <ChevronDown className="w-4 h-4" />

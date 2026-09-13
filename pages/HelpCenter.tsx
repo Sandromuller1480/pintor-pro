@@ -26,7 +26,7 @@ export const HelpCenter: React.FC<HelpCenterProps> = ({ setPage }) => {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button type="button" onClick={() => setPage(Page.Terms)} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:border-[#9A077B] hover:text-[#9A077B]">Termos de Uso</button>
-          <button type="button" onClick={() => setPage(Page.Privacy)} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:border-[#9A077B] hover:text-[#9A077B]">Politica de Privacidade</button>
+          <button type="button" onClick={() => setPage(Page.Privacy)} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:border-[#9A077B] hover:text-[#9A077B]">Política de Privacidade</button>
           <a href={`mailto:${PINTOR_PRO_LEGAL_CONFIG.supportEmail}`} className="inline-flex items-center gap-2 rounded-xl bg-[#9A077B] px-5 py-3 text-sm font-black text-white transition hover:bg-[#7F0665]">
             <Mail className="h-4 w-4" />
             Falar com suporte

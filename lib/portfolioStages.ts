@@ -6,7 +6,7 @@ export const PORTFOLIO_STAGE_DEFINITIONS = [
   },
   {
     key: 'massa_corrida_lixamento',
-    title: 'Aplicacao de Massa Corrida e Lixamento',
+    title: 'Aplicação de Massa Corrida e Lixamento',
     description: 'Registre a correcao da parede, nivelamento e o acabamento previo antes da pintura.'
   },
   {
