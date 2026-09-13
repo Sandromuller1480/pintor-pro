@@ -26,8 +26,8 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
   checkingClientAction,
   onProtectedClientAction
 }) => {
-  const chatDisabled = !canStartChat || checkingClientAction !== null;
-  const visitDisabled = !canScheduleVisit || checkingClientAction !== null;
+  const visitUnavailable = !canScheduleVisit;
+  const buttonsBusy = checkingClientAction !== null;
 
   let availabilityMessage = '';
 
@@ -57,10 +57,10 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Agenda</span>
-              <span className={`font-bold ${visitDisabled ? 'text-slate-500' : 'text-[#9A077B]'}`}>
+              <span className={`font-bold ${visitUnavailable ? 'text-slate-500' : 'text-[#9A077B]'}`}>
                 {isOutsideBusinessHours
                   ? 'Fora do horario'
-                  : visitDisabled
+                  : visitUnavailable
                     ? 'Indisponível agora'
                     : 'Disponivel em 10 dias'}
               </span>
@@ -74,12 +74,8 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             <button
               type="button"
               onClick={() => void onProtectedClientAction('chat')}
-              disabled={chatDisabled}
-              className={`w-full py-5 rounded-2xl font-black text-lg transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-100 ${
-                chatDisabled
-                  ? 'bg-[#94A3B8] text-white shadow-none'
-                  : 'bg-[#9A077B] text-white hover:bg-[#7F0665] shadow-xl shadow-[#EFC6E3]'
-              }`}
+              disabled={buttonsBusy}
+              className="w-full py-5 rounded-2xl bg-[#9A077B] font-black text-lg text-white shadow-xl shadow-[#EFC6E3] transition flex items-center justify-center hover:bg-[#7F0665] disabled:cursor-wait disabled:opacity-80"
             >
               {checkingClientAction === 'chat' ? (
                 <>
@@ -94,12 +90,8 @@ export const PainterActionsSidebar: React.FC<PainterActionsSidebarProps> = ({
             <button
               type="button"
               onClick={() => void onProtectedClientAction('visit')}
-              disabled={visitDisabled}
-              className={`w-full py-5 rounded-2xl font-black text-lg transition flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-100 ${
-                visitDisabled
-                  ? 'bg-[#94A3B8] text-white shadow-none'
-                  : 'bg-slate-900 text-white hover:bg-[#000747]'
-              }`}
+              disabled={buttonsBusy}
+              className="w-full py-5 rounded-2xl bg-slate-900 font-black text-lg text-white transition flex items-center justify-center hover:bg-[#000747] disabled:cursor-wait disabled:opacity-80"
             >
               {checkingClientAction === 'visit' ? (
                 <>

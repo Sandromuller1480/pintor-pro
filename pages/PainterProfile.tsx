@@ -391,16 +391,16 @@ export const PainterProfile: React.FC<PainterProfileProps> = ({ painterId, setPa
   };
 
   const handleProtectedClientAction = async (action: 'chat' | 'visit') => {
-    if ((action === 'chat' && !canStartChat) || (action === 'visit' && !canScheduleVisit)) {
-      return;
-    }
-
     setCheckingClientAction(action);
 
     try {
       const currentClientProfile = await getCurrentClientProfile();
 
       if (currentClientProfile) {
+        if ((action === 'chat' && !canStartChat) || (action === 'visit' && !canScheduleVisit)) {
+          return;
+        }
+
         openProtectedClientAction(action);
         return;
       }
