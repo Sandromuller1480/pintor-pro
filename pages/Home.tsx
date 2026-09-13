@@ -7,7 +7,6 @@ import { ClientLoginModal } from '../components/ClientLoginModal';
 import { ClientSignupModal } from '../components/ClientSignupModal';
 import { Logo } from '../components/Logo';
 import { PublicPainterMap } from '../components/PublicPainterMap';
-import { getCurrentClientProfile } from '../lib/services/clientSignupService';
 import { paintersService } from '../lib/services/paintersService';
 import mascostesImage from '../imagens/CASAL DE PINTORES.jpg';
 import {
@@ -86,7 +85,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
   const [locationFocusRequest, setLocationFocusRequest] = useState<LocationFocusRequest | null>(null);
   const [isClientLoginModalOpen, setIsClientLoginModalOpen] = useState(false);
   const [isClientSignupModalOpen, setIsClientSignupModalOpen] = useState(false);
-  const [isCheckingClientAccess, setIsCheckingClientAccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -142,24 +140,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
       window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
-
-  const handleHireNowClick = async () => {
-    setIsCheckingClientAccess(true);
-
-    try {
-      const currentClientProfile = await getCurrentClientProfile();
-
-      if (currentClientProfile) {
-        return;
-      }
-    } catch (error) {
-      console.error('Erro ao verificar cliente logado na home:', error);
-    } finally {
-      setIsCheckingClientAccess(false);
-    }
-
-    setIsClientLoginModalOpen(true);
-  };
 
   const totalPainters = painters.length;
   const verifiedPainters = painters.filter((painter) => painter.verified).length;
@@ -298,13 +278,6 @@ export const Home: React.FC<HomeProps> = ({ setPage }) => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button
-                  onClick={() => void handleHireNowClick()}
-                  disabled={isCheckingClientAccess}
-                  className="bg-[#000747] text-white px-12 py-6 rounded-2xl font-black text-lg hover:bg-[#9A077B] transition-all duration-300 shadow-2xl flex items-center justify-center uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isCheckingClientAccess ? 'Verificando...' : 'Contratar Pintor'}
-                </button>
                 <button
                   onClick={() => setPage(Page.Register)}
                   className="bg-white border-2 border-[#000747] text-[#000747] px-10 py-6 rounded-2xl font-black text-lg hover:border-[#9A077B] hover:text-[#9A077B] transition-all duration-300 flex items-center justify-center uppercase tracking-[0.1em] shadow-sm"
